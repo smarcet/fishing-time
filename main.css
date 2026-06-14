@@ -1,0 +1,28 @@
+*{
+margin:0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+#canvas1{
+    position: absolute;
+    top:50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: blue;
+    border: 5px solid black;
+}
+
+#fish1, #fish2, #fish3, #background, #fish1_sprite, #hook, #bubble, #bottle_1_sprite, #boat_idle, #boat_cast,#octopus {
+    display: none;
+}
+
+
+.disable-anti-aliasing {
+    image-rendering: optimizeSpeed;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: -o-crisp-edges;
+    image-rendering: optimize-contrast;
+    -ms-interpolation-mode: nearest-neighbor;
+}
