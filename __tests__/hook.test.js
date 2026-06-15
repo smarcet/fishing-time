@@ -231,6 +231,88 @@ describe('Hook isCasting() - catch guard', () => {
   });
 });
 
+const CAPTURE_THROW_THRESHOLD = 0.78;
+const CAPTURE_PHASE_RISING   = 'RISING';
+const CAPTURE_PHASE_THROWING = 'THROWING';
+
+function makeHookWithCatch(extraRope = 100) {
+  const hook = makeHook(false);
+  hook._ropeLength = HOOK_REST_LENGTH + extraRope;
+  const mockEnemy = { captured: jest.fn(), updateCaptured: jest.fn() };
+  hook.setCatch(mockEnemy);
+  return hook;
+}
+
+describe('Hook getCapturePhase()', () => {
+  test('returns CAPTURE_PHASE_RISING immediately after setCatch', () => {
+    const hook = makeHookWithCatch();
+    expect(hook.getCapturePhase()).toBe(CAPTURE_PHASE_RISING);
+  });
+
+  test('returns CAPTURE_PHASE_THROWING when rope reeled past threshold', () => {
+    const extraRope = 100;
+    const hook = makeHookWithCatch(extraRope); // start = REST+100
+    // retracted portion / extraRope >= CAPTURE_THROW_THRESHOLD => below threshold rope level
+    const retractNeeded = Math.ceil(CAPTURE_THROW_THRESHOLD * extraRope) + 1;
+    hook._ropeLength = HOOK_REST_LENGTH + extraRope - retractNeeded;
+    expect(hook.getCapturePhase()).toBe(CAPTURE_PHASE_THROWING);
+  });
+
+  test('getCaptureRawProgress returns 1 (no NaN) when rope equals REST at catch time', () => {
+    const hook = makeHook(false);
+    // Rope not extended - zero-denominator edge case: raw=1 means already at boat
+    const mockEnemy = { captured: jest.fn(), updateCaptured: jest.fn() };
+    hook.setCatch(mockEnemy);
+    const raw = hook.getCaptureRawProgress();
+    expect(raw).toBe(1);
+    expect(isNaN(raw)).toBe(false);
+    // raw=1 >= threshold => THROWING (correct: hook is already at rest, no distance to travel)
+    expect(hook.getCapturePhase()).toBe(CAPTURE_PHASE_THROWING);
+  });
+});
+
+describe('Hook clearCaptured() dispatches enemyCaptured event', () => {
+  test('dispatchEvent called with enemyCaptured and correct detail', () => {
+    const hook = makeHookWithCatch();
+    const dispatchMock = jest.fn();
+    const savedDoc = global.document;
+    global.document = { dispatchEvent: dispatchMock };
+
+    hook.clearCaptured();
+
+    global.document = savedDoc;
+
+    expect(dispatchMock).toHaveBeenCalledTimes(1);
+    const evt = dispatchMock.mock.calls[0][0];
+    expect(evt.type).toBe('enemyCaptured');
+    expect(evt.detail).toHaveProperty('enemyType');
+  });
+
+  test('dispatchEvent not called when no catch is active', () => {
+    const hook = makeHook(false);
+    const dispatchMock = jest.fn();
+    const savedDoc = global.document;
+    global.document = { dispatchEvent: dispatchMock };
+    hook.clearCaptured();
+    global.document = savedDoc;
+    expect(dispatchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('Hook.update() CATCH block calls updateCaptured() each tick', () => {
+  test('updateCaptured called N times after N update() calls in CATCH state', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 200;
+    const mockEnemy = { captured: jest.fn(), updateCaptured: jest.fn() };
+    hook.setCatch(mockEnemy);
+
+    const N = 5;
+    for (let i = 0; i < N; i++) hook.update();
+
+    expect(mockEnemy.updateCaptured).toHaveBeenCalledTimes(N);
+  });
+});
+
 describe('Hook._pivot() follows rendered rod-tip Y during CAST (bob offset)', () => {
   const BOB = 12;
 

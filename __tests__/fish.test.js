@@ -138,3 +138,98 @@ describe('Fish inheritance', () => {
     expect(makeFish()).toBeInstanceOf(EnemyWithAnimation);
   });
 });
+
+const CAPTURE_BLINK_INTERVAL  = 6;
+const CAPTURE_THROW_THRESHOLD = 0.78;
+
+function makeMockHookAt(phase, raw) {
+  return {
+    getEndpoint: () => new Point(100, 100),
+    getLandingTarget: () => new Point(300, 0),
+    getCaptureRawProgress: () => raw,
+  };
+}
+
+function makeFishWithCapture(captureTick, phase = 'RISING', raw = 0) {
+  const { mockGame, mockCtx, mockImage } = makeMocks();
+  let lastAlpha = 1;
+  let lastScale = null;
+  Object.defineProperty(mockCtx, 'globalAlpha', {
+    get: () => lastAlpha,
+    set: (v) => { lastAlpha = v; },
+    configurable: true,
+  });
+  mockCtx.scale = jest.fn((sx) => { lastScale = sx; });
+  const fish = new Fish(mockGame, mockCtx,
+    new Size(FISH_FRAME_HEIGHT, FISH_FRAME_WIDTH),
+    new Point(0, 350), mockImage, FISH_MAX_FRAME_X);
+  fish._direction = 1;
+  fish.captured(makeMockHookAt(phase, raw));
+  fish._captureTick = captureTick;
+  return { fish, mockCtx, getLastAlpha: () => lastAlpha, getLastScale: () => lastScale };
+}
+
+describe('EnemyWithAnimation drawCaptured() blink and throw arc', () => {
+  test('globalAlpha is 1.0 when _captureTick=0 (blink ON)', () => {
+    const { fish, getLastAlpha } = makeFishWithCapture(0);
+    fish.drawCaptured();
+    expect(getLastAlpha()).toBeCloseTo(1.0, 5);
+  });
+
+  test('globalAlpha is 0.2 when _captureTick=CAPTURE_BLINK_INTERVAL (blink OFF)', () => {
+    const { fish, getLastAlpha } = makeFishWithCapture(CAPTURE_BLINK_INTERVAL);
+    fish.drawCaptured();
+    expect(getLastAlpha()).toBeCloseTo(0.2, 5);
+  });
+
+  test('globalAlpha returns to 1.0 when _captureTick=CAPTURE_BLINK_INTERVAL*2 (blink ON again)', () => {
+    const { fish, getLastAlpha } = makeFishWithCapture(CAPTURE_BLINK_INTERVAL * 2);
+    fish.drawCaptured();
+    expect(getLastAlpha()).toBeCloseTo(1.0, 5);
+  });
+
+  test('ctx.scale receives value < 1 during THROWING phase', () => {
+    const raw = CAPTURE_THROW_THRESHOLD + 0.1;
+    const { fish, getLastScale } = makeFishWithCapture(0, 'THROWING', raw);
+    fish.drawCaptured();
+    expect(getLastScale()).toBeLessThan(1.0);
+  });
+});
+
+describe('Fish.draw() routes to drawCaptured() when captured (Task 4 integration)', () => {
+  test('fish.draw() sets globalAlpha (routes through drawCaptured) when CAPTURED', () => {
+    const { fish, getLastAlpha } = makeFishWithCapture(CAPTURE_BLINK_INTERVAL);
+    // Before Task 4: Fish.draw() has its own CAPTURED block that doesn't change globalAlpha
+    // After Task 4: Fish.draw() calls this.drawCaptured() which sets globalAlpha=0.2
+    fish.draw();
+    expect(getLastAlpha()).toBeCloseTo(0.2, 5);
+  });
+});
+
+describe('Enemy captured() and updateCaptured()', () => {
+  function makeMockHook() {
+    return { getPosition: () => new Point(100, 50), getCaptureRawProgress: () => 0, _player: { getPosition: () => new Point(200, 0) } };
+  }
+
+  test('_captureTick is 0 immediately after captured()', () => {
+    const fish = makeFish();
+    fish.captured(makeMockHook());
+    expect(fish._captureTick).toBe(0);
+  });
+
+  test('_captureTick increments on each updateCaptured() call', () => {
+    const fish = makeFish();
+    fish.captured(makeMockHook());
+    for (let i = 0; i < 6; i++) fish.updateCaptured();
+    expect(fish._captureTick).toBe(6);
+  });
+
+  test('_frameX advances after staggerFrame updateCaptured() calls', () => {
+    const fish = makeFish();
+    fish.captured(makeMockHook());
+    const initialFrame = fish._frameX;
+    // Fish uses ANIM_STAGGER_SLOW=6 staggerFrame; advance 6 ticks to get one frame step
+    for (let i = 0; i < 6; i++) fish.updateCaptured();
+    expect(fish._frameX).toBe(initialFrame + 1);
+  });
+});

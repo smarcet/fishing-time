@@ -20,7 +20,8 @@ const HOOK_REST_LENGTH      = 60;     // px - rope length while idle
 const HOOK_MAX_SWING_ANGLE  = 0.5236; // rad - max pendulum angle from vertical (~30 deg)
 const HOOK_SWING_SPEED      = 0.04;   // rad/tick - swing phase advance (~2.6s period at 60fps)
 const HOOK_CAST_SPEED       = 5;      // px/tick - rope extension speed while casting
-const HOOK_REEL_SPEED       = 5;      // px/tick - rope retraction speed while reeling
+const HOOK_REEL_SPEED       = 5;      // px/tick - rope retraction speed while reeling (empty hook)
+const HOOK_CATCH_REEL_SPEED = 3;      // px/tick - rope retraction speed while reeling a catch (slower for animation)
 const HOOK_MAX_DEPTH_FACTOR = 0.95;   // fraction of canvas height - deepest the hook can descend
 
 const WATER_SURFACE_Y   = 300;  // px - y of the water surface; entities spawn at or below this line
@@ -33,6 +34,30 @@ const PLAYER_CATCH_MAX_FRAME_X = 3;   // 0-indexed: 4 columns in catch spriteshe
 const PLAYER_CATCH_MAX_FRAME_Y = 6;   // 0-indexed: 7 rows in catch spritesheet (28 frames)
 
 const PARALLAX_GAME_SPEED = 5;         // px/tick base speed for parallax layers
+
+// Capture animation phases (string enum returned by Hook.getCapturePhase())
+const CAPTURE_PHASE_RISING   = 'RISING';
+const CAPTURE_PHASE_THROWING = 'THROWING';
+
+// Capture animation timing/geometry
+const CAPTURE_BLINK_INTERVAL  = 6;    // ticks per blink-state toggle
+const CAPTURE_THROW_THRESHOLD = 0.78; // rope-progress fraction where THROWING phase begins
+const CAPTURE_THROW_ARC_Y     = 50;   // px height at parabola peak
+
+// Hook status string constants
+const HOOK_STATUS_IDLE  = 'IDLE';
+const HOOK_STATUS_CAST  = 'CAST';
+const HOOK_STATUS_CATCH = 'CATCH';
+
+// Enemy / capture status string constants
+const ENEMY_STATUS_CAPTURED = 'CAPTURED';
+
+// Player state string constants
+const PLAYER_STATE_IDLE     = 'IDLE';
+const PLAYER_STATE_MOVING_R = 'MOVING_R';
+const PLAYER_STATE_MOVING_L = 'MOVING_L';
+const PLAYER_STATE_CAST     = 'CAST';
+const PLAYER_STATE_REEL     = 'REEL';
 
 class Size {
   constructor(h, w) {
@@ -165,11 +190,16 @@ class Enemy extends GameObject{
 
   captured(hook){
     this._hook = hook;
-    this._status = 'CAPTURED';
+    this._status = ENEMY_STATUS_CAPTURED;
+    this._captureTick = 0;
+  }
+
+  updateCaptured() {
+    this._captureTick++;
   }
 
   isCaptured(){
-    return this._status === 'CAPTURED';
+    return this._status === ENEMY_STATUS_CAPTURED;
   }
 }
 
@@ -188,7 +218,25 @@ class EnemyWithAnimation extends Enemy {
      this._direction = null;
      this._staggerFrame = 1;
      this._tick = 0;
+     this._blinkInterval = CAPTURE_BLINK_INTERVAL;
    }
+
+  updateCaptured() {
+    super.updateCaptured();
+    if (this._staggerFrame <= 0) return;
+    if (++this._tick % this._staggerFrame === 0) {
+      if (this._frameX < this._maxFrameX - 1) {
+        ++this._frameX;
+      } else {
+        this._frameX = 0;
+        if (this._frameY < this._maxFrameY - 1) {
+          ++this._frameY;
+        } else {
+          this._frameY = 0;
+        }
+      }
+    }
+  }
 
   update() {
 
@@ -219,6 +267,45 @@ class EnemyWithAnimation extends Enemy {
   }
 
 
+  drawCaptured() {
+    const w = this._size.getWidth();
+    const h = this._size.getHeight();
+    const hookTip = this._hook.getEndpoint();
+    const blinkOn = Math.floor(this._captureTick / this._blinkInterval) % 2 === 0;
+    const blinkAlpha = blinkOn ? 1.0 : 0.2;
+
+    // cx/cy = visual center of sprite in world coords
+    let cx = hookTip.getX();
+    let cy = hookTip.getY() + h / 2;
+    let scale = 1.0;
+    let alpha = blinkAlpha;
+
+    const raw = this._hook.getCaptureRawProgress();
+    if (raw >= CAPTURE_THROW_THRESHOLD) {
+      const t = (raw - CAPTURE_THROW_THRESHOLD) / (1 - CAPTURE_THROW_THRESHOLD);
+      const target = this._hook.getLandingTarget();
+      // Lerp visual center from hook tip toward boat center
+      cx += (target.getX() - hookTip.getX()) * t;
+      cy += (target.getY() - (hookTip.getY() + h / 2)) * t;
+      // Sine arc: upward bump above the straight-line trajectory
+      cy -= Math.sin(t * Math.PI) * CAPTURE_THROW_ARC_Y;
+      scale = 1.0 - t * 0.7;
+      alpha = blinkAlpha * (1.0 - t);
+    }
+
+    // translate to center so ctx.scale() shrinks around the center (no drift)
+    this._ctx.save();
+    this._ctx.globalAlpha = Math.max(0, alpha);
+    this._ctx.translate(cx, cy);
+    this._ctx.scale(scale, scale);
+    this._drawCapturedSprite(-w / 2, -h / 2, w, h);
+    this._ctx.restore();
+  }
+
+  _drawCapturedSprite(dx, dy, w, h) {
+    this._ctx.drawImage(this._image, this._dieFrameX * w, this._dieFrameY * h, w, h, dx, dy, w, h);
+  }
+
   draw(){
 
     const w = this._size.getWidth();
@@ -226,21 +313,7 @@ class EnemyWithAnimation extends Enemy {
     const dx = this._position.getX();
     const dy = this._position.getY()
 
-    if(this._status === 'CAPTURED'){
-      //this._ctx.filter =  "sepia(1) drop-shadow(-9px 9px 3px #e81)";
-      this._ctx.drawImage
-      (
-        this._image,
-        this._dieFrameX * w,
-        this._dieFrameY * h,
-        w,
-        h,
-        this._hook.getPosition().getX(),
-        this._hook.getPosition().getY(),
-        w,
-        h);
-      return;
-    }
+    if(this._status === ENEMY_STATUS_CAPTURED){ this.drawCaptured(); return; }
 
     // this._ctx.filter = `opacity(${this._opacity})`;
     // debug
@@ -293,26 +366,17 @@ class Trash extends EnemyWithAnimation {
     return new Point(p.getX(), p.getY() + this._bobOffset);
   }
 
+  _drawCapturedSprite(dx, dy, w, h) {
+    this._ctx.drawImage(this._image, 0, 0, w, h, dx, dy, w, h);
+  }
+
   draw(){
     const w = this._size.getWidth();
     const h =  this._size.getHeight();
     const dx = this._position.getX();
     const dy = this._position.getY();
 
-    if(this._status === 'CAPTURED'){
-      this._ctx.drawImage
-      (
-        this._image,
-        0,
-        0,
-        w,
-        h,
-        this._hook.getPosition().getX(),
-        this._hook.getPosition().getY(),
-        w,
-        h);
-      return;
-    }
+    if(this._status === ENEMY_STATUS_CAPTURED){ this.drawCaptured(); return; }
 
     // debug
     if(this._game.isDebug()) {
@@ -361,6 +425,12 @@ class Octopus extends EnemyWithAnimation {
     return new Point(p.getX(), p.getY() + this._bobOffset);
   }
 
+  _drawCapturedSprite(dx, dy, w, h) {
+    const sw = this._sw;
+    const sh = this._sh;
+    this._ctx.drawImage(this._image, this._dieFrameX * sw, this._dieFrameY * sh, sw, sh, dx, dy, w, h);
+  }
+
   draw() {
     const w  = this._size.getWidth();
     const h  = this._size.getHeight();
@@ -369,14 +439,7 @@ class Octopus extends EnemyWithAnimation {
     const dx = this._position.getX();
     const dy = this._position.getY();
 
-    if (this._status === 'CAPTURED') {
-      this._ctx.drawImage(
-        this._image,
-        this._dieFrameX * sw, this._dieFrameY * sh, sw, sh,
-        this._hook.getPosition().getX(), this._hook.getPosition().getY(), w, h
-      );
-      return;
-    }
+    if (this._status === ENEMY_STATUS_CAPTURED) { this.drawCaptured(); return; }
 
     if (this._game.isDebug()) {
       this._ctx.fillStyle = 'red';
@@ -424,17 +487,24 @@ class Fish extends EnemyWithAnimation {
     super.update();
   }
 
+  captured(hook) {
+    super.captured(hook);
+    if (this._direction === null) {
+      this._direction = this._position.getX() < this._game.getSize().getWidth() / 2 ? 1 : -1;
+    }
+  }
+
+  _drawCapturedSprite(dx, dy, w, h) {
+    this._ctx.drawImage(this._image, this._frameX * w, 0, w, h, dx, dy, w, h);
+  }
+
   draw() {
     const w = this._size.getWidth();
     const h = this._size.getHeight();
     const dx = this._position.getX();
     const dy = this._position.getY();
 
-    if (this._status === 'CAPTURED') {
-      this._ctx.drawImage(this._image, this._frameX * w, 0, w, h,
-        this._hook.getPosition().getX(), this._hook.getPosition().getY(), w, h);
-      return;
-    }
+    if (this._status === ENEMY_STATUS_CAPTURED) { this.drawCaptured(); return; }
 
     if (this._game.isDebug()) {
       this._ctx.fillStyle = 'red';
@@ -460,8 +530,9 @@ class Hook extends GameObject {
     super(ctx, size, position);
     this._image = (typeof document !== 'undefined') ? document.getElementById('hook') : null;
     this._player = player;
-    this._status = 'IDLE';
+    this._status = HOOK_STATUS_IDLE;
     this._catch = null;
+    this._catchRopeStart = null;
     this._swingPhase = 0;
     this._angle = 0;
     this._castAngle = 0;
@@ -472,10 +543,10 @@ class Hook extends GameObject {
   _pivot() {
     const pos = this._player.getPosition();
     const w = this._player.getSize().getWidth();
-    const casting = this._player._state === 'CAST';
+    const casting = this._player._state === PLAYER_STATE_CAST;
     const xOffset = casting ? HOOK_CAST_PIVOT_X_OFFSET : HOOK_PIVOT_X_OFFSET;
     const yFactor = casting ? HOOK_CAST_PIVOT_Y_FACTOR : HOOK_PIVOT_Y_FACTOR;
-    const flipped = this._player._state === 'MOVING_L';
+    const flipped = this._player._state === PLAYER_STATE_MOVING_L;
     const px = flipped
       ? pos.getX() + w - xOffset
       : pos.getX() + xOffset;
@@ -484,7 +555,7 @@ class Hook extends GameObject {
   }
 
   _endpoint() {
-    const a = (this._status === 'IDLE') ? this._angle : this._castAngle;
+    const a = (this._status === HOOK_STATUS_IDLE) ? this._angle : this._castAngle;
     const pivot = this._pivot();
     return new Point(
       pivot.getX() + this._ropeLength * Math.sin(a),
@@ -497,11 +568,45 @@ class Hook extends GameObject {
     return new Point(ep.getX() - this._size.getWidth() / 2, ep.getY());
   }
 
+  getEndpoint() {
+    return this._endpoint();
+  }
+
+  getPivotPoint() {
+    return this._pivot();
+  }
+
+  getLandingTarget() {
+    const pos = this._player.getPosition();
+    const w   = this._player.getSize().getWidth();
+    // Horizontal center of the boat at the rod-tip height (where the fish "lands")
+    return new Point(pos.getX() + w / 2, this._pivot().getY());
+  }
+
   clearCaptured(){
+    if (typeof document !== 'undefined' && this._catch) {
+      const pos = this.getPosition();
+      document.dispatchEvent(new CustomEvent('enemyCaptured', {
+        detail: { enemyType: this._catch.constructor.name, x: pos.getX(), y: pos.getY() }
+      }));
+    }
     this._catch = null;
-    this._status = 'IDLE';
+    this._catchRopeStart = null;
+    this._status = HOOK_STATUS_IDLE;
     this._ropeLength = HOOK_REST_LENGTH;
     this._reachedBottom = false;
+  }
+
+  getCaptureRawProgress() {
+    const denom = this._catchRopeStart - HOOK_REST_LENGTH;
+    if (denom <= 0) return 1;
+    return Math.min(1, (this._catchRopeStart - this._ropeLength) / denom);
+  }
+
+  getCapturePhase() {
+    if (!this._catch) return CAPTURE_PHASE_RISING;
+    return this.getCaptureRawProgress() >= CAPTURE_THROW_THRESHOLD
+      ? CAPTURE_PHASE_THROWING : CAPTURE_PHASE_RISING;
   }
 
   update(){
@@ -509,17 +614,17 @@ class Hook extends GameObject {
     const spaceHeld = this._player._game.hasKey(KEY_SPACE) &&
       !(this._player._game.hasKey(KEY_ARROW_LEFT) || this._player._game.hasKey(KEY_ARROW_RIGHT));
 
-    if (this._status === 'IDLE') {
+    if (this._status === HOOK_STATUS_IDLE) {
       if (spaceHeld && !this._reachedBottom) {
         this._castAngle = this._angle;
-        this._status = 'CAST';
+        this._status = HOOK_STATUS_CAST;
         this._ropeLength += HOOK_CAST_SPEED;
       } else {
         if (!spaceHeld) this._reachedBottom = false;
         this._swingPhase += HOOK_SWING_SPEED;
         this._angle = HOOK_MAX_SWING_ANGLE * Math.sin(this._swingPhase);
       }
-    } else if (this._status === 'CAST') {
+    } else if (this._status === HOOK_STATUS_CAST) {
       const gameHeight = this._player._game.getSize().getHeight();
       const atBottom = this._endpoint().getY() >= gameHeight * HOOK_MAX_DEPTH_FACTOR;
       if (atBottom) this._reachedBottom = true;
@@ -529,11 +634,12 @@ class Hook extends GameObject {
         this._ropeLength -= HOOK_REEL_SPEED;
         if (this._ropeLength <= HOOK_REST_LENGTH) {
           this._ropeLength = HOOK_REST_LENGTH;
-          this._status = 'IDLE';
+          this._status = HOOK_STATUS_IDLE;
         }
       }
-    } else if (this._status === 'CATCH') {
-      this._ropeLength -= HOOK_REEL_SPEED;
+    } else if (this._status === HOOK_STATUS_CATCH) {
+      this._catch.updateCaptured();
+      this._ropeLength -= HOOK_CATCH_REEL_SPEED;
       if (this._ropeLength <= HOOK_REST_LENGTH) {
         this.clearCaptured();
       }
@@ -559,7 +665,7 @@ class Hook extends GameObject {
     this._ctx.restore();
 
     if(this._player._game.isDebug()) {
-      this._ctx.fillStyle = this._status === 'CATCH' ? 'green' : 'red';
+      this._ctx.fillStyle = this._status === HOOK_STATUS_CATCH ? 'green' : 'red';
       this._ctx.font = "16px serif";
       this._ctx.fillText(`X ${pos.getX().toFixed(1)} Y ${pos.getY().toFixed(1)} angle ${this._angle.toFixed(3)}`, 10, 50);
       this._ctx.fillRect(pos.getX(), pos.getY(), w, h);
@@ -575,16 +681,17 @@ class Hook extends GameObject {
   }
 
   hadCatch(){
-    return this._status === 'CATCH';
+    return this._status === HOOK_STATUS_CATCH;
   }
 
   isCasting(){
-    return this._status === 'CAST';
+    return this._status === HOOK_STATUS_CAST;
   }
 
   setCatch(fish){
-    this._status = 'CATCH';
+    this._status = HOOK_STATUS_CATCH;
     this._catch = fish;
+    this._catchRopeStart = this._ropeLength;
     this._catch.captured(this);
   }
 }
@@ -601,7 +708,7 @@ class Player extends GameObject {
     this._image = (typeof document !== 'undefined') ? document.getElementById('boat_idle') : null;
     this._castAnimation = (typeof document !== 'undefined') ? document.getElementById('boat_cast') : null;
     this._catchAnimation = (typeof document !== 'undefined') ? document.getElementById('boat_catch') : null;
-    this._state = 'IDLE';
+    this._state = PLAYER_STATE_IDLE;
     this.__castAnimationEnded = false;
     this._gameFrame = 0;
     this._bobPhase  = 0;
@@ -629,31 +736,31 @@ class Player extends GameObject {
 
     if(this._game.hasKey(KEY_ARROW_RIGHT) && rBound <= this._game.getSize().getWidth()) {
       this._speedX = 2;
-      this._state = 'MOVING_R';
+      this._state = PLAYER_STATE_MOVING_R;
     }
     else if(this._game.hasKey(KEY_ARROW_LEFT) && lBound !== 0) {
       this._speedX = -2;
-      this._state = 'MOVING_L';
+      this._state = PLAYER_STATE_MOVING_L;
     }
     else if (this._game.hasKey(KEY_SPACE) && !(this._game.hasKey(KEY_ARROW_LEFT) || this._game.hasKey(KEY_ARROW_RIGHT)) ){
-      if(this._state !== 'CAST'){
+      if(this._state !== PLAYER_STATE_CAST){
         this._frameY = this._frameX = 0;
         this.__castAnimationEnded = false;
       }
-      this._state = 'CAST';
+      this._state = PLAYER_STATE_CAST;
     }
     else {
-      this._state = 'IDLE';
+      this._state = PLAYER_STATE_IDLE;
       this._speedX = 0;
     }
 
     // Override to REEL when a fish is being reeled in
     if (this._hook.hadCatch()) {
-      if (this._state !== 'REEL') {
+      if (this._state !== PLAYER_STATE_REEL) {
         this._catchFrameX = 0;
         this._catchFrameY = 0;
       }
-      this._state = 'REEL';
+      this._state = PLAYER_STATE_REEL;
     }
 
     // Bob: sinusoidal vertical offset (no tilt — keeps hook pivot aligned with rod tip)
@@ -661,7 +768,7 @@ class Player extends GameObject {
     this._bobOffset  = ANIM_BOB_AMPLITUDE * Math.sin(this._bobPhase);
 
     this._position = new Point(formerPosition.getX() + this._speedX, formerPosition.getY() + this._speedY);
-    if(this.__castAnimationEnded || this._state !== 'CAST')
+    if(this.__castAnimationEnded || this._state !== PLAYER_STATE_CAST)
       this._hook.update();
   }
 
@@ -681,7 +788,7 @@ class Player extends GameObject {
       this._ctx.fillText(`frameX ${this._frameX} frameY ${this._frameY} state ${this._state}`, 10, 90);
     }
 
-    if (this._state === 'REEL') {
+    if (this._state === PLAYER_STATE_REEL) {
       if (this._gameFrame % PLAYER_ANIM_STAGGER === 0) {
         if (this._catchFrameX < PLAYER_CATCH_MAX_FRAME_X) {
           ++this._catchFrameX;
@@ -695,7 +802,7 @@ class Player extends GameObject {
       this._ctx.scale(1, 1);
       this._ctx.drawImage(this._catchAnimation, this._catchFrameX * w, this._catchFrameY * h, w, h, -w / 2, -h / 2, w, h);
       this._ctx.restore();
-    } else if (this._state === 'MOVING_L' || this._state === 'MOVING_R' || this._state === 'IDLE') {
+    } else if (this._state === PLAYER_STATE_MOVING_L || this._state === PLAYER_STATE_MOVING_R || this._state === PLAYER_STATE_IDLE) {
       if (this._gameFrame % PLAYER_ANIM_STAGGER === 0) {
         if (this._frameX < 3) {
           ++this._frameX;
@@ -704,7 +811,7 @@ class Player extends GameObject {
           this._frameY = this._frameY < 4 ? this._frameY + 1 : 0;
         }
       }
-      const flipX = this._state === 'MOVING_L' ? -1 : 1;
+      const flipX = this._state === PLAYER_STATE_MOVING_L ? -1 : 1;
       this._ctx.save();
       this._ctx.translate(cx, cy);
       this._ctx.scale(flipX, 1);
@@ -738,7 +845,7 @@ class Player extends GameObject {
       this._ctx.restore();
     }
 
-    if (this.__castAnimationEnded || this._state !== 'CAST')
+    if (this.__castAnimationEnded || this._state !== PLAYER_STATE_CAST)
       this._hook.draw();
     ++this._gameFrame;
   }
@@ -788,7 +895,7 @@ class EnemyFactory {
          game,
          ctx,
          spec.size,
-         new Point(0,  300 ),
+         new Point(0, game.getSize().getHeight() * 0.65),
          spec.image,
          spec.maxFrameX,
          spec.maxFrameY,
