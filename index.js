@@ -5,6 +5,13 @@ const KEY_ARROW_RIGHT = 'ArrowRight';
 const KEY_SPACE = ' ';
 const AllowedKeys = [KEY_ARROW_UP,  KEY_ARROW_DOWN, KEY_ARROW_LEFT, KEY_ARROW_RIGHT, KEY_SPACE];
 
+const ANIM_BOB_AMPLITUDE   = 12;     // px - vertical sine wave height
+const ANIM_BOB_SPEED       = 0.08;   // rad/tick - phase advance per frame (~1.3s period at 60fps)
+const ANIM_MAX_TILT_ANGLE  = 0.1745; // rad - max rock angle (~10 deg)
+const ANIM_STAGGER_SLOW    = 6;      // ticks per sprite frame (bottle, octopus)
+const DRIFT_SPEED_SLOW     = 0.6;    // px/tick (trash/bottle)
+const DRIFT_SPEED_DEFAULT  = 1.5;    // px/tick (fish, octopus default)
+
 class Size {
   constructor(h, w) {
     this._h = h;
@@ -106,7 +113,7 @@ class Enemy extends GameObject{
     this._direction = null;
     this._status = null;
     this._hook = null;
-    this._driftSpeed = 1.5;
+    this._driftSpeed = DRIFT_SPEED_DEFAULT;
   }
 
   update(){
@@ -242,11 +249,11 @@ class Trash extends EnemyWithAnimation {
 
   constructor(game, ctx, size, position, image, maxFrames) {
     super(game, ctx, size, position, image, maxFrames);
-    this._staggerFrame = 6;
-    this._driftSpeed = 0.6;
-    this._bobAmplitude = 12;
-    this._bobSpeed = 0.08;
-    this._maxAngle = 0.1745;
+    this._staggerFrame = ANIM_STAGGER_SLOW;
+    this._driftSpeed = DRIFT_SPEED_SLOW;
+    this._bobAmplitude = ANIM_BOB_AMPLITUDE;
+    this._bobSpeed = ANIM_BOB_SPEED;
+    this._maxAngle = ANIM_MAX_TILT_ANGLE;
     this._bobPhase = 0;
     this._bobOffset = 0;
     this._angle = 0;
@@ -298,6 +305,69 @@ class Trash extends EnemyWithAnimation {
     this._ctx.translate(dx + w / 2, dy + this._bobOffset + h / 2);
     this._ctx.rotate(this._angle);
     this._ctx.drawImage(this._image, this._frameX * w, 0, w, h, -w / 2, -h / 2, w, h);
+    this._ctx.restore();
+  }
+}
+
+class Octopus extends EnemyWithAnimation {
+
+  constructor(game, ctx, size, position, image, maxFrameX, maxFrameY, dieFrameX, dieFrameY, spriteFrameSize) {
+    super(game, ctx, size, position, image, maxFrameX, maxFrameY, dieFrameX, dieFrameY);
+    // spriteFrameSize holds the natural spritesheet cell dimensions, which can differ
+    // from the display size when the octopus is rendered at a scaled-down size.
+    this._spriteFrameSize = spriteFrameSize || size;
+    this._staggerFrame = ANIM_STAGGER_SLOW;
+    this._bobAmplitude = ANIM_BOB_AMPLITUDE;
+    this._bobSpeed = ANIM_BOB_SPEED;
+    this._maxAngle = ANIM_MAX_TILT_ANGLE;
+    this._bobPhase = 0;
+    this._bobOffset = 0;
+    this._angle = 0;
+  }
+
+  update() {
+    super.update();
+    this._bobPhase += this._bobSpeed;
+    this._bobOffset = this._bobAmplitude * Math.sin(this._bobPhase);
+    this._angle = this._maxAngle * Math.cos(this._bobPhase);
+  }
+
+  getPosition() {
+    const p = super.getPosition();
+    return new Point(p.getX(), p.getY() + this._bobOffset);
+  }
+
+  draw() {
+    const w  = this._size.getWidth();            // display width
+    const h  = this._size.getHeight();           // display height
+    const sw = this._spriteFrameSize.getWidth(); // spritesheet cell width
+    const sh = this._spriteFrameSize.getHeight(); // spritesheet cell height
+    const dx = this._position.getX();
+    const dy = this._position.getY();
+
+    if (this._status === 'CAPTURED') {
+      this._ctx.drawImage(
+        this._image,
+        this._dieFrameX * sw, this._dieFrameY * sh, sw, sh,
+        this._hook.getPosition().getX(), this._hook.getPosition().getY(), w, h
+      );
+      return;
+    }
+
+    if (this._game.isDebug()) {
+      this._ctx.fillStyle = 'red';
+      this._ctx.font = '16px serif';
+      this._ctx.fillText(`X ${dx} `, 10, 200);
+      this._ctx.fillText(`Y ${dy} `, 10, 220);
+      this._ctx.fillRect(dx, dy + this._bobOffset, w, h);
+    }
+
+    const flipX = this._direction === -1 ? -1 : 1;
+    this._ctx.save();
+    this._ctx.translate(dx + w / 2, dy + this._bobOffset + h / 2);
+    this._ctx.scale(flipX, 1);
+    this._ctx.rotate(this._angle);
+    this._ctx.drawImage(this._image, this._frameX * sw, this._frameY * sh, sw, sh, -w / 2, -h / 2, w, h);
     this._ctx.restore();
   }
 }
@@ -550,7 +620,8 @@ class EnemyFactory {
     this.specs = [];
     this.specs['octopus'] ={
       image:  document.getElementById('octopus'),
-      size: new Size(489.5 , 397.5),
+      size: new Size(244.75, 198.75),
+      spriteFrameSize: new Size(489.5, 397.5),
       maxFrameX: 4,
       maxFrameY: 4,
       dieFrameX: 1,
@@ -561,7 +632,7 @@ class EnemyFactory {
   createEnemy(name, game, ctx){
      const spec = this.specs[name];
      if(spec){
-       return new EnemyWithAnimation
+       return new Octopus
        (
          game,
          ctx,
@@ -571,7 +642,8 @@ class EnemyFactory {
          spec.maxFrameX,
          spec.maxFrameY,
          spec.dieFrameX,
-         spec.dieFrameY
+         spec.dieFrameY,
+         spec.spriteFrameSize
        )
      }
      return null;
@@ -767,5 +839,5 @@ if (typeof window !== 'undefined') { window.addEventListener('load', function(){
 }); } // end if (typeof window !== 'undefined')
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Size, Point, GameObject, Enemy, EnemyWithAnimation, Trash };
+  module.exports = { Size, Point, GameObject, Enemy, EnemyWithAnimation, Trash, Octopus };
 }
