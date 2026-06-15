@@ -2,7 +2,8 @@
   "name": "fishing-time",
   "private": true,
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "dev": "python3 -m http.server 8081"
   },
   "devDependencies": {
     "jest": "^29"
