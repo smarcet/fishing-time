@@ -21,6 +21,11 @@ const HOOK_CAST_SPEED       = 5;      // px/tick - rope extension speed while ca
 const HOOK_REEL_SPEED       = 5;      // px/tick - rope retraction speed while reeling
 const HOOK_MAX_DEPTH_FACTOR = 0.95;   // fraction of canvas height - deepest the hook can descend
 
+const WATER_SURFACE_Y   = 300;  // px - y of the water surface; entities spawn at or below this line
+const FISH_FRAME_WIDTH  = 100;  // px - fish spritesheet cell width (= render width)
+const FISH_FRAME_HEIGHT = 82;   // px - fish spritesheet cell height (= render height)
+const FISH_MAX_FRAME_X  = 10;   // columns in the fish1_sprite spritesheet
+
 class Size {
   constructor(h, w) {
     this._h = h;
@@ -383,6 +388,64 @@ class Octopus extends EnemyWithAnimation {
   }
 }
 
+class Fish extends EnemyWithAnimation {
+
+  constructor(game, ctx, size, position, image, maxFrameX, maxFrameY, dieFrameX, dieFrameY) {
+    super(game, ctx, size, position, image, maxFrameX, maxFrameY, dieFrameX, dieFrameY);
+    this._staggerFrame = ANIM_STAGGER_SLOW;
+  }
+
+  static randomSpawnY(canvasHeight, fishHeight, rng = Math.random) {
+    const minY = WATER_SURFACE_Y;
+    const maxY = canvasHeight - fishHeight;
+    return minY + rng() * (maxY - minY);
+  }
+
+  static randomSpawnX(canvasWidth, fishWidth, rng = Math.random) {
+    return rng() * (canvasWidth - fishWidth);
+  }
+
+  update() {
+    // On the first tick, fish not spawned at a wall need an explicit initial direction.
+    // Enemy.update() only sets direction+speed on wall contact, so mid-canvas fish
+    // would sit still forever without this bootstrap.
+    if (this._direction === null) {
+      this._direction = this._position.getX() < this._game.getSize().getWidth() / 2 ? 1 : -1;
+      this._speedX = this._direction * this._driftSpeed;
+    }
+    super.update();
+  }
+
+  draw() {
+    const w = this._size.getWidth();
+    const h = this._size.getHeight();
+    const dx = this._position.getX();
+    const dy = this._position.getY();
+
+    if (this._status === 'CAPTURED') {
+      this._ctx.drawImage(this._image, this._frameX * w, 0, w, h,
+        this._hook.getPosition().getX(), this._hook.getPosition().getY(), w, h);
+      return;
+    }
+
+    if (this._game.isDebug()) {
+      this._ctx.fillStyle = 'red';
+      this._ctx.font = '16px serif';
+      this._ctx.fillText(`X ${dx} `, 10, 200);
+      this._ctx.fillText(`Y ${dy} `, 10, 220);
+      this._ctx.fillRect(dx, dy, w, h);
+    }
+
+    // fish1_sprite faces left by default; flip when going right (direction=1)
+    const flipX = this._direction === 1 ? -1 : 1;
+    this._ctx.save();
+    this._ctx.translate(dx + w / 2, dy + h / 2);
+    this._ctx.scale(flipX, 1);
+    this._ctx.drawImage(this._image, this._frameX * w, this._frameY * h, w, h, -w / 2, -h / 2, w, h);
+    this._ctx.restore();
+  }
+}
+
 class Hook extends GameObject {
 
   constructor(player, ctx, size, position) {
@@ -719,18 +782,17 @@ class Game extends GameObject{
 
 
     for(let i = 0; i < 5 ; i++){
-      // see https://www.geeksforgeeks.org/how-to-generate-random-number-in-given-range-using-javascript/
-      let y = Math.random() * (this._size.getHeight() - 200) + 200;
       this._enemies.push(
-        new EnemyWithAnimation
-        (
+        new Fish(
           this,
           ctx,
-          new Size(82 , 100),
-          new Point(0, y ),
-          //this._enemies_images[Math.floor((Math.random()*this._enemies_images.length))],
+          new Size(FISH_FRAME_HEIGHT, FISH_FRAME_WIDTH),
+          new Point(
+            Fish.randomSpawnX(this._size.getWidth(), FISH_FRAME_WIDTH),
+            Fish.randomSpawnY(this._size.getHeight(), FISH_FRAME_HEIGHT)
+          ),
           document.getElementById('fish1_sprite'),
-          10
+          FISH_MAX_FRAME_X
         )
       );
     }
@@ -890,5 +952,5 @@ if (typeof window !== 'undefined') { window.addEventListener('load', function(){
 }); } // end if (typeof window !== 'undefined')
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Size, Point, GameObject, Enemy, EnemyWithAnimation, Trash, Octopus, Hook };
+  module.exports = { Size, Point, GameObject, Enemy, EnemyWithAnimation, Trash, Octopus, Fish, Hook };
 }
