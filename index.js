@@ -32,6 +32,8 @@ const PLAYER_ANIM_STAGGER      = 5;   // ticks per sprite frame (boat idle/cast)
 const PLAYER_CATCH_MAX_FRAME_X = 3;   // 0-indexed: 4 columns in catch spritesheet
 const PLAYER_CATCH_MAX_FRAME_Y = 6;   // 0-indexed: 7 rows in catch spritesheet (28 frames)
 
+const PARALLAX_GAME_SPEED = 5;         // px/tick base speed for parallax layers
+
 class Size {
   constructor(h, w) {
     this._h = h;
@@ -799,12 +801,46 @@ class EnemyFactory {
   }
 }
 
+class Layer {
+  constructor(image, width, height, speedModifier) {
+    this.x = 0;
+    this.y = 0;
+    this.image = image;
+    this.width = width;
+    this.height = height;
+    this.speedModifier = speedModifier;
+    this.speed = PARALLAX_GAME_SPEED * this.speedModifier;
+  }
+
+  update() {
+    if (this.x <= -this.width) this.x = 0;
+    this.x = this.x - this.speed;
+  }
+
+  draw(ctx) {
+    ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+    ctx.drawImage(this.image, this.x + this.width, this.y, this.width, this.height);
+  }
+}
+
 class Game extends GameObject{
 
   constructor(ctx, size) {
     super(ctx, size);
+    const w = this._size.getWidth();
+    const h = this._size.getHeight();
+    this._layers = [
+      new Layer(document.getElementById('sky'),    w, h, 0.0),
+      new Layer(document.getElementById('cloud'),  w, h, 0.1),
+      new Layer(document.getElementById('ocean'),  w, h, 0.2),
+      new Layer(document.getElementById('ocean1'), w, h, 0.0),
+      new Layer(document.getElementById('ocean2'), w, h, 0.0),
+      new Layer(document.getElementById('ground'), w, h, 0.0),
+      new Layer(document.getElementById('ground2'),w, h, 0.0),
+      new Layer(document.getElementById('ground3'),w, h, 0.0),
+    ];
     this._enemyFactory = new EnemyFactory();
-    this._player = new Player(this, ctx, new Size(315.6, 404.75), new Point(100, -30))
+    this._player = new Player(this, ctx, new Size(315.6, 404.75), new Point(100, -10))
     this._enemies = [];
     this._bubbles = [];
     this._enemies_images = [];
@@ -860,6 +896,7 @@ class Game extends GameObject{
 
   update(deltaTime){
     super.update();
+    this._layers.forEach(l => l.update());
 
     // clear dead bubbles
     this._bubbles = this._bubbles.filter(b => b.isLive());
@@ -907,7 +944,7 @@ class Game extends GameObject{
     super.draw();
     this._ctx.filter = 'none';
     this._ctx.clearRect(0, 0, this._size.getWidth(),  this._size.getHeight());
-    this._ctx.drawImage(document.getElementById("background"), 0, 0, this._size.getWidth(),  this._size.getHeight())
+    this._layers.forEach(l => l.draw(this._ctx));
 
     this._player.draw();
     this._enemies.forEach(e => e.draw());
