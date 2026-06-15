@@ -29,6 +29,14 @@ const FISH_FRAME_WIDTH  = 100;  // px - fish spritesheet cell width (= render wi
 const FISH_FRAME_HEIGHT = 82;   // px - fish spritesheet cell height (= render height)
 const FISH_MAX_FRAME_X  = 10;   // columns in the fish1_sprite spritesheet
 
+const CRAB_FRAME_WIDTH   = 408;   // px - natural sprite cell width
+const CRAB_FRAME_HEIGHT  = 197;   // px - natural sprite cell height
+const CRAB_MAX_FRAME_X   = 10;    // columns in spritesheet (move row)
+const CRAB_MAX_FRAME_Y   = 1;     // only cycle move row; die row accessed directly via dieFrameY
+const CRAB_DIE_FRAME_Y   = 1;     // row index for captured/die animation
+const CRAB_DRIFT_SPEED   = 4.0;   // px/tick - 2.5x fish speed, hardest enemy to catch
+const CRAB_SEABED_FACTOR = 0.85;  // canvas-height fraction for spawn Y (seabed)
+
 const PLAYER_ANIM_STAGGER      = 5;   // ticks per sprite frame (boat idle/cast)
 const PLAYER_CATCH_MAX_FRAME_X = 3;   // 0-indexed: 4 columns in catch spritesheet
 const PLAYER_CATCH_MAX_FRAME_Y = 6;   // 0-indexed: 7 rows in catch spritesheet (28 frames)
@@ -459,6 +467,49 @@ class Octopus extends EnemyWithAnimation {
   }
 }
 
+class Crab extends EnemyWithAnimation {
+
+  constructor(game, ctx, size, position, image, maxFrameX, maxFrameY, dieFrameX, dieFrameY, spriteFrameSize) {
+    super(game, ctx, size, position, image, maxFrameX, maxFrameY, dieFrameX, dieFrameY);
+    this._spriteFrameSize = spriteFrameSize || size;
+    this._sw = this._spriteFrameSize.getWidth();
+    this._sh = this._spriteFrameSize.getHeight();
+    this._staggerFrame = ANIM_STAGGER_SLOW;
+    this._driftSpeed = CRAB_DRIFT_SPEED;
+  }
+
+  _drawCapturedSprite(dx, dy, w, h) {
+    const sw = this._sw;
+    const sh = this._sh;
+    this._ctx.drawImage(this._image, this._dieFrameX * sw, this._dieFrameY * sh, sw, sh, dx, dy, w, h);
+  }
+
+  draw() {
+    const w  = this._size.getWidth();
+    const h  = this._size.getHeight();
+    const sw = this._sw;
+    const sh = this._sh;
+    const dx = this._position.getX();
+    const dy = this._position.getY();
+
+    if (this._status === ENEMY_STATUS_CAPTURED) { this.drawCaptured(); return; }
+
+    if (this._game.isDebug()) {
+      this._ctx.fillStyle = 'red';
+      this._ctx.font = '16px serif';
+      this._ctx.fillText(`X ${dx} Y ${dy}`, 10, 260);
+      this._ctx.fillRect(dx, dy, w, h);
+    }
+
+    const flipX = this._direction === -1 ? -1 : 1;
+    this._ctx.save();
+    this._ctx.translate(dx + w / 2, dy + h / 2);
+    this._ctx.scale(flipX, 1);
+    this._ctx.drawImage(this._image, this._frameX * sw, this._frameY * sh, sw, sh, -w / 2, -h / 2, w, h);
+    this._ctx.restore();
+  }
+}
+
 class Fish extends EnemyWithAnimation {
 
   constructor(game, ctx, size, position, image, maxFrameX, maxFrameY, dieFrameX, dieFrameY) {
@@ -876,7 +927,7 @@ class EnemyFactory {
 
   constructor() {
     this.specs = [];
-    this.specs['octopus'] ={
+    this.specs['octopus'] = {
       image:  document.getElementById('octopus'),
       size: new Size(244.75, 198.75),
       spriteFrameSize: new Size(489.5, 397.5),
@@ -884,27 +935,35 @@ class EnemyFactory {
       maxFrameY: 4,
       dieFrameX: 1,
       dieFrameY: 1
-    }
+    };
+    this.specs['crab'] = {
+      image: document.getElementById('crab'),
+      size: new Size(98, 204),
+      spriteFrameSize: new Size(CRAB_FRAME_HEIGHT, CRAB_FRAME_WIDTH),
+      maxFrameX: CRAB_MAX_FRAME_X,
+      maxFrameY: CRAB_MAX_FRAME_Y,
+      dieFrameX: 0,
+      dieFrameY: CRAB_DIE_FRAME_Y,
+    };
   }
 
-  createEnemy(name, game, ctx){
-     const spec = this.specs[name];
-     if(spec){
-       return new Octopus
-       (
-         game,
-         ctx,
-         spec.size,
-         new Point(0, game.getSize().getHeight() * 0.65),
-         spec.image,
-         spec.maxFrameX,
-         spec.maxFrameY,
-         spec.dieFrameX,
-         spec.dieFrameY,
-         spec.spriteFrameSize
-       )
-     }
-     return null;
+  createEnemy(name, game, ctx) {
+    const spec = this.specs[name];
+    if (!spec) return null;
+    if (name === 'crab') {
+      return new Crab(
+        game, ctx, spec.size,
+        new Point(0, game.getSize().getHeight() * CRAB_SEABED_FACTOR),
+        spec.image, spec.maxFrameX, spec.maxFrameY,
+        spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
+      );
+    }
+    return new Octopus(
+      game, ctx, spec.size,
+      new Point(0, game.getSize().getHeight() * 0.65),
+      spec.image, spec.maxFrameX, spec.maxFrameY,
+      spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
+    );
   }
 }
 
@@ -957,7 +1016,7 @@ class Game extends GameObject{
 
 
     this._enemies.push(this._enemyFactory.createEnemy('octopus', this, ctx));
-
+    this._enemies.push(this._enemyFactory.createEnemy('crab', this, ctx));
 
     for(let i = 0; i < 5 ; i++){
       this._enemies.push(
@@ -1131,5 +1190,5 @@ if (typeof window !== 'undefined') { window.addEventListener('load', function(){
 }); } // end if (typeof window !== 'undefined')
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Size, Point, GameObject, Enemy, EnemyWithAnimation, Trash, Octopus, Fish, Hook, Player };
+  module.exports = { Size, Point, GameObject, Enemy, EnemyWithAnimation, Trash, Octopus, Crab, Fish, Hook, Player };
 }
