@@ -1,0 +1,6 @@
+node_modules/
+.codegraph/
+.playwright-cli/
+.idea/
+.nvmrc
+docs/plans/2026-06-14-boat-animation.md
