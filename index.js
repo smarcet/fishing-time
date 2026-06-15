@@ -106,6 +106,7 @@ class Enemy extends GameObject{
     this._direction = null;
     this._status = null;
     this._hook = null;
+    this._driftSpeed = 1.5;
   }
 
   update(){
@@ -115,11 +116,11 @@ class Enemy extends GameObject{
     const lBound = formerPosition.getX();
 
     if(rBound >= this._game.getSize().getWidth()) {
-      this._speedX = -1.5;
+      this._speedX = -this._driftSpeed;
       this._direction = -1;
     }
     if(lBound === 0) {
-      this._speedX = 1.5;
+      this._speedX = this._driftSpeed;
       this._direction = 1;
     }
 
@@ -156,20 +157,24 @@ class EnemyWithAnimation extends Enemy {
      this._dieFrameY = dieFrameY;
      this._opacity = 1;
      this._direction = null;
+     this._staggerFrame = 1;
+     this._tick = 0;
    }
 
   update() {
 
     super.update();
     // frames
-    if (this._frameX < this._maxFrameX -1 ) {
-      ++this._frameX;
-    } else {
-      this._frameX = 0;
-      if (this._frameY < this._maxFrameY -1 ) {
-        ++this._frameY
+    if (++this._tick % this._staggerFrame === 0) {
+      if (this._frameX < this._maxFrameX -1 ) {
+        ++this._frameX;
       } else {
-        this._frameY = 0;
+        this._frameX = 0;
+        if (this._frameY < this._maxFrameY -1 ) {
+          ++this._frameY
+        } else {
+          this._frameY = 0;
+        }
       }
     }
     const rBound = this.getPosition().getX() + this._size.getWidth();
@@ -237,13 +242,33 @@ class Trash extends EnemyWithAnimation {
 
   constructor(game, ctx, size, position, image, maxFrames) {
     super(game, ctx, size, position, image, maxFrames);
+    this._staggerFrame = 6;
+    this._driftSpeed = 0.6;
+    this._bobAmplitude = 12;
+    this._bobSpeed = 0.08;
+    this._maxAngle = 0.1745;
+    this._bobPhase = 0;
+    this._bobOffset = 0;
+    this._angle = 0;
+  }
+
+  update() {
+    super.update();
+    this._bobPhase += this._bobSpeed;
+    this._bobOffset = this._bobAmplitude * Math.sin(this._bobPhase);
+    this._angle = this._maxAngle * Math.cos(this._bobPhase);
+  }
+
+  getPosition() {
+    const p = super.getPosition();
+    return new Point(p.getX(), p.getY() + this._bobOffset);
   }
 
   draw(){
     const w = this._size.getWidth();
     const h =  this._size.getHeight();
     const dx = this._position.getX();
-    const dy = this._position.getY()
+    const dy = this._position.getY();
 
     if(this._status === 'CAPTURED'){
       this._ctx.drawImage
@@ -259,27 +284,21 @@ class Trash extends EnemyWithAnimation {
         h);
       return;
     }
-    this._ctx.filter = `opacity(${this._opacity})`;
+
     // debug
     if(this._game.isDebug()) {
       this._ctx.fillStyle = 'red';
       this._ctx.font = "16px serif";
       this._ctx.fillText(`X ${dx} `, 10, 200);
       this._ctx.fillText(`Y ${dy} `, 10, 220);
-      this._ctx.fillRect(this._position.getX(), this._position.getY(), this._size.getWidth(), this._size.getHeight());
+      this._ctx.fillRect(dx, dy + this._bobOffset, w, h);
     }
 
-    this._ctx.drawImage
-    (
-      this._image,
-      this._frameX * w,
-      0,
-      w,
-      h,
-      dx,
-      dy,
-      w,
-      h)
+    this._ctx.save();
+    this._ctx.translate(dx + w / 2, dy + this._bobOffset + h / 2);
+    this._ctx.rotate(this._angle);
+    this._ctx.drawImage(this._image, this._frameX * w, 0, w, h, -w / 2, -h / 2, w, h);
+    this._ctx.restore();
   }
 }
 
@@ -700,7 +719,7 @@ class Game extends GameObject{
   }
 }
 
-window.addEventListener('load', function(){
+if (typeof window !== 'undefined') { window.addEventListener('load', function(){
   const canvas = document.getElementById("canvas1");
   const ctx = canvas.getContext('2d');
   canvas.width = window.innerWidth;
@@ -745,4 +764,8 @@ window.addEventListener('load', function(){
   disableAntiAliasing(ctx)
   animationLoop(0);
 
-});
+}); } // end if (typeof window !== 'undefined')
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { Size, Point, GameObject, Enemy, EnemyWithAnimation, Trash };
+}

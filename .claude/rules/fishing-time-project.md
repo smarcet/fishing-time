@@ -4,7 +4,7 @@
 
 ## Overview
 
-Vanilla JS 2D canvas fishing game. No framework, no build tooling, no package manager.
+Vanilla JS 2D canvas fishing game. No framework, no bundler. Jest is the only devDependency (unit tests for game logic).
 
 ## Technology Stack
 
@@ -12,16 +12,20 @@ Vanilla JS 2D canvas fishing game. No framework, no build tooling, no package ma
 - **Rendering:** HTML5 Canvas API
 - **Assets:** PNG/SVG sprites in `images/`, MP3 sound effects in `sfx/`
 - **Entry point:** `main.html` → `index.js`
+- **Testing:** Jest 29 (`npm test`) — unit tests in `__tests__/`
 
 ## Directory Structure
 
 ```
-index.js          # All game logic (~748 lines)
+index.js          # All game logic (~760 lines, dual-mode browser/CommonJS)
 main.html         # Canvas + hidden sprite <img> elements
 main.css          # Canvas centering + pixel-art rendering
 images/           # Sprites: fish, bottles, backgrounds, player, hook
 sfx/              # Sound effects
-index2.js         # Experimental/WIP — not used by main.html
+__tests__/        # Jest unit tests (game logic only, no canvas)
+docs/adr/         # Architecture Decision Records
+package.json      # Jest devDependency only
+index2.js         # Experimental/WIP - not used by main.html
 parallax.html     # Experimental parallax prototype
 ```
 
@@ -35,6 +39,10 @@ python3 -m http.server 8000
 ```
 
 Opening `main.html` directly via `file://` may fail to load images in some browsers.
+
+```bash
+npm test          # run Jest unit tests (game logic, no browser required)
+```
 
 ## Architecture
 
