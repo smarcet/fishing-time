@@ -316,6 +316,8 @@ class Octopus extends EnemyWithAnimation {
     // spriteFrameSize holds the natural spritesheet cell dimensions, which can differ
     // from the display size when the octopus is rendered at a scaled-down size.
     this._spriteFrameSize = spriteFrameSize || size;
+    this._sw = this._spriteFrameSize.getWidth();
+    this._sh = this._spriteFrameSize.getHeight();
     this._staggerFrame = ANIM_STAGGER_SLOW;
     this._bobAmplitude = ANIM_BOB_AMPLITUDE;
     this._bobSpeed = ANIM_BOB_SPEED;
@@ -338,10 +340,10 @@ class Octopus extends EnemyWithAnimation {
   }
 
   draw() {
-    const w  = this._size.getWidth();            // display width
-    const h  = this._size.getHeight();           // display height
-    const sw = this._spriteFrameSize.getWidth(); // spritesheet cell width
-    const sh = this._spriteFrameSize.getHeight(); // spritesheet cell height
+    const w  = this._size.getWidth();
+    const h  = this._size.getHeight();
+    const sw = this._sw;
+    const sh = this._sh;
     const dx = this._position.getX();
     const dy = this._position.getY();
 
@@ -358,7 +360,7 @@ class Octopus extends EnemyWithAnimation {
       this._ctx.fillStyle = 'red';
       this._ctx.font = '16px serif';
       this._ctx.fillText(`X ${dx} `, 10, 200);
-      this._ctx.fillText(`Y ${dy} `, 10, 220);
+      this._ctx.fillText(`Y ${dy + this._bobOffset} `, 10, 220);
       this._ctx.fillRect(dx, dy + this._bobOffset, w, h);
     }
 
