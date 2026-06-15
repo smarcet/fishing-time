@@ -199,3 +199,29 @@ describe('Hook reel — return to IDLE', () => {
     expect(hook._ropeLength).toBeCloseTo(HOOK_REST_LENGTH, 4);
   });
 });
+
+describe('Hook isCasting() - catch guard', () => {
+  test('isCasting() is false before any update (IDLE)', () => {
+    const hook = makeHook();
+    expect(hook.isCasting()).toBe(false);
+  });
+
+  test('isCasting() is true immediately after Space pressed (CAST)', () => {
+    const hook = makeHook(false);
+    hook._player._game = makeMockGame(true);
+    hook.update(); // IDLE -> CAST
+    expect(hook.isCasting()).toBe(true);
+  });
+
+  test('isCasting() returns false once rope reels back to IDLE', () => {
+    const hook = makeHook(false);
+    hook._player._game = makeMockGame(true);
+    hook.update(); // -> CAST
+    hook._player._game = makeMockGame(false);
+    for (let i = 0; i < 20; i++) {
+      hook.update();
+      if (hook._status === 'IDLE') break;
+    }
+    expect(hook.isCasting()).toBe(false);
+  });
+});

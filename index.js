@@ -464,6 +464,7 @@ class Hook extends GameObject {
     const w = this._size.getWidth();
     const h = this._size.getHeight();
 
+    this._ctx.save();
     this._ctx.beginPath();
     this._ctx.lineWidth = 5;
     this._ctx.strokeStyle = "brown";
@@ -471,6 +472,7 @@ class Hook extends GameObject {
     this._ctx.moveTo(pivot.getX(), pivot.getY());
     this._ctx.lineTo(ep.getX(), ep.getY());
     this._ctx.stroke();
+    this._ctx.restore();
 
     if(this._player._game.isDebug()) {
       this._ctx.fillStyle = this._status === 'CATCH' ? 'green' : 'red';
@@ -490,6 +492,10 @@ class Hook extends GameObject {
 
   hadCatch(){
     return this._status === 'CATCH';
+  }
+
+  isCasting(){
+    return this._status === 'CAST';
   }
 
   setCatch(fish){
@@ -791,7 +797,7 @@ class Game extends GameObject{
 
     this._enemies.forEach(e => {
       e.update();
-      if(this.checkCollision(this._player.getHook(), e) && !this._player.getHook().hadCatch())
+      if(this.checkCollision(this._player.getHook(), e) && this._player.getHook().isCasting())
       {
         console.log(`collision detected`, e);
         this._player.getHook().setCatch(e);
