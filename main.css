@@ -13,7 +13,7 @@ margin:0;
     border: 5px solid black;
 }
 
-#fish1, #fish2, #fish3, #background, #fish1_sprite, #hook, #bubble, #bottle_1_sprite, #boat_idle, #boat_cast,#octopus {
+#fish1, #fish2, #fish3, #background, #fish1_sprite, #hook, #bubble, #bottle_1_sprite, #boat_idle, #boat_cast, #boat_catch, #octopus {
     display: none;
 }
 

@@ -11,8 +11,10 @@ const HOOK_W     = 25;
 const HOOK_H     = 25;
 
 // Mirror plan constants for assertion computation
-const HOOK_PIVOT_X_OFFSET  = 45;
-const HOOK_PIVOT_Y_FACTOR  = 0.6;
+const HOOK_PIVOT_X_OFFSET      = 45;
+const HOOK_PIVOT_Y_FACTOR      = 0.6;
+const HOOK_CAST_PIVOT_X_OFFSET = 12;
+const HOOK_CAST_PIVOT_Y_FACTOR = 0.65;
 const HOOK_REST_LENGTH     = 60;
 const HOOK_MAX_SWING_ANGLE = 0.5236;
 const HOOK_SWING_SPEED     = 0.04;
@@ -50,6 +52,7 @@ function makeHook(spaceHeld = false) {
     getPosition: () => new Point(PLAYER_X, PLAYER_Y),
     getSize:     () => new Size(PLAYER_H, PLAYER_W),
     _game: game,
+    _state: 'IDLE',
   };
   const ctx = makeMockCtx();
   // Hook constructor: (player, ctx, size, position) — position is legacy, now computed from player
@@ -161,10 +164,12 @@ describe('Hook cast — freeze at fire-time', () => {
     const nonZeroAngle = hook._angle;
 
     hook._player._game = makeMockGame(true); // cast
+    hook._player._state = 'CAST'; // player mirrors space-held -> CAST sprite selected
     hook.update(); // IDLE → CAST, ropeLength grows by CAST_SPEED
 
     const L = hook._ropeLength;
-    const expectedX = pivotX + L * Math.sin(nonZeroAngle) - HOOK_W / 2;
+    const castPivotX = PLAYER_X + HOOK_CAST_PIVOT_X_OFFSET;
+    const expectedX = castPivotX + L * Math.sin(nonZeroAngle) - HOOK_W / 2;
     expect(hook.getPosition().getX()).toBeCloseTo(expectedX, 3);
     expect(Math.abs(nonZeroAngle)).toBeGreaterThan(0.001); // confirm angle was actually non-zero
   });
@@ -223,5 +228,45 @@ describe('Hook isCasting() - catch guard', () => {
       if (hook._status === 'IDLE') break;
     }
     expect(hook.isCasting()).toBe(false);
+  });
+});
+
+describe('Hook._pivot() follows rendered rod-tip Y during CAST (bob offset)', () => {
+  const BOB = 12;
+
+  function makeHookWithBob(bobOffset, state = 'CAST') {
+    const game = makeMockGame(false);
+    const mockPlayer = {
+      getPosition: () => new Point(PLAYER_X, PLAYER_Y + bobOffset),
+      getSize:     () => new Size(PLAYER_H, PLAYER_W),
+      _game: game,
+      _state: state,
+      _bobOffset: bobOffset,
+    };
+    return new Hook(mockPlayer, makeMockCtx(), new Size(HOOK_H, HOOK_W), new Point(PLAYER_X, PLAYER_Y));
+  }
+
+  test('pivot y uses HOOK_CAST_PIVOT_Y_FACTOR during CAST (rod lower in cast frame)', () => {
+    const hook = makeHookWithBob(BOB);
+    hook._status = 'CAST';
+    const pivot = hook._pivot();
+    const expectedY = (PLAYER_Y + BOB) + PLAYER_H * HOOK_CAST_PIVOT_Y_FACTOR;
+    expect(pivot.getY()).toBeCloseTo(expectedY, 4);
+  });
+
+  test('pivot x uses HOOK_CAST_PIVOT_X_OFFSET during CAST', () => {
+    const hook = makeHookWithBob(0);
+    hook._status = 'CAST';
+    const pivot = hook._pivot();
+    const expectedX = PLAYER_X + HOOK_CAST_PIVOT_X_OFFSET;
+    expect(pivot.getX()).toBeCloseTo(expectedX, 4);
+  });
+
+  test('pivot y uses HOOK_PIVOT_Y_FACTOR during IDLE (zero bob baseline)', () => {
+    const hook = makeHookWithBob(0, 'IDLE');
+    // IDLE state - existing behaviour must be unchanged
+    const pivot = hook._pivot();
+    const expectedY = PLAYER_Y + PLAYER_H * HOOK_PIVOT_Y_FACTOR;
+    expect(pivot.getY()).toBeCloseTo(expectedY, 4);
   });
 });
