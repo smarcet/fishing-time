@@ -12,6 +12,15 @@ const ANIM_STAGGER_SLOW    = 6;      // ticks per sprite frame (bottle, octopus)
 const DRIFT_SPEED_SLOW     = 0.6;    // px/tick (trash/bottle)
 const DRIFT_SPEED_DEFAULT  = 1.5;    // px/tick (fish, octopus default)
 
+const HOOK_PIVOT_X_OFFSET   = 45;     // px - rod-tip x offset from player left edge
+const HOOK_PIVOT_Y_FACTOR   = 0.6;    // fraction of player height - rod-tip y (pendulum pivot)
+const HOOK_REST_LENGTH      = 60;     // px - rope length while idle
+const HOOK_MAX_SWING_ANGLE  = 0.5236; // rad - max pendulum angle from vertical (~30 deg)
+const HOOK_SWING_SPEED      = 0.04;   // rad/tick - swing phase advance (~2.6s period at 60fps)
+const HOOK_CAST_SPEED       = 5;      // px/tick - rope extension speed while casting
+const HOOK_REEL_SPEED       = 5;      // px/tick - rope retraction speed while reeling
+const HOOK_MAX_DEPTH_FACTOR = 0.95;   // fraction of canvas height - deepest the hook can descend
+
 class Size {
   constructor(h, w) {
     this._h = h;
@@ -378,67 +387,101 @@ class Hook extends GameObject {
 
   constructor(player, ctx, size, position) {
     super(ctx, size, position);
-    this._image = document.getElementById('hook');
+    this._image = (typeof document !== 'undefined') ? document.getElementById('hook') : null;
     this._player = player;
-    this._status = 'NONE';
+    this._status = 'IDLE';
     this._catch = null;
+    this._swingPhase = 0;
+    this._angle = 0;
+    this._castAngle = 0;
+    this._ropeLength = HOOK_REST_LENGTH;
+  }
+
+  _pivot() {
+    const px = this._player.getPosition().getX() + HOOK_PIVOT_X_OFFSET;
+    const py = this._player.getPosition().getY() + this._player.getSize().getHeight() * HOOK_PIVOT_Y_FACTOR;
+    return new Point(px, py);
+  }
+
+  _endpoint() {
+    const a = (this._status === 'IDLE') ? this._angle : this._castAngle;
+    const pivot = this._pivot();
+    return new Point(
+      pivot.getX() + this._ropeLength * Math.sin(a),
+      pivot.getY() + this._ropeLength * Math.cos(a)
+    );
+  }
+
+  getPosition() {
+    const ep = this._endpoint();
+    return new Point(ep.getX() - this._size.getWidth() / 2, ep.getY());
   }
 
   clearCaptured(){
     this._catch = null;
-    this._status = 'NONE';
+    this._status = 'IDLE';
+    this._ropeLength = HOOK_REST_LENGTH;
   }
 
   update(){
     super.update();
-    let formerY = this._position.getY();
+    const spaceHeld = this._player._game.hasKey(KEY_SPACE) &&
+      !(this._player._game.hasKey(KEY_ARROW_LEFT) || this._player._game.hasKey(KEY_ARROW_RIGHT));
 
-    if(this._status === 'CATCH'){
-      if(formerY > this._player.getPosition().getY() + (this._player.getSize().getHeight() * 0.6))
-        this._position = new Point(this._player.getPosition().getX(), formerY - 5);
-      else {
-        // on board
+    if (this._status === 'IDLE') {
+      if (spaceHeld) {
+        this._castAngle = this._angle;
+        this._status = 'CAST';
+        this._ropeLength += HOOK_CAST_SPEED;
+      } else {
+        this._swingPhase += HOOK_SWING_SPEED;
+        this._angle = HOOK_MAX_SWING_ANGLE * Math.sin(this._swingPhase);
+      }
+    } else if (this._status === 'CAST') {
+      const gameHeight = this._player._game.getSize().getHeight();
+      if (spaceHeld && this._endpoint().getY() < gameHeight * HOOK_MAX_DEPTH_FACTOR) {
+        this._ropeLength += HOOK_CAST_SPEED;
+      } else {
+        this._ropeLength -= HOOK_REEL_SPEED;
+        if (this._ropeLength <= HOOK_REST_LENGTH) {
+          this._ropeLength = HOOK_REST_LENGTH;
+          this._status = 'IDLE';
+        }
+      }
+    } else if (this._status === 'CATCH') {
+      this._ropeLength -= HOOK_REEL_SPEED;
+      if (this._ropeLength <= HOOK_REST_LENGTH) {
         this.clearCaptured();
       }
     }
-    else {
-      if (this._player._game.hasKey(KEY_SPACE) && !(this._player._game.hasKey(KEY_ARROW_LEFT) || this._player._game.hasKey(KEY_ARROW_RIGHT)) && formerY < (this._player._game.getSize().getHeight() * 0.95)) {
-        this._position = new Point(this._player.getPosition().getX(), formerY + 5);
-      } else if (formerY > this._player.getPosition().getY() + (this._player.getSize().getHeight() * 0.6)) {
-        this._position = new Point(this._player.getPosition().getX()  , formerY - 5);
-      }
-    }
-
   }
 
   draw(){
     super.draw();
-    const currentX = this._position.getX();
-    const currentY = this._position.getY();
+    const pivot = this._pivot();
+    const ep = this._endpoint();
+    const pos = this.getPosition();
     const w = this._size.getWidth();
     const h = this._size.getHeight();
 
-    // rope
     this._ctx.beginPath();
     this._ctx.lineWidth = 5;
     this._ctx.strokeStyle = "brown";
     this._ctx.setLineDash([5, 5]);
-
-    this._ctx.moveTo(this._player.getPosition().getX()+45, this._player.getPosition().getY() + (this._player.getSize().getHeight() * (this._player._game.hasKey(KEY_SPACE) && !(this._player._game.hasKey(KEY_ARROW_LEFT) || this._player._game.hasKey(KEY_ARROW_RIGHT)) ? 0.45: 0.6) ));
-    this._ctx.lineTo(this._player.getPosition().getX()+45, currentY);
+    this._ctx.moveTo(pivot.getX(), pivot.getY());
+    this._ctx.lineTo(ep.getX(), ep.getY());
     this._ctx.stroke();
 
-    // hook
-
     if(this._player._game.isDebug()) {
-      // debug BB
       this._ctx.fillStyle = this._status === 'CATCH' ? 'green' : 'red';
       this._ctx.font = "16px serif";
-      this._ctx.fillText(`X ${currentX} Y ${currentY} W ${w} H ${h}`, 10, 50);
-      this._ctx.fillRect(this._player.getPosition().getX() + 22, currentY, w, h);
+      this._ctx.fillText(`X ${pos.getX().toFixed(1)} Y ${pos.getY().toFixed(1)} angle ${this._angle.toFixed(3)}`, 10, 50);
+      this._ctx.fillRect(pos.getX(), pos.getY(), w, h);
     }
 
-    this._ctx.drawImage(this._image, this._player.getPosition().getX() + (this._player.getSize().getWidth() * 0.06), currentY , w, h);
+    if (this._image) {
+      this._ctx.drawImage(this._image, pos.getX(), pos.getY(), w, h);
+    }
 
     if(this._catch) {
       this._catch.draw();
@@ -841,5 +884,5 @@ if (typeof window !== 'undefined') { window.addEventListener('load', function(){
 }); } // end if (typeof window !== 'undefined')
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Size, Point, GameObject, Enemy, EnemyWithAnimation, Trash, Octopus };
+  module.exports = { Size, Point, GameObject, Enemy, EnemyWithAnimation, Trash, Octopus, Hook };
 }
