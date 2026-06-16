@@ -1,10 +1,10 @@
 'use strict';
 
-const { Size, Point, CatchableFish, Tuna } = require('../index.js');
+const { Size, Point, CatchableFish, Shark } = require('../index.js');
 
-const TUNA_FRAME_WIDTH  = 512;
-const TUNA_FRAME_HEIGHT = 300;
-const WATER_SURFACE_Y   = 300;
+const SHARK_FRAME_WIDTH  = 1060;
+const SHARK_FRAME_HEIGHT = 512;
+const WATER_SURFACE_Y    = 300;
 const CANVAS_W = 800;
 const CANVAS_H = 1200;
 
@@ -33,31 +33,41 @@ function makeMocks() {
   return { mockGame, mockCtx, mockImage: {} };
 }
 
-function makeFish(startX = 0) {
+function makeShark(startX = 0) {
   const { mockGame, mockCtx, mockImage } = makeMocks();
-  return new Tuna(
+  return new Shark(
     mockGame, mockCtx,
-    new Size(225, 384),
+    new Size(256, 530),
     new Point(startX, 400),
     mockImage,
-    8, 1, 0, 1,
-    new Size(TUNA_FRAME_HEIGHT, TUNA_FRAME_WIDTH)
+    10, 1, 0, 1,
+    new Size(SHARK_FRAME_HEIGHT, SHARK_FRAME_WIDTH)
   );
 }
 
-describe('Tuna class hierarchy', () => {
+describe('Shark class hierarchy', () => {
   test('instanceof CatchableFish', () => {
-    expect(makeFish() instanceof CatchableFish).toBe(true);
+    expect(makeShark() instanceof CatchableFish).toBe(true);
   });
 
-  test('getFightSpec() returns { strength: 60, escapeRate: 3.0 }', () => {
-    expect(makeFish().getFightSpec()).toEqual({ strength: 60, escapeRate: 3.0 });
+  test('getFightSpec() returns { strength: 60, escapeRate: 2.0 }', () => {
+    expect(makeShark().getFightSpec()).toEqual({ strength: 60, escapeRate: 2.0 });
   });
 });
 
-describe('Tuna animation cadence (ANIM_STAGGER_SLOW = 6 ticks)', () => {
+describe('Shark size sanity', () => {
+  test('getWidth() returns 530', () => {
+    expect(makeShark().getSize().getWidth()).toBe(530);
+  });
+
+  test('getHeight() returns 256', () => {
+    expect(makeShark().getSize().getHeight()).toBe(256);
+  });
+});
+
+describe('Shark animation cadence (ANIM_STAGGER_SLOW = 6 ticks)', () => {
   test('_frameX stays 0 for the first 5 updates', () => {
-    const fish = makeFish();
+    const fish = makeShark();
     for (let i = 0; i < 5; i++) {
       fish.update();
       expect(fish._frameX).toBe(0);
@@ -65,47 +75,46 @@ describe('Tuna animation cadence (ANIM_STAGGER_SLOW = 6 ticks)', () => {
   });
 
   test('_frameX becomes 1 on the 6th update', () => {
-    const fish = makeFish();
+    const fish = makeShark();
     for (let i = 0; i < 6; i++) fish.update();
     expect(fish._frameX).toBe(1);
   });
 });
 
-describe('Tuna direction flip in draw()', () => {
+describe('Shark direction flip in draw()', () => {
   test('draw() calls ctx.scale(1, 1) when _direction is -1 (going left, sprite faces left naturally)', () => {
-    const fish = makeFish();
+    const fish = makeShark();
     fish._direction = -1;
     fish.draw();
     expect(fish._ctx.scale).toHaveBeenCalledWith(1, 1);
   });
 
   test('draw() calls ctx.scale(-1, 1) when _direction is 1 (going right, flip needed)', () => {
-    const fish = makeFish();
+    const fish = makeShark();
     fish._direction = 1;
     fish.draw();
     expect(fish._ctx.scale).toHaveBeenCalledWith(-1, 1);
   });
 });
 
-describe('Tuna spawn bounds', () => {
-  test('randomSpawnY returns value in [WATER_SURFACE_Y+100, canvasHeight - fishHeight]', () => {
-    const fishH = 225;
-    const y = Tuna.randomSpawnY(CANVAS_H, fishH, Math.random);
-    expect(y).toBeGreaterThanOrEqual(WATER_SURFACE_Y + 100);
+describe('Shark spawn bounds', () => {
+  test('randomSpawnY returns value in [WATER_SURFACE_Y+200, canvasHeight - fishHeight]', () => {
+    const fishH = 256;
+    const y = Shark.randomSpawnY(CANVAS_H, fishH, Math.random);
+    expect(y).toBeGreaterThanOrEqual(WATER_SURFACE_Y + 200);
     expect(y).toBeLessThanOrEqual(CANVAS_H - fishH);
   });
 
   test('randomSpawnY is deterministic with a fixed rng', () => {
-    const fishH = 225;
-    const minY = WATER_SURFACE_Y + 100;
+    const fishH = 256;
+    const minY = WATER_SURFACE_Y + 200;
     const maxY = CANVAS_H - fishH;
     const expected = minY + 0.5 * (maxY - minY);
-    expect(Tuna.randomSpawnY(CANVAS_H, fishH, () => 0.5)).toBeCloseTo(expected, 5);
+    expect(Shark.randomSpawnY(CANVAS_H, fishH, () => 0.5)).toBeCloseTo(expected, 5);
   });
 
   test('randomSpawnX (inherited from CatchableFish) returns value in [0, canvasWidth - fishWidth]', () => {
-    const fishW = 384;
-    const x = Tuna.randomSpawnX(CANVAS_W, fishW, () => 0.5);
-    expect(x).toBeCloseTo(0.5 * (CANVAS_W - fishW), 5);
+    const x = Shark.randomSpawnX(CANVAS_W, 530, () => 0.5);
+    expect(x).toBeCloseTo(0.5 * (CANVAS_W - 530), 5);
   });
 });

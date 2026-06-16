@@ -50,8 +50,8 @@ describe('HammerHeadShark class hierarchy', () => {
     expect(makeShark() instanceof CatchableFish).toBe(true);
   });
 
-  test('getFightSpec() returns { strength: 80, escapeRate: 3.0 }', () => {
-    expect(makeShark().getFightSpec()).toEqual({ strength: 80, escapeRate: 3.0 });
+  test('getFightSpec() returns { strength: 50, escapeRate: 2.0 }', () => {
+    expect(makeShark().getFightSpec()).toEqual({ strength: 50, escapeRate: 2.0 });
   });
 });
 

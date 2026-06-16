@@ -49,6 +49,12 @@ const HAMMERHEAD_SHARK_MAX_FRAME_X  = 10;   // 10 frames per row (guard < maxFra
 const HAMMERHEAD_SHARK_DIE_FRAME_Y  = 1;    // row 0 = move, row 1 = die (captured animation)
 const HAMMERHEAD_SHARK_DRIFT_SPEED  = 3.5;  // px/tick - between lionfish 2.0 and swordfish 4.5
 
+const SHARK_FRAME_WIDTH  = 1060;  // px - canonical cell width (die-frame natural width)
+const SHARK_FRAME_HEIGHT = 512;   // px - canonical cell height (die-frame natural height)
+const SHARK_MAX_FRAME_X  = 10;    // 10 frames per row
+const SHARK_DIE_FRAME_Y  = 1;     // row 0 = move, row 1 = die
+const SHARK_DRIFT_SPEED  = 4.0;   // px/tick - same tier as tuna, above hammerhead (3.5)
+
 const SWORDFISH_FRAME_WIDTH  = 1033;  // px - canonical cell horizontal stride
 const SWORDFISH_FRAME_HEIGHT = 416;   // px - canonical cell vertical stride (rest-frame height)
 const SWORDFISH_MAX_FRAME_X  = 16;    // 16 frames per row
@@ -93,7 +99,7 @@ const FISH_SPECS = {
   butterfly_fish: { strength: 5,  escape_rate: 1.5 },  // easy - used by ButterflyFish
   lion_fish:      { strength: 15, escape_rate: 2.5 },  // medium - used by LionFish
   tuna: { strength: 60, escape_rate: 3.0 },  // hardest - above SwordFish
-  shark:          { strength: 60, escape_rate: 2.0 },  // hard - reserved for future SharkFish
+  shark:          { strength: 60, escape_rate: 2.0 },  // hard - used by Shark
   hammerhead_shark: { strength: 50, escape_rate: 2.0 },  // hard - used by HammerHeadShark
   sword_fish:       { strength: 50, escape_rate: 2.0 },  // very hard - used by SwordFish
   octopus:        { strength: 20, escape_rate: 1.8 },  // moderate - used by Octopus
@@ -129,6 +135,7 @@ const ENEMY_TYPE_CLOWN_FISH        = 'clown_fish';
 const ENEMY_TYPE_DISCARDED_BOTTLE  = 'discarded_bottle';
 const ENEMY_TYPE_OCTOPUS           = 'octopus';
 const ENEMY_TYPE_CRAB              = 'crab';
+const ENEMY_TYPE_SHARK             = 'shark';
 
 const ENEMY_ESCAPE_SPEED_MULTIPLIER = 3;  // sprint speed after breaking free - TUNE
 
@@ -167,6 +174,7 @@ if (typeof module !== 'undefined' && module.exports) {
     LION_FISH_DIE_FRAME_Y, LION_FISH_DRIFT_SPEED,
     HAMMERHEAD_SHARK_FRAME_WIDTH, HAMMERHEAD_SHARK_FRAME_HEIGHT, HAMMERHEAD_SHARK_MAX_FRAME_X,
     HAMMERHEAD_SHARK_DIE_FRAME_Y, HAMMERHEAD_SHARK_DRIFT_SPEED,
+    SHARK_FRAME_WIDTH, SHARK_FRAME_HEIGHT, SHARK_MAX_FRAME_X, SHARK_DIE_FRAME_Y, SHARK_DRIFT_SPEED,
     SWORDFISH_FRAME_WIDTH, SWORDFISH_FRAME_HEIGHT, SWORDFISH_MAX_FRAME_X,
     SWORDFISH_DIE_FRAME_Y, SWORDFISH_DRIFT_SPEED,
     TUNA_FRAME_WIDTH, TUNA_FRAME_HEIGHT, TUNA_MAX_FRAME_X,
@@ -180,7 +188,7 @@ if (typeof module !== 'undefined' && module.exports) {
     HOOK_STRUGGLE_REEL_POWER, HOOK_STRUGGLE_MAX_ESCAPE, HOOK_REEL_DISTANCE_PER_PRESS,
     FISH_SPECS,
     HOOK_STATUS_IDLE, HOOK_STATUS_CAST, HOOK_STATUS_HOOKED, HOOK_STATUS_RETRIEVING_EMPTY,
-    ENEMY_TYPE_BUTTERFLY_FISH, ENEMY_TYPE_LION_FISH, ENEMY_TYPE_HAMMERHEAD_SHARK, ENEMY_TYPE_SWORDFISH, ENEMY_TYPE_TUNA, ENEMY_TYPE_CLOWN_FISH, ENEMY_TYPE_DISCARDED_BOTTLE, ENEMY_TYPE_OCTOPUS, ENEMY_TYPE_CRAB,
+    ENEMY_TYPE_BUTTERFLY_FISH, ENEMY_TYPE_LION_FISH, ENEMY_TYPE_HAMMERHEAD_SHARK, ENEMY_TYPE_SWORDFISH, ENEMY_TYPE_TUNA, ENEMY_TYPE_CLOWN_FISH, ENEMY_TYPE_DISCARDED_BOTTLE, ENEMY_TYPE_OCTOPUS, ENEMY_TYPE_CRAB, ENEMY_TYPE_SHARK,
     ENEMY_ESCAPE_SPEED_MULTIPLIER, ENEMY_STATUS_CAPTURED,
     PLAYER_STATE_IDLE, PLAYER_STATE_MOVING_R, PLAYER_STATE_MOVING_L,
     PLAYER_STATE_CAST, PLAYER_STATE_REEL,

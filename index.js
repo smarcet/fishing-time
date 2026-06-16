@@ -19,6 +19,7 @@ if (typeof module !== 'undefined' && module.exports) {
   const { SwordFish }         = require('./src/SwordFish');         global.SwordFish         = SwordFish;
   const { Tuna }               = require('./src/Tuna');               global.Tuna               = Tuna;
   const { ClownFish }          = require('./src/ClownFish');          global.ClownFish          = ClownFish;
+  const { Shark }              = require('./src/Shark');              global.Shark              = Shark;
   const { ScoreSystem, SCORE_MAP } = require('./src/ScoreSystem');    global.ScoreSystem = ScoreSystem; global.SCORE_MAP = SCORE_MAP;
   const { ReelPowerBar }       = require('./src/ReelPowerBar');       global.ReelPowerBar       = ReelPowerBar;
   const { TimerSystem }        = require('./src/TimerSystem');        global.TimerSystem        = TimerSystem;
@@ -26,5 +27,5 @@ if (typeof module !== 'undefined' && module.exports) {
   const { Hook }               = require('./src/Hook');               global.Hook               = Hook;
   const { Player }             = require('./src/Player');             global.Player             = Player;
   const { Bubble }             = require('./src/Bubble');             global.Bubble             = Bubble;
-  module.exports = { Size, Point, GameObject, Enemy, EnemyWithAnimation, CatchableFish, InertObject, DiscardedBottle, Octopus, Crab, ButterflyFish, LionFish, HammerHeadShark, SwordFish, Tuna, ClownFish, ScoreSystem, SCORE_MAP, ReelPowerBar, TimerSystem, AudioSystem, Hook, Player, Bubble };
+  module.exports = { Size, Point, GameObject, Enemy, EnemyWithAnimation, CatchableFish, InertObject, DiscardedBottle, Octopus, Crab, ButterflyFish, LionFish, HammerHeadShark, SwordFish, Tuna, ClownFish, Shark, ScoreSystem, SCORE_MAP, ReelPowerBar, TimerSystem, AudioSystem, Hook, Player, Bubble };
 }

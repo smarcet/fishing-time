@@ -3,16 +3,20 @@
 const { ScoreSystem, SCORE_MAP } = require('../index.js');
 
 describe('SCORE_MAP values', () => {
-  test('Tuna is worth 100 points', () => {
-    expect(SCORE_MAP.Tuna).toBe(100);
+  test('Tuna is worth 250 points', () => {
+    expect(SCORE_MAP.Tuna).toBe(250);
   });
 
-  test('DiscardedBottle is worth -10 points', () => {
-    expect(SCORE_MAP.DiscardedBottle).toBe(-10);
+  test('DiscardedBottle is worth -5 points', () => {
+    expect(SCORE_MAP.DiscardedBottle).toBe(-5);
   });
 
-  test('all nine expected keys exist', () => {
-    const keys = ['ClownFish', 'ButterflyFish', 'LionFish', 'Octopus', 'Crab', 'HammerHeadShark', 'SwordFish', 'Tuna', 'DiscardedBottle'];
+  test('Shark is worth 500 points', () => {
+    expect(SCORE_MAP.Shark).toBe(500);
+  });
+
+  test('all ten expected keys exist', () => {
+    const keys = ['ClownFish', 'ButterflyFish', 'LionFish', 'Octopus', 'Crab', 'HammerHeadShark', 'SwordFish', 'Tuna', 'Shark', 'DiscardedBottle'];
     keys.forEach(k => expect(SCORE_MAP).toHaveProperty(k));
   });
 });
@@ -31,7 +35,7 @@ describe('ScoreSystem initial state', () => {
   test('getScore() reflects captured score', () => {
     const ss = new ScoreSystem();
     ss._handleCapture({ detail: { enemyType: 'Tuna', x: 0, y: 0 } });
-    expect(ss.getScore()).toBe(100);
+    expect(ss.getScore()).toBe(250);
   });
 });
 
@@ -39,13 +43,13 @@ describe('ScoreSystem capture handling', () => {
   test('capture increments score by SCORE_MAP value', () => {
     const ss = new ScoreSystem();
     ss._handleCapture({ detail: { enemyType: 'Tuna' } });
-    expect(ss._score).toBe(100);
+    expect(ss._score).toBe(250);
   });
 
   test('negative-value capture (DiscardedBottle) decrements score', () => {
     const ss = new ScoreSystem();
     ss._handleCapture({ detail: { enemyType: 'DiscardedBottle' } });
-    expect(ss._score).toBe(-10);
+    expect(ss._score).toBe(-5);
   });
 
   test('unknown enemyType is silently ignored', () => {
@@ -58,22 +62,22 @@ describe('ScoreSystem capture handling', () => {
     const ss = new ScoreSystem();
     ss._handleCapture({ detail: { enemyType: 'DiscardedBottle' } });
     ss._handleCapture({ detail: { enemyType: 'DiscardedBottle' } });
-    expect(ss._score).toBe(-20);
+    expect(ss._score).toBe(-10);
   });
 });
 
 describe('ScoreSystem escape handling', () => {
   test('escape deducts Math.floor(pts/2) from score', () => {
     const ss = new ScoreSystem();
-    ss._handleCapture({ detail: { enemyType: 'Tuna' } }); // +100
-    ss._handleEscape({ detail: { enemyType: 'Tuna' } });  // -50
-    expect(ss._score).toBe(50);
+    ss._handleCapture({ detail: { enemyType: 'Tuna' } }); // +250
+    ss._handleEscape({ detail: { enemyType: 'Tuna' } });  // -125
+    expect(ss._score).toBe(125);
   });
 
-  test('escape of negative-value enemy (DiscardedBottle) adds to score (subtracts -5)', () => {
+  test('escape of negative-value enemy (DiscardedBottle) adds to score (subtracts -3)', () => {
     const ss = new ScoreSystem();
-    ss._handleEscape({ detail: { enemyType: 'DiscardedBottle' } }); // -Math.floor(-10/2) = -(-5) = +5
-    expect(ss._score).toBe(5);
+    ss._handleEscape({ detail: { enemyType: 'DiscardedBottle' } }); // -Math.floor(-5/2) = -(-3) = +3
+    expect(ss._score).toBe(3);
   });
 
   test('escape of unknown enemyType is silently ignored', () => {
@@ -84,7 +88,7 @@ describe('ScoreSystem escape handling', () => {
 
   test('escape of DiscardedBottle does not inflate _highScore', () => {
     const ss = new ScoreSystem();
-    ss._handleEscape({ detail: { enemyType: 'DiscardedBottle' } }); // score becomes +5
+    ss._handleEscape({ detail: { enemyType: 'DiscardedBottle' } }); // score becomes +3
     expect(ss._highScore).toBe(0);
   });
 });
@@ -117,21 +121,21 @@ describe('ScoreSystem localStorage persistence', () => {
 
   test('_highScore updates when score exceeds previous best', () => {
     const ss = new ScoreSystem();
-    ss._handleCapture({ detail: { enemyType: 'Tuna', x: 100, y: 200 } }); // score = 100
-    expect(ss._highScore).toBe(100);
+    ss._handleCapture({ detail: { enemyType: 'Tuna', x: 100, y: 200 } }); // score = 250
+    expect(ss._highScore).toBe(250);
   });
 
   test('_highScore does not decrease when score drops below it', () => {
-    mockStorage._data['fishingTime_highScore'] = '200';
+    mockStorage._data['fishingTime_highScore'] = '500';
     const ss = new ScoreSystem();
-    ss._handleCapture({ detail: { enemyType: 'Tuna', x: 100, y: 200 } }); // score = 100
-    expect(ss._highScore).toBe(200);
+    ss._handleCapture({ detail: { enemyType: 'Tuna', x: 100, y: 200 } }); // score = 250 < 500
+    expect(ss._highScore).toBe(500);
   });
 
   test('_highScore is persisted to localStorage when updated', () => {
     const ss = new ScoreSystem();
-    ss._handleCapture({ detail: { enemyType: 'Tuna', x: 100, y: 200 } }); // score = 100, new best
-    expect(mockStorage.setItem).toHaveBeenCalledWith('fishingTime_highScore', '100');
+    ss._handleCapture({ detail: { enemyType: 'Tuna', x: 100, y: 200 } }); // score = 250, new best
+    expect(mockStorage.setItem).toHaveBeenCalledWith('fishingTime_highScore', '250');
   });
 });
 
@@ -208,9 +212,9 @@ describe('ScoreSystem draw()', () => {
 describe('ScoreSystem evaded handling', () => {
   test('_handleEvade deducts Math.floor(pts/4) for positive-value enemy', () => {
     const ss = new ScoreSystem();
-    ss._handleCapture({ detail: { enemyType: 'Tuna', x: 0, y: 0 } }); // +100
+    ss._handleCapture({ detail: { enemyType: 'Tuna', x: 0, y: 0 } }); // +250
     ss._handleEvade({ detail: { enemyType: 'ButterflyFish' } }); // -Math.floor(10/4) = -2
-    expect(ss._score).toBe(98);
+    expect(ss._score).toBe(248);
   });
 
   test('_handleEvade does not change score for negative-value enemy', () => {
@@ -235,16 +239,16 @@ describe('ScoreSystem score animations', () => {
     expect(ss._animations[0].y).toBe(400);
   });
 
-  test('animation text is "+100" for positive-value Tuna', () => {
+  test('animation text is "+250" for positive-value Tuna', () => {
     const ss = new ScoreSystem();
     ss._handleCapture({ detail: { enemyType: 'Tuna', x: 0, y: 0 } });
-    expect(ss._animations[0].text).toBe('+100');
+    expect(ss._animations[0].text).toBe('+250');
   });
 
-  test('animation text is "-10" for negative-value DiscardedBottle', () => {
+  test('animation text is "-5" for negative-value DiscardedBottle', () => {
     const ss = new ScoreSystem();
     ss._handleCapture({ detail: { enemyType: 'DiscardedBottle', x: 0, y: 0 } });
-    expect(ss._animations[0].text).toBe('-10');
+    expect(ss._animations[0].text).toBe('-5');
   });
 
   test('update() advances animation y by vy and reduces alpha', () => {

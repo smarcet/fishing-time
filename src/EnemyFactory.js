@@ -8,6 +8,7 @@ const DOM_ID_HAMMERHEAD_SHARK = 'hammerhead_shark_sprite';
 const DOM_ID_SWORDFISH        = 'swordfish_sprite';
 const DOM_ID_TUNA             = 'tuna_sprite';
 const DOM_ID_CLOWN_FISH       = 'clown_fish_sprite';
+const DOM_ID_SHARK            = 'shark_sprite';
 
 // Shared sprite layout - all CatchableFish-based enemies cycle only row 0 (swim);
 // row 1 is the die row, accessed directly via dieFrameY (not through the frame cycle).
@@ -48,6 +49,8 @@ const TUNA_DISPLAY_H             = 225;
 const TUNA_DISPLAY_W             = 384;
 const CLOWN_FISH_DISPLAY_H       = 114;
 const CLOWN_FISH_DISPLAY_W       = 107;
+const SHARK_DISPLAY_H            = 256;  // 512 / 2 - half canonical cell height
+const SHARK_DISPLAY_W            = 530;  // 1060 / 2 - half canonical cell width
 
 class EnemyFactory {
 
@@ -129,6 +132,15 @@ class EnemyFactory {
       dieFrameX: SPRITE_DIE_FRAME_X,
       dieFrameY: CLOWN_FISH_DIE_FRAME_Y,
     };
+    this.specs[ENEMY_TYPE_SHARK] = {
+      image: (typeof document !== 'undefined') ? document.getElementById(DOM_ID_SHARK) : null,
+      size: new Size(SHARK_DISPLAY_H, SHARK_DISPLAY_W),
+      spriteFrameSize: new Size(SHARK_FRAME_HEIGHT, SHARK_FRAME_WIDTH),
+      maxFrameX: SHARK_MAX_FRAME_X,
+      maxFrameY: SPRITE_SWIM_MAX_FRAME_Y,
+      dieFrameX: SPRITE_DIE_FRAME_X,
+      dieFrameY: SHARK_DIE_FRAME_Y,
+    };
   }
 
   createEnemy(name, game, ctx) {
@@ -209,6 +221,17 @@ class EnemyFactory {
         new Point(
           ClownFish.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
           ClownFish.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
+        ),
+        spec.image, spec.maxFrameX, spec.maxFrameY,
+        spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
+      );
+    }
+    if (name === ENEMY_TYPE_SHARK) {
+      return new Shark(
+        game, ctx, spec.size,
+        new Point(
+          Shark.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
+          Shark.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
         ),
         spec.image, spec.maxFrameX, spec.maxFrameY,
         spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize

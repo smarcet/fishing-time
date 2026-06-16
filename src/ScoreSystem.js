@@ -9,6 +9,7 @@ const SCORE_MAP = {
   HammerHeadShark: 700,
   SwordFish:       150,
   Tuna:           250,
+  Shark:          500,
   DiscardedBottle: -5,
 };
 

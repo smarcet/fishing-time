@@ -50,8 +50,8 @@ describe('SwordFish class hierarchy', () => {
     expect(makeFish() instanceof CatchableFish).toBe(true);
   });
 
-  test('getFightSpec() returns { strength: 88, escapeRate: 3.5 }', () => {
-    expect(makeFish().getFightSpec()).toEqual({ strength: 88, escapeRate: 3.5 });
+  test('getFightSpec() returns { strength: 50, escapeRate: 2.0 }', () => {
+    expect(makeFish().getFightSpec()).toEqual({ strength: 50, escapeRate: 2.0 });
   });
 });
 
