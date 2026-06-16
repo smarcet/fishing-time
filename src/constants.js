@@ -60,6 +60,16 @@ const HOOK_STATUS_CATCH = 'CATCH';
 // Enemy / capture status string constants
 const ENEMY_STATUS_CAPTURED = 'CAPTURED';
 
+const BUBBLE_DIE_DURATION      = 30;   // frames for ring explosion (~0.5 s at 60 fps)
+const BUBBLE_DIE_THRESHOLD_Y   = 380;  // px - y at which bubble starts dying (~80 px below water surface)
+const BUBBLE_BATCH_SIZE        = 15;   // bubbles spawned per batch
+const BUBBLE_SPEED_Y           = 0.5;  // px/frame - rise speed
+const BUBBLE_SIZE_MIN          = 16;   // px - minimum bubble diameter
+const BUBBLE_SIZE_MAX          = 64;   // px - maximum bubble diameter
+const BUBBLE_SPAWN_X_MIN       = 200;  // px - minimum x spawn position
+const BUBBLE_RING_COUNT        = 3;    // number of expanding rings in death animation
+const BUBBLE_RING_STAGGER      = 0.15; // fractional delay between successive rings (0-1)
+
 // Player state string constants
 const PLAYER_STATE_IDLE     = 'IDLE';
 const PLAYER_STATE_MOVING_R = 'MOVING_R';
@@ -86,5 +96,8 @@ if (typeof module !== 'undefined' && module.exports) {
     ENEMY_STATUS_CAPTURED,
     PLAYER_STATE_IDLE, PLAYER_STATE_MOVING_R, PLAYER_STATE_MOVING_L,
     PLAYER_STATE_CAST, PLAYER_STATE_REEL,
+    BUBBLE_DIE_DURATION, BUBBLE_DIE_THRESHOLD_Y, BUBBLE_BATCH_SIZE,
+    BUBBLE_SPEED_Y, BUBBLE_SIZE_MIN, BUBBLE_SIZE_MAX, BUBBLE_SPAWN_X_MIN,
+    BUBBLE_RING_COUNT, BUBBLE_RING_STAGGER,
   };
 }

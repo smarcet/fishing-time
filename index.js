@@ -14,5 +14,6 @@ if (typeof module !== 'undefined' && module.exports) {
   const { Fish }               = require('./src/Fish');               global.Fish               = Fish;
   const { Hook }               = require('./src/Hook');               global.Hook               = Hook;
   const { Player }             = require('./src/Player');             global.Player             = Player;
-  module.exports = { Size, Point, GameObject, Enemy, EnemyWithAnimation, Trash, Octopus, Crab, Fish, Hook, Player };
+  const { Bubble }             = require('./src/Bubble');             global.Bubble             = Bubble;
+  module.exports = { Size, Point, GameObject, Enemy, EnemyWithAnimation, Trash, Octopus, Crab, Fish, Hook, Player, Bubble };
 }

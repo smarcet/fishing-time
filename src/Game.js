@@ -77,9 +77,9 @@ class Game extends GameObject{
 
     // add bubbles
     if(!this._bubbles.length) {
-      for (let j = 0; j < 15; j++) {
-        let x = Math.random() * (this._size.getWidth() - 200) + 200;
-        let h = Math.random() * (64 - 16) + 16;
+      for (let j = 0; j < BUBBLE_BATCH_SIZE; j++) {
+        let x = Math.random() * (this._size.getWidth() - BUBBLE_SPAWN_X_MIN) + BUBBLE_SPAWN_X_MIN;
+        let h = Math.random() * (BUBBLE_SIZE_MAX - BUBBLE_SIZE_MIN) + BUBBLE_SIZE_MIN;
         this._bubbles.push(
           new Bubble
           (
@@ -87,6 +87,7 @@ class Game extends GameObject{
             this._ctx,
             new Size(h, h),
             new Point(x, this._size.getHeight()),
+            document.getElementById('bubble'),
           )
         );
       }
@@ -94,9 +95,8 @@ class Game extends GameObject{
 
     this._bubbles.forEach(b => {
       b.update();
-      if(b.getPosition().getY() <= 300){
-        console.log(`marking dead bubble`);
-        b.markDead();
+      if(b.getPosition().getY() <= BUBBLE_DIE_THRESHOLD_Y){
+        b.startDying();
       }
     });
 
