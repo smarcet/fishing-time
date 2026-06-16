@@ -44,6 +44,7 @@ class Game extends GameObject{
 
     this._inputHandler = new InputHandler(this);
     this._scoreSystem = new ScoreSystem();
+    this._reelPowerBar = new ReelPowerBar();
     this._audioSystem = new AudioSystem();
   }
 
@@ -60,6 +61,7 @@ class Game extends GameObject{
   update(dt = 0){
     super.update();
     this._scoreSystem.update();
+    this._reelPowerBar.update();
     this._layers.forEach(l => l.update());
 
     // clear dead bubbles and off-screen escaped fish
@@ -119,6 +121,7 @@ class Game extends GameObject{
     this._enemies.forEach(e => e.draw());
     this._bubbles.forEach(e => e.draw());
     this._scoreSystem.draw(this._ctx, this._size.getWidth());
+    this._reelPowerBar.draw(this._ctx);
   }
 
   addKey(key){

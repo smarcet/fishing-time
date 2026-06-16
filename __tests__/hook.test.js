@@ -713,3 +713,70 @@ describe('Hook event dispatching', () => {
     expect(docMock.eventsOf('reelRetrieving')).toHaveLength(1);
   });
 });
+
+// ---------------------------------------------------------------------------
+describe('Hook EVENT_REEL_POWER_CHANGED dispatching', () => {
+  let savedDoc;
+  let docMock;
+
+  beforeEach(() => {
+    savedDoc = global.document;
+    docMock = makeDocMock();
+    global.document = docMock;
+  });
+
+  afterEach(() => {
+    global.document = savedDoc;
+  });
+
+  test('reelPowerChanged fires each update when CatchableFish is hooked and not yet escaped', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 200;
+    hook.setCatch(makeMockFishEntity(1, 0.0));  // zero escape rate so progress stays at 0
+    hook._escapeProgress = 0;
+    hook.update(16);
+    hook.update(16);
+    expect(docMock.eventsOf('reelPowerChanged')).toHaveLength(2);
+  });
+
+  test('reelPowerChanged power=1.0 when escapeProgress is 0', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 200;
+    hook.setCatch(makeMockFishEntity(1, 0.0));
+    hook._escapeProgress = 0;
+    hook.update(16);
+    const events = docMock.eventsOf('reelPowerChanged');
+    expect(events.length).toBeGreaterThan(0);
+    expect(events[0].detail.power).toBeCloseTo(1.0, 5);
+  });
+
+  test('reelPowerChanged power=0.0 when escapeProgress equals HOOK_STRUGGLE_MAX_ESCAPE - 1', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 200;
+    hook.setCatch(makeMockFishEntity(1, 0.0));
+    hook._escapeProgress = HOOK_STRUGGLE_MAX_ESCAPE - 1;
+    hook.update(0);  // dt=0 so no additional progress accumulates
+    const events = docMock.eventsOf('reelPowerChanged');
+    expect(events.length).toBeGreaterThan(0);
+    // power = 1 - (99/100) = 0.01
+    expect(events[0].detail.power).toBeCloseTo(0.01, 2);
+  });
+
+  test('reelPowerChanged does NOT fire on the frame the fish escapes', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 200;
+    hook.setCatch(makeMockFishEntity(1, 0.0));
+    hook._escapeProgress = HOOK_STRUGGLE_MAX_ESCAPE + 1;  // already over threshold
+    hook.update(0);
+    expect(docMock.eventsOf('reelPowerChanged')).toHaveLength(0);
+  });
+
+  test('reelPowerChanged does NOT fire for InertObject (non-CatchableFish)', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 200;
+    hook.setCatch(makeMockInertEntity());
+    hook.update(16);
+    hook.update(16);
+    expect(docMock.eventsOf('reelPowerChanged')).toHaveLength(0);
+  });
+});

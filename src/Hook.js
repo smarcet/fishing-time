@@ -184,6 +184,9 @@ class Hook extends GameObject {
             document.dispatchEvent(new CustomEvent(EVENT_HOOK_IDLE));
           }
           return;
+        } else if (typeof document !== 'undefined') {
+          const power = 1 - Math.min(1, this._escapeProgress / HOOK_STRUGGLE_MAX_ESCAPE);
+          document.dispatchEvent(new CustomEvent(EVENT_REEL_POWER_CHANGED, { detail: { power } }));
         }
       } else {
         this._ropeLength -= HOOK_CATCH_REEL_SPEED;
