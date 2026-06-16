@@ -11,6 +11,7 @@ const SCORE_MAP = {
   SwordFish:       150,
   Tuna:           250,
   Shark:          500,
+  PufferFish:      25,
   DiscardedBottle: -5,
   RedApple:        -5,
   Wheel:           -5,

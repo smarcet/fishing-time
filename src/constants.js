@@ -79,6 +79,12 @@ const JELLY_FISH_MAX_FRAME_X  = 10;   // 10 move frames per row
 const JELLY_FISH_DIE_FRAME_Y  = 1;    // row 0 = move, row 1 = die
 const JELLY_FISH_DRIFT_SPEED  = 0.8;  // px/tick - slow drift (jellyfish float)
 
+const PUFFER_FISH_FRAME_WIDTH  = 358;  // px - canonical cell width (die-frame natural width)
+const PUFFER_FISH_FRAME_HEIGHT = 305;  // px - canonical cell height (die-frame natural height)
+const PUFFER_FISH_MAX_FRAME_X  = 10;   // 10 frames per row
+const PUFFER_FISH_DIE_FRAME_Y  = 1;    // row 0 = attack/swim (padded), row 1 = die
+const PUFFER_FISH_DRIFT_SPEED  = 1.5;  // px/tick - same tier as ClownFish (easy drift)
+
 const PLAYER_ANIM_STAGGER      = 5;   // ticks per sprite frame (boat idle/cast)
 const PLAYER_CATCH_MAX_FRAME_X = 3;   // 0-indexed: 4 columns in catch spritesheet
 const PLAYER_CATCH_MAX_FRAME_Y = 6;   // 0-indexed: 7 rows in catch spritesheet (28 frames)
@@ -112,6 +118,7 @@ const FISH_SPECS = {
   crab:           { strength: 40, escape_rate: 2.2 },  // hard - used by Crab
   clown_fish:     { strength: 5,  escape_rate: 1.2 },  // easy - used by ClownFish
   jelly_fish:     { strength: 5,  escape_rate: 1.0 },  // easy/penalty - used by JellyFish
+  puffer_fish:    { strength: 30, escape_rate: 2.2 },  // medium-hard - used by PufferFish
 };
 
 // Game event names
@@ -146,6 +153,7 @@ const ENEMY_TYPE_SHARK             = 'shark';
 const ENEMY_TYPE_RED_APPLE         = 'red_apple';
 const ENEMY_TYPE_JELLY_FISH        = 'jelly_fish';
 const ENEMY_TYPE_WHEEL             = 'wheel';
+const ENEMY_TYPE_PUFFER_FISH       = 'puffer_fish';
 
 const ENEMY_ESCAPE_SPEED_MULTIPLIER = 3;  // sprint speed after breaking free - TUNE
 
@@ -193,6 +201,8 @@ if (typeof module !== 'undefined' && module.exports) {
     CLOWN_FISH_DIE_FRAME_Y, CLOWN_FISH_DRIFT_SPEED,
     JELLY_FISH_FRAME_WIDTH, JELLY_FISH_FRAME_HEIGHT, JELLY_FISH_MAX_FRAME_X,
     JELLY_FISH_DIE_FRAME_Y, JELLY_FISH_DRIFT_SPEED,
+    PUFFER_FISH_FRAME_WIDTH, PUFFER_FISH_FRAME_HEIGHT, PUFFER_FISH_MAX_FRAME_X,
+    PUFFER_FISH_DIE_FRAME_Y, PUFFER_FISH_DRIFT_SPEED,
     PLAYER_ANIM_STAGGER, PLAYER_CATCH_MAX_FRAME_X, PLAYER_CATCH_MAX_FRAME_Y,
     PARALLAX_GAME_SPEED,
     CAPTURE_PHASE_RISING, CAPTURE_PHASE_THROWING,
@@ -200,7 +210,7 @@ if (typeof module !== 'undefined' && module.exports) {
     HOOK_STRUGGLE_REEL_POWER, HOOK_STRUGGLE_MAX_ESCAPE, HOOK_REEL_DISTANCE_PER_PRESS,
     FISH_SPECS,
     HOOK_STATUS_IDLE, HOOK_STATUS_CAST, HOOK_STATUS_HOOKED, HOOK_STATUS_RETRIEVING_EMPTY,
-    ENEMY_TYPE_BUTTERFLY_FISH, ENEMY_TYPE_LION_FISH, ENEMY_TYPE_HAMMERHEAD_SHARK, ENEMY_TYPE_SWORDFISH, ENEMY_TYPE_TUNA, ENEMY_TYPE_CLOWN_FISH, ENEMY_TYPE_DISCARDED_BOTTLE, ENEMY_TYPE_OCTOPUS, ENEMY_TYPE_CRAB, ENEMY_TYPE_SHARK, ENEMY_TYPE_RED_APPLE, ENEMY_TYPE_JELLY_FISH, ENEMY_TYPE_WHEEL,
+    ENEMY_TYPE_BUTTERFLY_FISH, ENEMY_TYPE_LION_FISH, ENEMY_TYPE_HAMMERHEAD_SHARK, ENEMY_TYPE_SWORDFISH, ENEMY_TYPE_TUNA, ENEMY_TYPE_CLOWN_FISH, ENEMY_TYPE_DISCARDED_BOTTLE, ENEMY_TYPE_OCTOPUS, ENEMY_TYPE_CRAB, ENEMY_TYPE_SHARK, ENEMY_TYPE_RED_APPLE, ENEMY_TYPE_JELLY_FISH, ENEMY_TYPE_WHEEL, ENEMY_TYPE_PUFFER_FISH,
     ENEMY_ESCAPE_SPEED_MULTIPLIER, ENEMY_STATUS_CAPTURED,
     PLAYER_STATE_IDLE, PLAYER_STATE_MOVING_R, PLAYER_STATE_MOVING_L,
     PLAYER_STATE_CAST, PLAYER_STATE_REEL,

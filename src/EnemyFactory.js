@@ -11,6 +11,7 @@ const DOM_ID_CLOWN_FISH       = 'clown_fish_sprite';
 const DOM_ID_SHARK            = 'shark_sprite';
 const DOM_ID_RED_APPLE        = 'red_apple_sprite';
 const DOM_ID_JELLY_FISH       = 'jelly_fish_sprite';
+const DOM_ID_PUFFER_FISH      = 'puffer_fish_sprite';
 
 // Shared sprite layout - all CatchableFish-based enemies cycle only row 0 (swim);
 // row 1 is the die row, accessed directly via dieFrameY (not through the frame cycle).
@@ -66,6 +67,8 @@ const JELLY_FISH_DISPLAY_H       = 106;
 const JELLY_FISH_DISPLAY_W       = 80;
 const SHARK_DISPLAY_H            = 256;  // 512 / 2 - half canonical cell height
 const SHARK_DISPLAY_W            = 530;  // 1060 / 2 - half canonical cell width
+const PUFFER_FISH_DISPLAY_H      = 152;  // 305 / 2 - half canonical cell height
+const PUFFER_FISH_DISPLAY_W      = 179;  // 358 / 2 - half canonical cell width
 
 class EnemyFactory {
 
@@ -174,6 +177,15 @@ class EnemyFactory {
       maxFrameY: SPRITE_SWIM_MAX_FRAME_Y,
       dieFrameX: SPRITE_DIE_FRAME_X,
       dieFrameY: SHARK_DIE_FRAME_Y,
+    };
+    this.specs[ENEMY_TYPE_PUFFER_FISH] = {
+      image: (typeof document !== 'undefined') ? document.getElementById(DOM_ID_PUFFER_FISH) : null,
+      size: new Size(PUFFER_FISH_DISPLAY_H, PUFFER_FISH_DISPLAY_W),
+      spriteFrameSize: new Size(PUFFER_FISH_FRAME_HEIGHT, PUFFER_FISH_FRAME_WIDTH),
+      maxFrameX: PUFFER_FISH_MAX_FRAME_X,
+      maxFrameY: SPRITE_SWIM_MAX_FRAME_Y,
+      dieFrameX: SPRITE_DIE_FRAME_X,
+      dieFrameY: PUFFER_FISH_DIE_FRAME_Y,
     };
   }
 
@@ -300,6 +312,17 @@ class EnemyFactory {
         new Point(
           Shark.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
           Shark.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
+        ),
+        spec.image, spec.maxFrameX, spec.maxFrameY,
+        spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
+      );
+    }
+    if (name === ENEMY_TYPE_PUFFER_FISH) {
+      return new PufferFish(
+        game, ctx, spec.size,
+        new Point(
+          PufferFish.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
+          PufferFish.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
         ),
         spec.image, spec.maxFrameX, spec.maxFrameY,
         spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
