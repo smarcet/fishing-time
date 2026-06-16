@@ -15,6 +15,7 @@ class Hook extends GameObject {
     this._isFishHook = false;
     this._escapeProgress = 0;
     this._drawTick = 0;
+    this._escapeParticles = [];
   }
 
   _pivot() {
@@ -122,6 +123,17 @@ class Hook extends GameObject {
           this._ropeLength = Math.max(HOOK_REST_LENGTH, this._ropeLength - HOOK_REEL_DISTANCE_PER_PRESS);
         }
         if (this._escapeProgress >= HOOK_STRUGGLE_MAX_ESCAPE) {
+          const escapePos = this._endpoint();
+          for (let i = 0; i < CAPTURE_ESCAPE_PARTICLES; i++) {
+            const angle = (Math.PI * 2 * i) / CAPTURE_ESCAPE_PARTICLES;
+            const speed = 3 + Math.random() * 4;
+            this._escapeParticles.push({
+              x: escapePos.getX(), y: escapePos.getY(),
+              vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 2,
+              life: 40, maxLife: 40,
+              size: 4 + Math.random() * 4
+            });
+          }
           const escapee = this._catch;
           escapee.escaped();
           this._player._game.releaseEnemy(escapee);
@@ -183,17 +195,26 @@ class Hook extends GameObject {
     }
 
     if (this._catch) {
-      let showCatch = true;
-      if (this._isFishHook && this._escapeProgress > 0) {
-        const progress = this._escapeProgress / HOOK_STRUGGLE_MAX_ESCAPE;
-        if (progress > 0.3) {
-          const blinkInterval = Math.max(2, Math.floor((1 - progress) * 12));
-          showCatch = (this._drawTick % (blinkInterval * 2)) < blinkInterval;
-        }
-      }
-      if (showCatch) {
-        this._catch.draw();
-      }
+      this._catch.draw();
+    }
+
+    for (let i = this._escapeParticles.length - 1; i >= 0; i--) {
+      const p = this._escapeParticles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.2;
+      p.life--;
+      if (p.life <= 0) { this._escapeParticles.splice(i, 1); continue; }
+      const t = p.life / p.maxLife;
+      this._ctx.save();
+      this._ctx.globalAlpha = t;
+      this._ctx.shadowColor = 'rgba(255,80,0,0.9)';
+      this._ctx.shadowBlur = 12;
+      this._ctx.fillStyle = `rgba(255,${Math.round(t * 80)},0,1)`;
+      this._ctx.beginPath();
+      this._ctx.arc(p.x, p.y, p.size * t, 0, Math.PI * 2);
+      this._ctx.fill();
+      this._ctx.restore();
     }
   }
 

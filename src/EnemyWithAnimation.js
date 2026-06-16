@@ -13,7 +13,6 @@ class EnemyWithAnimation extends Enemy {
      this._direction = null;
      this._staggerFrame = 1;
      this._tick = 0;
-     this._blinkInterval = CAPTURE_BLINK_INTERVAL;
    }
 
   updateCaptured() {
@@ -56,30 +55,42 @@ class EnemyWithAnimation extends Enemy {
     const w = this._size.getWidth();
     const h = this._size.getHeight();
     const hookTip = this._hook.getEndpoint();
-    const blinkOn = Math.floor(this._captureTick / this._blinkInterval) % 2 === 0;
-    const blinkAlpha = blinkOn ? 1.0 : 0.2;
+
+    // Escape danger: 0 (safe) to 1 (about to escape) - drives color and speed
+    const escapeDanger = this._hook._isFishHook
+      ? Math.min(1, this._hook._escapeProgress / HOOK_STRUGGLE_MAX_ESCAPE)
+      : 0;
+
+    // Pulse speeds up 4× as fish nears escape; glow size grows too
+    const pulseSpeed = CAPTURE_GLOW_SPEED * (1 + escapeDanger * 3);
+    const baseGlow = Math.max(5, 15 + 25 * Math.sin(this._captureTick * pulseSpeed));
+    const glowSize = baseGlow * (1 + escapeDanger * 0.6);
+
+    // Color: gold rgba(255,215,0) -> red rgba(255,30,0) as danger increases
+    const shadowColor = `rgba(255,${Math.round(215 * (1 - escapeDanger))},0,${(0.85 + escapeDanger * 0.1).toFixed(2)})`;
 
     // cx/cy = visual center of sprite in world coords
     let cx = hookTip.getX();
     let cy = hookTip.getY() + h / 2;
     let scale = 1.0;
-    let alpha = blinkAlpha;
+    let alpha = 1.0;
+    let glow = glowSize;
 
     const raw = this._hook.getCaptureRawProgress();
     if (raw >= CAPTURE_THROW_THRESHOLD) {
       const t = (raw - CAPTURE_THROW_THRESHOLD) / (1 - CAPTURE_THROW_THRESHOLD);
       const target = this._hook.getLandingTarget();
-      // Lerp visual center from hook tip toward boat center
       cx += (target.getX() - hookTip.getX()) * t;
       cy += (target.getY() - (hookTip.getY() + h / 2)) * t;
-      // Sine arc: upward bump above the straight-line trajectory
       cy -= Math.sin(t * Math.PI) * CAPTURE_THROW_ARC_Y;
       scale = 1.0 - t * 0.7;
-      alpha = blinkAlpha * (1.0 - t);
+      alpha = 1.0 - t;
+      glow = glowSize * (1.0 - t);
     }
 
-    // translate to center so ctx.scale() shrinks around the center (no drift)
     this._ctx.save();
+    this._ctx.shadowColor = shadowColor;
+    this._ctx.shadowBlur = glow;
     this._ctx.globalAlpha = Math.max(0, alpha);
     this._ctx.translate(cx, cy);
     this._ctx.scale(scale, scale);

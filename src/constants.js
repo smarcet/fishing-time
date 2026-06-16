@@ -48,7 +48,8 @@ const CAPTURE_PHASE_RISING   = 'RISING';
 const CAPTURE_PHASE_THROWING = 'THROWING';
 
 // Capture animation timing/geometry
-const CAPTURE_BLINK_INTERVAL  = 6;    // ticks per blink-state toggle
+const CAPTURE_GLOW_SPEED = 0.12;       // rad/tick for sin-driven glow pulse (~0.87 s period at 60 fps)
+const CAPTURE_ESCAPE_PARTICLES = 20;   // number of red particles on escape
 const CAPTURE_THROW_THRESHOLD = 0.78; // rope-progress fraction where THROWING phase begins
 const CAPTURE_THROW_ARC_Y     = 50;   // px height at parabola peak
 
@@ -113,7 +114,7 @@ if (typeof module !== 'undefined' && module.exports) {
     PLAYER_ANIM_STAGGER, PLAYER_CATCH_MAX_FRAME_X, PLAYER_CATCH_MAX_FRAME_Y,
     PARALLAX_GAME_SPEED,
     CAPTURE_PHASE_RISING, CAPTURE_PHASE_THROWING,
-    CAPTURE_BLINK_INTERVAL, CAPTURE_THROW_THRESHOLD, CAPTURE_THROW_ARC_Y,
+    CAPTURE_GLOW_SPEED, CAPTURE_ESCAPE_PARTICLES, CAPTURE_THROW_THRESHOLD, CAPTURE_THROW_ARC_Y,
     HOOK_STRUGGLE_REEL_POWER, HOOK_STRUGGLE_MAX_ESCAPE, HOOK_REEL_DISTANCE_PER_PRESS,
     FISH_SPECS,
     HOOK_STATUS_IDLE, HOOK_STATUS_CAST, HOOK_STATUS_HOOKED, HOOK_STATUS_RETRIEVING_EMPTY,
