@@ -1,6 +1,7 @@
 'use strict';
 
 const SCORE_MAP = {
+  ClownFish:        5,
   ButterflyFish:   10,
   LionFish:        20,
   Octopus:         15,

@@ -61,6 +61,12 @@ const TUNA_MAX_FRAME_X   = 8;     // 8 frames per row (swim + rest both padded t
 const TUNA_DIE_FRAME_Y   = 1;     // row 0 = swim, row 1 = rest (captured animation)
 const TUNA_DRIFT_SPEED   = 4.0;   // px/tick - fast but below SwordFish (4.5)
 
+const CLOWN_FISH_FRAME_WIDTH  = 342;  // px - canonical cell width (die-frame natural size)
+const CLOWN_FISH_FRAME_HEIGHT = 321;  // px - canonical cell height
+const CLOWN_FISH_MAX_FRAME_X  = 10;   // 10 move frames per row
+const CLOWN_FISH_DIE_FRAME_Y  = 1;    // row 0 = move, row 1 = die
+const CLOWN_FISH_DRIFT_SPEED  = 1.5;  // px/tick - same tier as ButterflyFish (easy)
+
 const PLAYER_ANIM_STAGGER      = 5;   // ticks per sprite frame (boat idle/cast)
 const PLAYER_CATCH_MAX_FRAME_X = 3;   // 0-indexed: 4 columns in catch spritesheet
 const PLAYER_CATCH_MAX_FRAME_Y = 6;   // 0-indexed: 7 rows in catch spritesheet (28 frames)
@@ -92,6 +98,7 @@ const FISH_SPECS = {
   sword_fish:       { strength: 88, escape_rate: 3.5 },  // very hard - used by SwordFish
   octopus:        { strength: 20, escape_rate: 1.8 },  // moderate - used by Octopus
   crab:           { strength: 40, escape_rate: 2.2 },  // hard - used by Crab
+  clown_fish:     { strength: 5,  escape_rate: 1.2 },  // easy - used by ClownFish
 };
 
 // Game event names
@@ -110,6 +117,7 @@ const ENEMY_TYPE_LION_FISH         = 'lion_fish';
 const ENEMY_TYPE_HAMMERHEAD_SHARK  = 'hammerhead_shark';
 const ENEMY_TYPE_SWORDFISH         = 'sword_fish';
 const ENEMY_TYPE_TUNA              = 'tuna';
+const ENEMY_TYPE_CLOWN_FISH        = 'clown_fish';
 const ENEMY_TYPE_DISCARDED_BOTTLE  = 'discarded_bottle';
 const ENEMY_TYPE_OCTOPUS           = 'octopus';
 const ENEMY_TYPE_CRAB              = 'crab';
@@ -155,6 +163,8 @@ if (typeof module !== 'undefined' && module.exports) {
     SWORDFISH_DIE_FRAME_Y, SWORDFISH_DRIFT_SPEED,
     TUNA_FRAME_WIDTH, TUNA_FRAME_HEIGHT, TUNA_MAX_FRAME_X,
     TUNA_DIE_FRAME_Y, TUNA_DRIFT_SPEED,
+    CLOWN_FISH_FRAME_WIDTH, CLOWN_FISH_FRAME_HEIGHT, CLOWN_FISH_MAX_FRAME_X,
+    CLOWN_FISH_DIE_FRAME_Y, CLOWN_FISH_DRIFT_SPEED,
     PLAYER_ANIM_STAGGER, PLAYER_CATCH_MAX_FRAME_X, PLAYER_CATCH_MAX_FRAME_Y,
     PARALLAX_GAME_SPEED,
     CAPTURE_PHASE_RISING, CAPTURE_PHASE_THROWING,
@@ -162,7 +172,7 @@ if (typeof module !== 'undefined' && module.exports) {
     HOOK_STRUGGLE_REEL_POWER, HOOK_STRUGGLE_MAX_ESCAPE, HOOK_REEL_DISTANCE_PER_PRESS,
     FISH_SPECS,
     HOOK_STATUS_IDLE, HOOK_STATUS_CAST, HOOK_STATUS_HOOKED, HOOK_STATUS_RETRIEVING_EMPTY,
-    ENEMY_TYPE_BUTTERFLY_FISH, ENEMY_TYPE_LION_FISH, ENEMY_TYPE_HAMMERHEAD_SHARK, ENEMY_TYPE_SWORDFISH, ENEMY_TYPE_TUNA, ENEMY_TYPE_DISCARDED_BOTTLE, ENEMY_TYPE_OCTOPUS, ENEMY_TYPE_CRAB,
+    ENEMY_TYPE_BUTTERFLY_FISH, ENEMY_TYPE_LION_FISH, ENEMY_TYPE_HAMMERHEAD_SHARK, ENEMY_TYPE_SWORDFISH, ENEMY_TYPE_TUNA, ENEMY_TYPE_CLOWN_FISH, ENEMY_TYPE_DISCARDED_BOTTLE, ENEMY_TYPE_OCTOPUS, ENEMY_TYPE_CRAB,
     ENEMY_ESCAPE_SPEED_MULTIPLIER, ENEMY_STATUS_CAPTURED,
     PLAYER_STATE_IDLE, PLAYER_STATE_MOVING_R, PLAYER_STATE_MOVING_L,
     PLAYER_STATE_CAST, PLAYER_STATE_REEL,

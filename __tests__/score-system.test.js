@@ -11,8 +11,8 @@ describe('SCORE_MAP values', () => {
     expect(SCORE_MAP.DiscardedBottle).toBe(-20);
   });
 
-  test('all eight expected keys exist', () => {
-    const keys = ['ButterflyFish', 'LionFish', 'Octopus', 'Crab', 'HammerHeadShark', 'SwordFish', 'Tuna', 'DiscardedBottle'];
+  test('all nine expected keys exist', () => {
+    const keys = ['ClownFish', 'ButterflyFish', 'LionFish', 'Octopus', 'Crab', 'HammerHeadShark', 'SwordFish', 'Tuna', 'DiscardedBottle'];
     keys.forEach(k => expect(SCORE_MAP).toHaveProperty(k));
   });
 });
@@ -125,7 +125,7 @@ describe('ScoreSystem localStorage persistence', () => {
 });
 
 describe('ScoreSystem draw() with high-score', () => {
-  test('draw() renders "Best: N" at y=65', () => {
+  test('draw() renders "Best: N" at y=85', () => {
     const ss = new ScoreSystem();
     ss._highScore = 200;
     const mockCtx = {
@@ -135,7 +135,7 @@ describe('ScoreSystem draw() with high-score', () => {
       set strokeStyle(_) {}, set lineWidth(_) {},
     };
     ss.draw(mockCtx, 800);
-    expect(mockCtx.fillText).toHaveBeenCalledWith('Best: 200', 780, 65);
+    expect(mockCtx.fillText).toHaveBeenCalledWith('Best: 200', 780, 85);
   });
 });
 
