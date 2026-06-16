@@ -11,6 +11,7 @@ const SCORE_MAP = {
   Tuna:           250,
   Shark:          500,
   DiscardedBottle: -5,
+  RedApple:        -5,
 };
 
 const LS_KEY_HIGH_SCORE = 'fishingTime_highScore';

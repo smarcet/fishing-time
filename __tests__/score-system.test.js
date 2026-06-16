@@ -11,6 +11,10 @@ describe('SCORE_MAP values', () => {
     expect(SCORE_MAP.DiscardedBottle).toBe(-5);
   });
 
+  test('RedApple is worth -5 points', () => {
+    expect(SCORE_MAP.RedApple).toBe(-5);
+  });
+
   test('Shark is worth 500 points', () => {
     expect(SCORE_MAP.Shark).toBe(500);
   });

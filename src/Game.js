@@ -64,6 +64,7 @@ class Game extends GameObject{
     this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_SWORDFISH, this, ctx));
     this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_TUNA, this, ctx));
     this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_DISCARDED_BOTTLE, this, ctx));
+    this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_RED_APPLE, this, ctx));
 
     this._debug = false;
     this._keys = [];

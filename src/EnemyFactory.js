@@ -9,6 +9,7 @@ const DOM_ID_SWORDFISH        = 'swordfish_sprite';
 const DOM_ID_TUNA             = 'tuna_sprite';
 const DOM_ID_CLOWN_FISH       = 'clown_fish_sprite';
 const DOM_ID_SHARK            = 'shark_sprite';
+const DOM_ID_RED_APPLE        = 'red_apple_sprite';
 
 // Shared sprite layout - all CatchableFish-based enemies cycle only row 0 (swim);
 // row 1 is the die row, accessed directly via dieFrameY (not through the frame cycle).
@@ -19,6 +20,11 @@ const SPRITE_DIE_FRAME_X      = 0;  // all die animations start at column 0
 const BOTTLE_DISPLAY_H  = 92;
 const BOTTLE_DISPLAY_W  = 76;
 const BOTTLE_MAX_FRAMES = 10;
+
+// RedApple display and animation
+const RED_APPLE_DISPLAY_H  = 60;
+const RED_APPLE_DISPLAY_W  = 35;
+const RED_APPLE_MAX_FRAMES = 1;
 
 // ButterflyFish - die frame is on the same row as swim (no separate die row)
 const BUTTERFLY_FISH_DIE_FRAME_X = 0;
@@ -68,6 +74,11 @@ class EnemyFactory {
       image: (typeof document !== 'undefined') ? document.getElementById(DOM_ID_BOTTLE) : null,
       size: new Size(BOTTLE_DISPLAY_H, BOTTLE_DISPLAY_W),
       maxFrames: BOTTLE_MAX_FRAMES,
+    };
+    this.specs[ENEMY_TYPE_RED_APPLE] = {
+      image: (typeof document !== 'undefined') ? document.getElementById(DOM_ID_RED_APPLE) : null,
+      size: new Size(RED_APPLE_DISPLAY_H, RED_APPLE_DISPLAY_W),
+      maxFrames: RED_APPLE_MAX_FRAMES,
     };
     this.specs[ENEMY_TYPE_OCTOPUS] = {
       image: (typeof document !== 'undefined') ? document.getElementById(DOM_ID_OCTOPUS) : null,
@@ -158,6 +169,13 @@ class EnemyFactory {
     }
     if (name === ENEMY_TYPE_DISCARDED_BOTTLE) {
       return new DiscardedBottle(
+        game, ctx, spec.size,
+        new Point(0, WATER_SURFACE_Y),
+        spec.image, spec.maxFrames
+      );
+    }
+    if (name === ENEMY_TYPE_RED_APPLE) {
+      return new RedApple(
         game, ctx, spec.size,
         new Point(0, WATER_SURFACE_Y),
         spec.image, spec.maxFrames
