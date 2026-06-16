@@ -92,7 +92,7 @@ const HOOK_REEL_DISTANCE_PER_PRESS  = 15;    // rope shrink (px) per Space press
 const FISH_SPECS = {
   butterfly_fish: { strength: 5,  escape_rate: 1.5 },  // easy - used by ButterflyFish
   lion_fish:      { strength: 15, escape_rate: 2.5 },  // medium - used by LionFish
-  tuna: { strength: 90, escape_rate: 3.0 },  // hardest - above SwordFish
+  tuna: { strength: 60, escape_rate: 3.0 },  // hardest - above SwordFish
   shark:          { strength: 60, escape_rate: 2.0 },  // hard - reserved for future SharkFish
   hammerhead_shark: { strength: 50, escape_rate: 2.0 },  // hard - used by HammerHeadShark
   sword_fish:       { strength: 50, escape_rate: 2.0 },  // very hard - used by SwordFish
