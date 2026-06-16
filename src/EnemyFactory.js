@@ -27,6 +27,12 @@ const RED_APPLE_DISPLAY_H  = 60;
 const RED_APPLE_DISPLAY_W  = 35;
 const RED_APPLE_MAX_FRAMES = 1;
 
+// Wheel display and animation
+const DOM_ID_WHEEL     = 'wheel_sprite';
+const WHEEL_DISPLAY_H  = 76;   // height (first arg to Size)
+const WHEEL_DISPLAY_W  = 84;   // width  (second arg to Size)
+const WHEEL_MAX_FRAMES = 1;
+
 // ButterflyFish - die frame is on the same row as swim (no separate die row)
 const BUTTERFLY_FISH_DIE_FRAME_X = 0;
 const BUTTERFLY_FISH_DIE_FRAME_Y = 0;
@@ -82,6 +88,11 @@ class EnemyFactory {
       image: (typeof document !== 'undefined') ? document.getElementById(DOM_ID_RED_APPLE) : null,
       size: new Size(RED_APPLE_DISPLAY_H, RED_APPLE_DISPLAY_W),
       maxFrames: RED_APPLE_MAX_FRAMES,
+    };
+    this.specs[ENEMY_TYPE_WHEEL] = {
+      image: (typeof document !== 'undefined') ? document.getElementById(DOM_ID_WHEEL) : null,
+      size: new Size(WHEEL_DISPLAY_H, WHEEL_DISPLAY_W),  // Size(h, w) - height first
+      maxFrames: WHEEL_MAX_FRAMES,
     };
     this.specs[ENEMY_TYPE_OCTOPUS] = {
       image: (typeof document !== 'undefined') ? document.getElementById(DOM_ID_OCTOPUS) : null,
@@ -182,14 +193,21 @@ class EnemyFactory {
     if (name === ENEMY_TYPE_DISCARDED_BOTTLE) {
       return new DiscardedBottle(
         game, ctx, spec.size,
-        new Point(0, WATER_SURFACE_Y),
+        new Point(Math.max(0, Math.random() * (game.getSize().getWidth() - spec.size.getWidth())), WATER_SURFACE_Y),
         spec.image, spec.maxFrames
       );
     }
     if (name === ENEMY_TYPE_RED_APPLE) {
       return new RedApple(
         game, ctx, spec.size,
-        new Point(0, WATER_SURFACE_Y),
+        new Point(Math.max(0, Math.random() * (game.getSize().getWidth() - spec.size.getWidth())), WATER_SURFACE_Y),
+        spec.image, spec.maxFrames
+      );
+    }
+    if (name === ENEMY_TYPE_WHEEL) {
+      return new Wheel(
+        game, ctx, spec.size,
+        new Point(Math.max(0, Math.random() * (game.getSize().getWidth() - spec.size.getWidth())), WATER_SURFACE_Y),
         spec.image, spec.maxFrames
       );
     }
@@ -285,4 +303,8 @@ class EnemyFactory {
       spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
     );
   }
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { EnemyFactory };
 }

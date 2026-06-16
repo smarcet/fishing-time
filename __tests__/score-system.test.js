@@ -15,12 +15,16 @@ describe('SCORE_MAP values', () => {
     expect(SCORE_MAP.RedApple).toBe(-5);
   });
 
+  test('Wheel is worth -5 points', () => {
+    expect(SCORE_MAP.Wheel).toBe(-5);
+  });
+
   test('Shark is worth 500 points', () => {
     expect(SCORE_MAP.Shark).toBe(500);
   });
 
-  test('all ten expected keys exist', () => {
-    const keys = ['ClownFish', 'ButterflyFish', 'LionFish', 'Octopus', 'Crab', 'HammerHeadShark', 'SwordFish', 'Tuna', 'Shark', 'DiscardedBottle'];
+  test('all expected keys exist', () => {
+    const keys = ['ClownFish', 'ButterflyFish', 'LionFish', 'Octopus', 'Crab', 'HammerHeadShark', 'SwordFish', 'Tuna', 'Shark', 'DiscardedBottle', 'RedApple', 'Wheel'];
     keys.forEach(k => expect(SCORE_MAP).toHaveProperty(k));
   });
 });

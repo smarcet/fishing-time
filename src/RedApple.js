@@ -4,6 +4,7 @@ class RedApple extends InertObject {
     super(game, ctx, size, position, image, maxFrames);
     this._staggerFrame = ANIM_STAGGER_SLOW;
     this._driftSpeed = DRIFT_SPEED_SLOW;
+    this._speedX = this._driftSpeed;
     this._bobAmplitude = ANIM_BOB_AMPLITUDE;
     this._bobSpeed = ANIM_BOB_SPEED;
     this._maxAngle = ANIM_MAX_TILT_ANGLE;

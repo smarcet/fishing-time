@@ -1,4 +1,4 @@
-class DiscardedBottle extends InertObject {
+class Wheel extends InertObject {
 
   constructor(game, ctx, size, position, image, maxFrames) {
     super(game, ctx, size, position, image, maxFrames);
@@ -26,7 +26,7 @@ class DiscardedBottle extends InertObject {
   }
 
   _drawCapturedSprite(dx, dy, w, h) {
-    this._ctx.drawImage(this._image, 0, 0, w, h, dx, dy, w, h);
+    this._ctx.drawImage(this._image, 0, 0, this._image.naturalWidth, this._image.naturalHeight, dx, dy, w, h);
   }
 
   draw() {
@@ -48,11 +48,11 @@ class DiscardedBottle extends InertObject {
     this._ctx.save();
     this._ctx.translate(dx + w / 2, dy + this._bobOffset + h / 2);
     this._ctx.rotate(this._angle);
-    this._ctx.drawImage(this._image, this._frameX * w, 0, w, h, -w / 2, -h / 2, w, h);
+    this._ctx.drawImage(this._image, 0, 0, this._image.naturalWidth, this._image.naturalHeight, -w / 2, -h / 2, w, h);
     this._ctx.restore();
   }
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { DiscardedBottle };
+  module.exports = { Wheel };
 }

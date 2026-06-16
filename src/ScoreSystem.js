@@ -13,6 +13,7 @@ const SCORE_MAP = {
   Shark:          500,
   DiscardedBottle: -5,
   RedApple:        -5,
+  Wheel:           -5,
 };
 
 const LS_KEY_HIGH_SCORE = 'fishingTime_highScore';
