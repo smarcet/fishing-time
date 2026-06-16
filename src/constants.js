@@ -102,9 +102,13 @@ const FISH_SPECS = {
 };
 
 // Game event names
-const EVENT_ENEMY_CAPTURED = 'enemyCaptured';
-const EVENT_ENEMY_ESCAPED  = 'enemyEscaped';
-const EVENT_ENEMY_EVADED   = 'enemyEvaded';
+const EVENT_ENEMY_CAPTURED   = 'enemyCaptured';
+const EVENT_ENEMY_ESCAPED    = 'enemyEscaped';
+const EVENT_ENEMY_EVADED     = 'enemyEvaded';
+const EVENT_ENEMY_HOOKED     = 'enemyHooked';
+const EVENT_ROD_CASTED       = 'rodCasted';
+const EVENT_REEL_RETRIEVING  = 'reelRetrieving';
+const EVENT_HOOK_IDLE        = 'hookIdle';
 
 // Hook status string constants
 const HOOK_STATUS_IDLE             = 'IDLE';
@@ -180,5 +184,6 @@ if (typeof module !== 'undefined' && module.exports) {
     BUBBLE_SPEED_Y, BUBBLE_SIZE_MIN, BUBBLE_SIZE_MAX, BUBBLE_SPAWN_X_MIN,
     BUBBLE_RING_COUNT, BUBBLE_RING_STAGGER,
     EVENT_ENEMY_CAPTURED, EVENT_ENEMY_ESCAPED, EVENT_ENEMY_EVADED,
+    EVENT_ENEMY_HOOKED, EVENT_ROD_CASTED, EVENT_REEL_RETRIEVING, EVENT_HOOK_IDLE,
   };
 }

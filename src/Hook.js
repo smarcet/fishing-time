@@ -42,6 +42,7 @@ class Hook extends GameObject {
     this._escapeProgress = 0;
     this._drawTick = 0;
     this._escapeParticles = [];
+    this._hookedEventFired = false;
   }
 
   _pivot() {
@@ -92,10 +93,12 @@ class Hook extends GameObject {
       document.dispatchEvent(new CustomEvent(EVENT_ENEMY_CAPTURED, {
         detail: { enemyType: this._catch.constructor.name, x: pos.getX(), y: pos.getY() }
       }));
+      document.dispatchEvent(new CustomEvent(EVENT_HOOK_IDLE));
     }
     this._catch = null;
     this._catchRopeStart = null;
     this._escapeProgress = 0;
+    this._hookedEventFired = false;
     this._status = HOOK_STATUS_IDLE;
     this._ropeLength = HOOK_REST_LENGTH;
   }
@@ -126,6 +129,9 @@ class Hook extends GameObject {
         this._castAngle = this._angle;
         this._status = HOOK_STATUS_CAST;
         this._ropeLength += HOOK_CAST_SPEED;
+        if (typeof document !== 'undefined') {
+          document.dispatchEvent(new CustomEvent(EVENT_ROD_CASTED));
+        }
       } else {
         this._swingPhase += HOOK_SWING_SPEED;
         this._angle = HOOK_MAX_SWING_ANGLE * Math.sin(this._swingPhase);
@@ -135,12 +141,23 @@ class Hook extends GameObject {
       const atBottom = this._endpoint().getY() >= gameHeight * HOOK_MAX_DEPTH_FACTOR;
       if (atBottom) {
         this._status = HOOK_STATUS_RETRIEVING_EMPTY;
+        if (typeof document !== 'undefined') {
+          document.dispatchEvent(new CustomEvent(EVENT_REEL_RETRIEVING));
+        }
       } else {
         this._ropeLength += HOOK_CAST_SPEED;
       }
     } else if (this._status === HOOK_STATUS_HOOKED) {
       this._catch.updateCaptured();
       if (this.isCatchableFishHooked()) {
+        if (!this._hookedEventFired) {
+          this._hookedEventFired = true;
+          if (typeof document !== 'undefined') {
+            document.dispatchEvent(new CustomEvent(EVENT_ENEMY_HOOKED, {
+              detail: { enemyType: this._catch.constructor.name }
+            }));
+          }
+        }
         const fightSpec = this._catch.getFightSpec();
         this._escapeProgress += fightSpec.strength * fightSpec.escapeRate * dtSec;
         if (spacePressed) {
@@ -163,6 +180,9 @@ class Hook extends GameObject {
           this._escapeProgress = 0;
           this._status = HOOK_STATUS_IDLE;
           this._ropeLength = HOOK_REST_LENGTH;
+          if (typeof document !== 'undefined') {
+            document.dispatchEvent(new CustomEvent(EVENT_HOOK_IDLE));
+          }
           return;
         }
       } else {
@@ -176,6 +196,9 @@ class Hook extends GameObject {
       if (this._ropeLength <= HOOK_REST_LENGTH) {
         this._ropeLength = HOOK_REST_LENGTH;
         this._status = HOOK_STATUS_IDLE;
+        if (typeof document !== 'undefined') {
+          document.dispatchEvent(new CustomEvent(EVENT_HOOK_IDLE));
+        }
       }
     }
   }
@@ -275,7 +298,11 @@ class Hook extends GameObject {
     this._catch = entity;
     this._catchRopeStart = this._ropeLength;
     this._escapeProgress = 0;
+    this._hookedEventFired = false;
     entity.captured(this);
+    if (typeof document !== 'undefined') {
+      document.dispatchEvent(new CustomEvent(EVENT_REEL_RETRIEVING));
+    }
   }
 }
 

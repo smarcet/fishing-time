@@ -421,9 +421,8 @@ describe('Hook HOOKED - fish escape', () => {
 
     global.document = savedDoc;
 
-    expect(dispatchMock).toHaveBeenCalledTimes(1);
-    const evt = dispatchMock.mock.calls[0][0];
-    expect(evt.type).toBe('enemyEscaped');
+    const escapedCalls = dispatchMock.mock.calls.filter(c => c[0].type === 'enemyEscaped');
+    expect(escapedCalls).toHaveLength(1);
     expect(hook._status).toBe(HOOK_STATUS_IDLE);
   });
 
@@ -583,10 +582,9 @@ describe('Hook clearCaptured() dispatches enemyCaptured event', () => {
 
     global.document = savedDoc;
 
-    expect(dispatchMock).toHaveBeenCalledTimes(1);
-    const evt = dispatchMock.mock.calls[0][0];
-    expect(evt.type).toBe('enemyCaptured');
-    expect(evt.detail).toHaveProperty('enemyType');
+    const capturedCalls = dispatchMock.mock.calls.filter(c => c[0].type === 'enemyCaptured');
+    expect(capturedCalls).toHaveLength(1);
+    expect(capturedCalls[0][0].detail).toHaveProperty('enemyType');
   });
 
   test('dispatchEvent not called when no catch is active', () => {
@@ -637,5 +635,81 @@ describe('Hook._pivot() follows rendered rod-tip Y during CAST (bob offset)', ()
     const pivot = hook._pivot();
     const expectedY = PLAYER_Y + PLAYER_H * HOOK_PIVOT_Y_FACTOR;
     expect(pivot.getY()).toBeCloseTo(expectedY, 4);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Helper: create a mock document that records dispatched events
+function makeDocMock() {
+  const dispatched = [];
+  return {
+    getElementById: () => null,
+    dispatchEvent: jest.fn(evt => dispatched.push(evt)),
+    eventsOf: (type) => dispatched.filter(e => e.type === type),
+  };
+}
+
+describe('Hook event dispatching', () => {
+  let savedDoc;
+  let docMock;
+
+  beforeEach(() => {
+    savedDoc = global.document;
+    docMock = makeDocMock();
+    global.document = docMock;
+  });
+
+  afterEach(() => {
+    global.document = savedDoc;
+  });
+
+  test('EVENT_ROD_CASTED fires exactly once per cast press', () => {
+    const hook = makeHook(false);
+    castHook(hook);
+    expect(docMock.eventsOf('rodCasted')).toHaveLength(1);
+  });
+
+  test('EVENT_ROD_CASTED does not fire on subsequent updates without re-pressing', () => {
+    const hook = makeHook(false);
+    castHook(hook);
+    hook.update(16);
+    hook.update(16);
+    expect(docMock.eventsOf('rodCasted')).toHaveLength(1);
+  });
+
+  test('EVENT_ENEMY_HOOKED fires once for CatchableFish and not again on subsequent ticks', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 200;
+    const fish = makeMockFishEntity();
+    hook.setCatch(fish);
+    hook.update(16);
+    hook.update(16);
+    hook.update(16);
+    expect(docMock.eventsOf('enemyHooked')).toHaveLength(1);
+  });
+
+  test('EVENT_ENEMY_HOOKED does not fire for non-CatchableFish (InertObject)', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 200;
+    hook.setCatch(makeMockInertEntity());
+    hook.update(16);
+    hook.update(16);
+    expect(docMock.eventsOf('enemyHooked')).toHaveLength(0);
+  });
+
+  test('EVENT_REEL_RETRIEVING fires once when setCatch is called', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 200;
+    hook.setCatch(makeMockInertEntity());
+    expect(docMock.eventsOf('reelRetrieving')).toHaveLength(1);
+  });
+
+  test('EVENT_REEL_RETRIEVING fires once when hook reaches max depth (CAST -> RETRIEVING_EMPTY)', () => {
+    const hook = makeHook(false);
+    castHook(hook);
+    hook._castAngle = 0;
+    hook._ropeLength = 1750; // endpoint.y = pivot.y(~189) + 1750 = 1939 > 1900 (gameH=2000 * 0.95)
+    hook.update(16);
+    expect(docMock.eventsOf('reelRetrieving')).toHaveLength(1);
   });
 });

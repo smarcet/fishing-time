@@ -44,6 +44,7 @@ class Game extends GameObject{
 
     this._inputHandler = new InputHandler(this);
     this._scoreSystem = new ScoreSystem();
+    this._audioSystem = new AudioSystem();
   }
 
   isDebug(){
