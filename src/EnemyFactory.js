@@ -42,6 +42,15 @@ class EnemyFactory {
       dieFrameX: 0,
       dieFrameY: LION_FISH_DIE_FRAME_Y,
     };
+    this.specs[ENEMY_TYPE_HAMMERHEAD_SHARK] = {
+      image: (typeof document !== 'undefined') ? document.getElementById('hammerhead_shark_sprite') : null,
+      size: new Size(348, 600),
+      spriteFrameSize: new Size(HAMMERHEAD_SHARK_FRAME_HEIGHT, HAMMERHEAD_SHARK_FRAME_WIDTH),
+      maxFrameX: HAMMERHEAD_SHARK_MAX_FRAME_X,
+      maxFrameY: 1,
+      dieFrameX: 0,
+      dieFrameY: HAMMERHEAD_SHARK_DIE_FRAME_Y,
+    };
   }
 
   createEnemy(name, game, ctx) {
@@ -78,6 +87,17 @@ class EnemyFactory {
         new Point(
           LionFish.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
           LionFish.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
+        ),
+        spec.image, spec.maxFrameX, spec.maxFrameY,
+        spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
+      );
+    }
+    if (name === ENEMY_TYPE_HAMMERHEAD_SHARK) {
+      return new HammerHeadShark(
+        game, ctx, spec.size,
+        new Point(
+          HammerHeadShark.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
+          HammerHeadShark.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
         ),
         spec.image, spec.maxFrameX, spec.maxFrameY,
         spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize

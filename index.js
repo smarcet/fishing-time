@@ -15,8 +15,9 @@ if (typeof module !== 'undefined' && module.exports) {
   const { Crab }               = require('./src/Crab');               global.Crab               = Crab;
   const { ButterflyFish }      = require('./src/ButterflyFish');      global.ButterflyFish      = ButterflyFish;
   const { LionFish }           = require('./src/LionFish');           global.LionFish           = LionFish;
+  const { HammerHeadShark }   = require('./src/HammerHeadShark');   global.HammerHeadShark   = HammerHeadShark;
   const { Hook }               = require('./src/Hook');               global.Hook               = Hook;
   const { Player }             = require('./src/Player');             global.Player             = Player;
   const { Bubble }             = require('./src/Bubble');             global.Bubble             = Bubble;
-  module.exports = { Size, Point, GameObject, Enemy, EnemyWithAnimation, CatchableFish, InertObject, DiscardedBottle, Octopus, Crab, ButterflyFish, LionFish, Hook, Player, Bubble };
+  module.exports = { Size, Point, GameObject, Enemy, EnemyWithAnimation, CatchableFish, InertObject, DiscardedBottle, Octopus, Crab, ButterflyFish, LionFish, HammerHeadShark, Hook, Player, Bubble };
 }

@@ -43,6 +43,12 @@ const LION_FISH_MAX_FRAME_X  = 10;   // 10 frames per row (guard is < maxFrameX-
 const LION_FISH_DIE_FRAME_Y  = 1;    // row 0 = move, row 1 = die (captured animation)
 const LION_FISH_DRIFT_SPEED  = 2.0;  // px/tick - mid-water, between butterfly (1.5) and crab (4.0)
 
+const HAMMERHEAD_SHARK_FRAME_WIDTH  = 798;  // px - die-frame width = canonical cell horizontal stride
+const HAMMERHEAD_SHARK_FRAME_HEIGHT = 463;  // px - die-frame height = canonical cell vertical stride
+const HAMMERHEAD_SHARK_MAX_FRAME_X  = 10;   // 10 frames per row (guard < maxFrameX-1, frames 0-9)
+const HAMMERHEAD_SHARK_DIE_FRAME_Y  = 1;    // row 0 = move, row 1 = die (captured animation)
+const HAMMERHEAD_SHARK_DRIFT_SPEED  = 3.5;  // px/tick - fastest fish (between lionfish 2.0 and crab 4.0)
+
 const PLAYER_ANIM_STAGGER      = 5;   // ticks per sprite frame (boat idle/cast)
 const PLAYER_CATCH_MAX_FRAME_X = 3;   // 0-indexed: 4 columns in catch spritesheet
 const PLAYER_CATCH_MAX_FRAME_Y = 6;   // 0-indexed: 7 rows in catch spritesheet (28 frames)
@@ -70,6 +76,7 @@ const FISH_SPECS = {
   lion_fish:      { strength: 15, escape_rate: 2.5 },  // medium - used by LionFish
   // tuna: reserved for a future TunaFish entity - NOT used at launch
   shark:          { strength: 60, escape_rate: 3.0 },  // hard - reserved for future SharkFish
+  hammerhead_shark: { strength: 80, escape_rate: 3.0 },  // hardest fish - used by HammerHeadShark
   octopus:        { strength: 20, escape_rate: 1.8 },  // moderate - used by Octopus
   crab:           { strength: 40, escape_rate: 2.2 },  // hard - used by Crab
 };
@@ -80,11 +87,12 @@ const HOOK_STATUS_CAST             = 'CAST';
 const HOOK_STATUS_HOOKED           = 'HOOKED';
 const HOOK_STATUS_RETRIEVING_EMPTY = 'RETRIEVING_EMPTY';
 // Enemy type constants
-const ENEMY_TYPE_BUTTERFLY_FISH   = 'butterfly_fish';
-const ENEMY_TYPE_LION_FISH        = 'lion_fish';
-const ENEMY_TYPE_DISCARDED_BOTTLE = 'discarded_bottle';
-const ENEMY_TYPE_OCTOPUS          = 'octopus';
-const ENEMY_TYPE_CRAB             = 'crab';
+const ENEMY_TYPE_BUTTERFLY_FISH    = 'butterfly_fish';
+const ENEMY_TYPE_LION_FISH         = 'lion_fish';
+const ENEMY_TYPE_HAMMERHEAD_SHARK  = 'hammerhead_shark';
+const ENEMY_TYPE_DISCARDED_BOTTLE  = 'discarded_bottle';
+const ENEMY_TYPE_OCTOPUS           = 'octopus';
+const ENEMY_TYPE_CRAB              = 'crab';
 
 const ENEMY_ESCAPE_SPEED_MULTIPLIER = 3;  // sprint speed after breaking free - TUNE
 
@@ -121,6 +129,8 @@ if (typeof module !== 'undefined' && module.exports) {
     CRAB_DIE_FRAME_Y, CRAB_DRIFT_SPEED, CRAB_SEABED_FACTOR,
     LION_FISH_FRAME_WIDTH, LION_FISH_FRAME_HEIGHT, LION_FISH_MAX_FRAME_X,
     LION_FISH_DIE_FRAME_Y, LION_FISH_DRIFT_SPEED,
+    HAMMERHEAD_SHARK_FRAME_WIDTH, HAMMERHEAD_SHARK_FRAME_HEIGHT, HAMMERHEAD_SHARK_MAX_FRAME_X,
+    HAMMERHEAD_SHARK_DIE_FRAME_Y, HAMMERHEAD_SHARK_DRIFT_SPEED,
     PLAYER_ANIM_STAGGER, PLAYER_CATCH_MAX_FRAME_X, PLAYER_CATCH_MAX_FRAME_Y,
     PARALLAX_GAME_SPEED,
     CAPTURE_PHASE_RISING, CAPTURE_PHASE_THROWING,
@@ -128,7 +138,7 @@ if (typeof module !== 'undefined' && module.exports) {
     HOOK_STRUGGLE_REEL_POWER, HOOK_STRUGGLE_MAX_ESCAPE, HOOK_REEL_DISTANCE_PER_PRESS,
     FISH_SPECS,
     HOOK_STATUS_IDLE, HOOK_STATUS_CAST, HOOK_STATUS_HOOKED, HOOK_STATUS_RETRIEVING_EMPTY,
-    ENEMY_TYPE_BUTTERFLY_FISH, ENEMY_TYPE_LION_FISH, ENEMY_TYPE_DISCARDED_BOTTLE, ENEMY_TYPE_OCTOPUS, ENEMY_TYPE_CRAB,
+    ENEMY_TYPE_BUTTERFLY_FISH, ENEMY_TYPE_LION_FISH, ENEMY_TYPE_HAMMERHEAD_SHARK, ENEMY_TYPE_DISCARDED_BOTTLE, ENEMY_TYPE_OCTOPUS, ENEMY_TYPE_CRAB,
     ENEMY_ESCAPE_SPEED_MULTIPLIER, ENEMY_STATUS_CAPTURED,
     PLAYER_STATE_IDLE, PLAYER_STATE_MOVING_R, PLAYER_STATE_MOVING_L,
     PLAYER_STATE_CAST, PLAYER_STATE_REEL,
