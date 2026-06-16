@@ -1,11 +1,10 @@
 class ButterflyFish extends CatchableFish {
 
-  constructor(game, ctx, size, position, image, maxFrameX, maxFrameY, dieFrameX, dieFrameY, specKey = 'butterfly_fish') {
+  constructor(game, ctx, size, position, image, maxFrameX, maxFrameY, dieFrameX, dieFrameY) {
     super(game, ctx, size, position, image, maxFrameX, maxFrameY, dieFrameX, dieFrameY);
     this._staggerFrame = ANIM_STAGGER_SLOW;
-    const spec = FISH_SPECS[specKey] || FISH_SPECS['butterfly_fish'];
-    this._strength   = spec.strength;
-    this._escapeRate = spec.escape_rate;
+    this._strength   = FISH_SPECS['butterfly_fish'].strength;
+    this._escapeRate = FISH_SPECS['butterfly_fish'].escape_rate;
   }
 
   static randomSpawnY(canvasHeight, fishHeight, rng = Math.random) {
