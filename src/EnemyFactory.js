@@ -3,7 +3,7 @@ class EnemyFactory {
   constructor() {
     this.specs = [];
     this.specs[ENEMY_TYPE_BUTTERFLY_FISH] = {
-      image: (typeof document !== 'undefined') ? document.getElementById('fish1_sprite') : null,
+      image: (typeof document !== 'undefined') ? document.getElementById('butterfly_fish_sprite') : null,
       size: new Size(FISH_FRAME_HEIGHT, FISH_FRAME_WIDTH),
       maxFrameX: FISH_MAX_FRAME_X,
       maxFrameY: 1,
@@ -16,7 +16,7 @@ class EnemyFactory {
       maxFrames: 10,
     };
     this.specs[ENEMY_TYPE_OCTOPUS] = {
-      image:  document.getElementById('octopus'),
+      image:  document.getElementById('octopus_sprite'),
       size: new Size(244.75, 198.75),
       spriteFrameSize: new Size(489.5, 397.5),
       maxFrameX: 4,
@@ -25,7 +25,7 @@ class EnemyFactory {
       dieFrameY: 1
     };
     this.specs[ENEMY_TYPE_CRAB] = {
-      image: document.getElementById('crab'),
+      image: document.getElementById('crab_sprite'),
       size: new Size(98, 204),
       spriteFrameSize: new Size(CRAB_FRAME_HEIGHT, CRAB_FRAME_WIDTH),
       maxFrameX: CRAB_MAX_FRAME_X,
