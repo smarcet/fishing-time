@@ -1,4 +1,4 @@
-class Crab extends EnemyWithAnimation {
+class Crab extends CatchableFish {
 
   constructor(game, ctx, size, position, image, maxFrameX, maxFrameY, dieFrameX, dieFrameY, spriteFrameSize) {
     super(game, ctx, size, position, image, maxFrameX, maxFrameY, dieFrameX, dieFrameY);
@@ -7,6 +7,8 @@ class Crab extends EnemyWithAnimation {
     this._sh = this._spriteFrameSize.getHeight();
     this._staggerFrame = ANIM_STAGGER_SLOW;
     this._driftSpeed = CRAB_DRIFT_SPEED;
+    this._strength   = FISH_SPECS['crab'].strength;
+    this._escapeRate = FISH_SPECS['crab'].escape_rate;
   }
 
   _drawCapturedSprite(dx, dy, w, h) {

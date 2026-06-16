@@ -52,10 +52,32 @@ const CAPTURE_BLINK_INTERVAL  = 6;    // ticks per blink-state toggle
 const CAPTURE_THROW_THRESHOLD = 0.78; // rope-progress fraction where THROWING phase begins
 const CAPTURE_THROW_ARC_Y     = 50;   // px height at parabola peak
 
+// Struggle tunables - search "TUNE" to find all knobs
+const HOOK_STRUGGLE_REEL_POWER      = 20;    // escape_progress reduction per Space press - TUNE
+const HOOK_STRUGGLE_MAX_ESCAPE      = 100;   // ceiling; fish breaks free at this value - TUNE
+const HOOK_REEL_DISTANCE_PER_PRESS  = 15;    // rope shrink (px) per Space press - TUNE
+
+// Fish species lookup: strength * escape_rate * dt_sec = progress per second
+const FISH_SPECS = {
+  butterfly_fish: { strength: 5,  escape_rate: 1.5 },  // easy - used by ButterflyFish
+  // tuna: reserved for a future TunaFish entity - NOT used at launch
+  shark:          { strength: 60, escape_rate: 3.0 },  // hard - reserved for future SharkFish
+  octopus:        { strength: 20, escape_rate: 1.8 },  // moderate - used by Octopus
+  crab:           { strength: 40, escape_rate: 2.2 },  // hard - used by Crab
+};
+
 // Hook status string constants
-const HOOK_STATUS_IDLE  = 'IDLE';
-const HOOK_STATUS_CAST  = 'CAST';
-const HOOK_STATUS_CATCH = 'CATCH';
+const HOOK_STATUS_IDLE             = 'IDLE';
+const HOOK_STATUS_CAST             = 'CAST';
+const HOOK_STATUS_HOOKED           = 'HOOKED';
+const HOOK_STATUS_RETRIEVING_EMPTY = 'RETRIEVING_EMPTY';
+// Enemy type constants
+const ENEMY_TYPE_BUTTERFLY_FISH   = 'butterfly_fish';
+const ENEMY_TYPE_DISCARDED_BOTTLE = 'discarded_bottle';
+const ENEMY_TYPE_OCTOPUS          = 'octopus';
+const ENEMY_TYPE_CRAB             = 'crab';
+
+const ENEMY_ESCAPE_SPEED_MULTIPLIER = 3;  // sprint speed after breaking free - TUNE
 
 // Enemy / capture status string constants
 const ENEMY_STATUS_CAPTURED = 'CAPTURED';
@@ -92,8 +114,11 @@ if (typeof module !== 'undefined' && module.exports) {
     PARALLAX_GAME_SPEED,
     CAPTURE_PHASE_RISING, CAPTURE_PHASE_THROWING,
     CAPTURE_BLINK_INTERVAL, CAPTURE_THROW_THRESHOLD, CAPTURE_THROW_ARC_Y,
-    HOOK_STATUS_IDLE, HOOK_STATUS_CAST, HOOK_STATUS_CATCH,
-    ENEMY_STATUS_CAPTURED,
+    HOOK_STRUGGLE_REEL_POWER, HOOK_STRUGGLE_MAX_ESCAPE, HOOK_REEL_DISTANCE_PER_PRESS,
+    FISH_SPECS,
+    HOOK_STATUS_IDLE, HOOK_STATUS_CAST, HOOK_STATUS_HOOKED, HOOK_STATUS_RETRIEVING_EMPTY,
+    ENEMY_TYPE_BUTTERFLY_FISH, ENEMY_TYPE_DISCARDED_BOTTLE, ENEMY_TYPE_OCTOPUS, ENEMY_TYPE_CRAB,
+    ENEMY_ESCAPE_SPEED_MULTIPLIER, ENEMY_STATUS_CAPTURED,
     PLAYER_STATE_IDLE, PLAYER_STATE_MOVING_R, PLAYER_STATE_MOVING_L,
     PLAYER_STATE_CAST, PLAYER_STATE_REEL,
     BUBBLE_DIE_DURATION, BUBBLE_DIE_THRESHOLD_Y, BUBBLE_BATCH_SIZE,

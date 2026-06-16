@@ -1,4 +1,4 @@
-class Octopus extends EnemyWithAnimation {
+class Octopus extends CatchableFish {
 
   constructor(game, ctx, size, position, image, maxFrameX, maxFrameY, dieFrameX, dieFrameY, spriteFrameSize) {
     super(game, ctx, size, position, image, maxFrameX, maxFrameY, dieFrameX, dieFrameY);
@@ -8,6 +8,8 @@ class Octopus extends EnemyWithAnimation {
     this._sw = this._spriteFrameSize.getWidth();
     this._sh = this._spriteFrameSize.getHeight();
     this._staggerFrame = ANIM_STAGGER_SLOW;
+    this._strength   = FISH_SPECS['octopus'].strength;
+    this._escapeRate = FISH_SPECS['octopus'].escape_rate;
     this._bobAmplitude = ANIM_BOB_AMPLITUDE;
     this._bobSpeed = ANIM_BOB_SPEED;
     this._maxAngle = ANIM_MAX_TILT_ANGLE;

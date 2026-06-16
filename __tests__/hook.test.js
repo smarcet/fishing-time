@@ -2,7 +2,6 @@
 
 const { Size, Point, Hook } = require('../index.js');
 
-// Player position/size used across all tests
 const PLAYER_X   = 100;
 const PLAYER_Y   = 0;
 const PLAYER_H   = 315;
@@ -10,22 +9,25 @@ const PLAYER_W   = 404;
 const HOOK_W     = 25;
 const HOOK_H     = 25;
 
-// Mirror plan constants for assertion computation
 const HOOK_PIVOT_X_OFFSET      = 45;
 const HOOK_PIVOT_Y_FACTOR      = 0.6;
 const HOOK_CAST_PIVOT_X_OFFSET = 12;
 const HOOK_CAST_PIVOT_Y_FACTOR = 0.65;
-const HOOK_REST_LENGTH     = 60;
-const HOOK_MAX_SWING_ANGLE = 0.5236;
-const HOOK_SWING_SPEED     = 0.04;
-const HOOK_CAST_SPEED      = 5;
-const HOOK_REEL_SPEED      = 5;
+const HOOK_REST_LENGTH         = 60;
+const HOOK_MAX_SWING_ANGLE     = 0.5236;
+const HOOK_SWING_SPEED         = 0.04;
+const HOOK_CAST_SPEED          = 5;
+const HOOK_REEL_SPEED          = 5;
+const HOOK_STRUGGLE_MAX_ESCAPE = 100;
+const HOOK_STRUGGLE_REEL_POWER = 20;
+const HOOK_REEL_DISTANCE_PER_PRESS = 15;
 
 function makeMockGame(spaceHeld = false) {
   return {
-    getSize: () => new Size(2000, 800), // very tall - depth bound won't fire in tests
+    getSize: () => new Size(2000, 800),
     isDebug: () => false,
     hasKey: (k) => (k === ' ' ? spaceHeld : false),
+    releaseEnemy: jest.fn(),
   };
 }
 
@@ -52,17 +54,39 @@ function makeHook(spaceHeld = false) {
     getPosition: () => new Point(PLAYER_X, PLAYER_Y),
     getSize:     () => new Size(PLAYER_H, PLAYER_W),
     _game: game,
-    _state: 'IDLE',
+    _state: PLAYER_STATE_IDLE,
   };
   const ctx = makeMockCtx();
-  // Hook constructor: (player, ctx, size, position) — position is legacy, now computed from player
   return new Hook(mockPlayer, ctx, new Size(HOOK_H, HOOK_W), new Point(PLAYER_X, PLAYER_Y));
 }
 
-// Pivot coordinates (used to compute expected getPosition())
-const pivotX = PLAYER_X + HOOK_PIVOT_X_OFFSET;    // 145
-const pivotY = PLAYER_Y + PLAYER_H * HOOK_PIVOT_Y_FACTOR; // 189
+function makeMockInertEntity() {
+  return { captured: jest.fn(), updateCaptured: jest.fn(), escaped: jest.fn(), getFightSpec: () => null };
+}
 
+function makeMockFishEntity(strength = 10, escapeRate = 2.0) {
+  return { captured: jest.fn(), updateCaptured: jest.fn(), escaped: jest.fn(), getFightSpec: () => ({ strength, escapeRate }) };
+}
+
+const pivotX = PLAYER_X + HOOK_PIVOT_X_OFFSET;
+const pivotY = PLAYER_Y + PLAYER_H * HOOK_PIVOT_Y_FACTOR;
+
+// Helper: put hook into CAST state via rising-edge press
+function castHook(hook) {
+  hook._player._game = makeMockGame(false);
+  hook._prevSpaceHeld = false;
+  hook._player._game = makeMockGame(true);
+  hook.update(16);  // IDLE -> CAST
+}
+
+function makeHookWithCatch(extraRope = 100) {
+  const hook = makeHook(false);
+  hook._ropeLength = HOOK_REST_LENGTH + extraRope;
+  hook.setCatch(makeMockInertEntity());
+  return hook;
+}
+
+// ---------------------------------------------------------------------------
 describe('Hook pendulum swing (idle)', () => {
   test('_angle is 0 before any update', () => {
     const hook = makeHook();
@@ -75,7 +99,7 @@ describe('Hook pendulum swing (idle)', () => {
   });
 
   test('_angle ≈ HOOK_MAX_SWING_ANGLE * sin(HOOK_SWING_SPEED) after one idle update', () => {
-    const hook = makeHook(false); // Space not held
+    const hook = makeHook(false);
     hook.update();
     expect(hook._angle).toBeCloseTo(HOOK_MAX_SWING_ANGLE * Math.sin(HOOK_SWING_SPEED), 5);
   });
@@ -88,14 +112,14 @@ describe('Hook pendulum swing (idle)', () => {
 
   test('_status is IDLE before any update', () => {
     const hook = makeHook();
-    expect(hook._status).toBe('IDLE');
+    expect(hook._status).toBe(HOOK_STATUS_IDLE);
   });
 });
 
+// ---------------------------------------------------------------------------
 describe('Hook getPosition() projection', () => {
   test('at angle=0, ropeLength=REST, getPosition returns pivot+(0, L) offset by -w/2', () => {
     const hook = makeHook(false);
-    // angle is 0 and ropeLength = HOOK_REST_LENGTH after construction
     const pos = hook.getPosition();
     const expectedX = pivotX + HOOK_REST_LENGTH * Math.sin(0) - HOOK_W / 2;
     const expectedY = pivotY + HOOK_REST_LENGTH * Math.cos(0);
@@ -114,135 +138,366 @@ describe('Hook getPosition() projection', () => {
   });
 });
 
-describe('Hook cast — freeze at fire-time', () => {
-  test('pressing Space while IDLE captures _castAngle === _angle at that tick', () => {
-    // Advance a few idle ticks so angle is non-zero
+// ---------------------------------------------------------------------------
+describe('Hook single-press cast (rising-edge)', () => {
+  test('holding Space on the first update (prevSpaceHeld=false) fires IDLE -> CAST', () => {
+    const hook = makeHook(false);
+    hook._player._game = makeMockGame(true);
+    hook._prevSpaceHeld = false;
+    hook.update(16);
+    expect(hook._status).toBe(HOOK_STATUS_CAST);
+  });
+
+  test('second update with Space still held does NOT re-fire (prevSpaceHeld=true)', () => {
+    const hook = makeHook(false);
+    hook._player._game = makeMockGame(true);
+    hook._prevSpaceHeld = false;
+    hook.update(16);  // -> CAST
+    // Still in CAST; space still held -> spacePressed = false, no second transition
+    hook.update(16);
+    expect(hook._status).toBe(HOOK_STATUS_CAST);
+  });
+
+  test('no Space held -> stays IDLE', () => {
+    const hook = makeHook(false);
+    hook.update(16);
+    expect(hook._status).toBe(HOOK_STATUS_IDLE);
+  });
+
+  test('pressing Space captures _castAngle === _angle at that tick', () => {
     const hookIdle = makeHook(false);
     for (let i = 0; i < 5; i++) hookIdle.update();
     const angleAtPress = hookIdle._angle;
 
-    // Now make a new hook at the same phase and fire
-    const hookCast = makeHook(true); // Space held
-    // Manually advance to same phase without Space
-    const tempGame = makeMockGame(false);
-    hookCast._player._game = tempGame;
+    const hookCast = makeHook(false);
     for (let i = 0; i < 5; i++) hookCast.update();
-    // Switch Space on
     hookCast._player._game = makeMockGame(true);
-    hookCast.update(); // IDLE → CAST, captures _castAngle
+    hookCast.update(16);
 
-    expect(hookCast._status).toBe('CAST');
+    expect(hookCast._status).toBe(HOOK_STATUS_CAST);
     expect(hookCast._castAngle).toBeCloseTo(angleAtPress, 5);
   });
 
-  test('_castAngle is unchanged across subsequent CAST updates', () => {
+  test('_castAngle is frozen across subsequent CAST updates', () => {
     const hook = makeHook(false);
-    for (let i = 0; i < 3; i++) hook.update(); // build up angle
-    const frozenAngle = hook._angle;
-    hook._player._game = makeMockGame(true); // Space on
-    hook.update(); // → CAST
-    expect(hook._castAngle).toBeCloseTo(frozenAngle, 5);
-    const castAngleAfterTransition = hook._castAngle;
-    // Keep updating in CAST — castAngle must not change
-    for (let i = 0; i < 5; i++) hook.update();
-    expect(hook._castAngle).toBeCloseTo(castAngleAfterTransition, 5);
+    for (let i = 0; i < 3; i++) hook.update();
+    hook._player._game = makeMockGame(true);
+    hook.update(16); // -> CAST
+    const frozen = hook._castAngle;
+    for (let i = 0; i < 5; i++) hook.update(16);
+    expect(hook._castAngle).toBeCloseTo(frozen, 5);
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe('Hook CAST - auto-extend without key input', () => {
+  test('_ropeLength increases by HOOK_CAST_SPEED each CAST update (no Space held)', () => {
+    const hook = makeHook(false);
+    castHook(hook);  // now in CAST
+    hook._player._game = makeMockGame(false);  // release Space
+    const before = hook._ropeLength;
+    hook.update(16);
+    expect(hook._ropeLength).toBeCloseTo(before + HOOK_CAST_SPEED, 4);
   });
 
-  test('_ropeLength increases by HOOK_CAST_SPEED each CAST update', () => {
+  test('rope extends in CAST even when Space is still held (auto-extend)', () => {
     const hook = makeHook(false);
-    hook._player._game = makeMockGame(true); // Space on immediately
-    hook.update(); // → CAST (first cast tick)
-    const lengthAfterFirst = hook._ropeLength;
-    hook.update();
-    expect(hook._ropeLength).toBeCloseTo(lengthAfterFirst + HOOK_CAST_SPEED, 4);
+    castHook(hook);
+    const before = hook._ropeLength;
+    hook._player._game = makeMockGame(true);
+    hook.update(16);
+    expect(hook._ropeLength).toBeCloseTo(before + HOOK_CAST_SPEED, 4);
   });
 
-  test('angled cast: getPosition().getX() is offset from straight-down by ropeLength*sin(castAngle)', () => {
+  test('angled cast: getPosition().getX() offset from straight-down by ropeLength*sin(castAngle)', () => {
     const hook = makeHook(false);
-    // Advance to a non-trivial angle
     for (let i = 0; i < 10; i++) hook.update();
     const nonZeroAngle = hook._angle;
-
-    hook._player._game = makeMockGame(true); // cast
-    hook._player._state = 'CAST'; // player mirrors space-held -> CAST sprite selected
-    hook.update(); // IDLE → CAST, ropeLength grows by CAST_SPEED
+    hook._player._game = makeMockGame(true);
+    hook._player._state = PLAYER_STATE_CAST;
+    hook.update(16);  // -> CAST, ropeLength grows
 
     const L = hook._ropeLength;
     const castPivotX = PLAYER_X + HOOK_CAST_PIVOT_X_OFFSET;
     const expectedX = castPivotX + L * Math.sin(nonZeroAngle) - HOOK_W / 2;
     expect(hook.getPosition().getX()).toBeCloseTo(expectedX, 3);
-    expect(Math.abs(nonZeroAngle)).toBeGreaterThan(0.001); // confirm angle was actually non-zero
+    expect(Math.abs(nonZeroAngle)).toBeGreaterThan(0.001);
   });
 });
 
-describe('Hook reel — return to IDLE', () => {
-  test('when Space released during CAST, _ropeLength shrinks by HOOK_REEL_SPEED each tick', () => {
+// ---------------------------------------------------------------------------
+describe('Hook CAST -> RETRIEVING_EMPTY transitions', () => {
+  test('reaches seabed -> transitions to RETRIEVING_EMPTY', () => {
     const hook = makeHook(false);
-    hook._player._game = makeMockGame(true);
-    // Cast a few ticks to extend the rope
-    for (let i = 0; i < 5; i++) hook.update();
-    const extendedLength = hook._ropeLength;
-    // Release Space
-    hook._player._game = makeMockGame(false);
-    hook.update();
-    expect(hook._ropeLength).toBeCloseTo(extendedLength - HOOK_REEL_SPEED, 4);
+    hook._player._game = {
+      getSize: () => new Size(100, 800),
+      isDebug: () => false,
+      hasKey: () => false,
+    };
+    hook._status = HOOK_STATUS_CAST;
+    hook._ropeLength = 200;  // endpoint Y ~ 200+200 >> 100*0.95=95
+    hook.update(16);
+    expect(hook._status).toBe(HOOK_STATUS_RETRIEVING_EMPTY);
   });
 
-  test('when rope reels back to REST length, status returns to IDLE', () => {
+
+});
+
+// ---------------------------------------------------------------------------
+describe('Hook RETRIEVING_EMPTY', () => {
+  test('rope shrinks by HOOK_REEL_SPEED each tick', () => {
     const hook = makeHook(false);
-    hook._player._game = makeMockGame(true);
-    // Extend just a little
-    hook.update(); // IDLE → CAST (rope = REST+CAST_SPEED)
-    // Release immediately
-    hook._player._game = makeMockGame(false);
-    // Reel until rest
-    for (let i = 0; i < 20; i++) {
-      hook.update();
-      if (hook._status === 'IDLE') break;
-    }
-    expect(hook._status).toBe('IDLE');
+    hook._status = HOOK_STATUS_RETRIEVING_EMPTY;
+    hook._ropeLength = HOOK_REST_LENGTH + 50;
+    const before = hook._ropeLength;
+    hook.update(16);
+    expect(hook._ropeLength).toBeCloseTo(before - HOOK_REEL_SPEED, 4);
+  });
+
+  test('transitions to IDLE when rope reaches REST length', () => {
+    const hook = makeHook(false);
+    hook._status = HOOK_STATUS_RETRIEVING_EMPTY;
+    hook._ropeLength = HOOK_REST_LENGTH + HOOK_REEL_SPEED;
+    hook.update(16);
+    expect(hook._status).toBe(HOOK_STATUS_IDLE);
     expect(hook._ropeLength).toBeCloseTo(HOOK_REST_LENGTH, 4);
   });
+
+  test('isCasting() returns false in RETRIEVING_EMPTY', () => {
+    const hook = makeHook(false);
+    hook._status = HOOK_STATUS_RETRIEVING_EMPTY;
+    expect(hook.isCasting()).toBe(false);
+  });
+
+  test('isRetrievingEmpty() returns true in RETRIEVING_EMPTY', () => {
+    const hook = makeHook(false);
+    hook._status = HOOK_STATUS_RETRIEVING_EMPTY;
+    expect(hook.isRetrievingEmpty()).toBe(true);
+  });
+
+  test('isRetrievingEmpty() returns false when IDLE', () => {
+    const hook = makeHook(false);
+    expect(hook.isRetrievingEmpty()).toBe(false);
+  });
 });
 
-describe('Hook isCasting() - catch guard', () => {
+// ---------------------------------------------------------------------------
+describe('Hook isCasting()', () => {
   test('isCasting() is false before any update (IDLE)', () => {
     const hook = makeHook();
     expect(hook.isCasting()).toBe(false);
   });
 
-  test('isCasting() is true immediately after Space pressed (CAST)', () => {
+  test('isCasting() is true immediately after rising-edge press (CAST)', () => {
     const hook = makeHook(false);
+    hook._prevSpaceHeld = false;
     hook._player._game = makeMockGame(true);
-    hook.update(); // IDLE -> CAST
+    hook.update(16);
     expect(hook.isCasting()).toBe(true);
   });
 
-  test('isCasting() returns false once rope reels back to IDLE', () => {
+  test('isCasting() returns false in RETRIEVING_EMPTY', () => {
     const hook = makeHook(false);
-    hook._player._game = makeMockGame(true);
-    hook.update(); // -> CAST
-    hook._player._game = makeMockGame(false);
-    for (let i = 0; i < 20; i++) {
-      hook.update();
-      if (hook._status === 'IDLE') break;
-    }
+    hook._status = HOOK_STATUS_RETRIEVING_EMPTY;
     expect(hook.isCasting()).toBe(false);
   });
 });
 
-const CAPTURE_THROW_THRESHOLD = 0.78;
-const CAPTURE_PHASE_RISING   = 'RISING';
-const CAPTURE_PHASE_THROWING = 'THROWING';
+// ---------------------------------------------------------------------------
+describe('Hook HOOKED - fish struggle mechanic', () => {
+  test('setCatch with fish entity sets _isFishHook = true', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 100;
+    hook.setCatch(makeMockFishEntity());
+    expect(hook._isFishHook).toBe(true);
+  });
 
-function makeHookWithCatch(extraRope = 100) {
-  const hook = makeHook(false);
-  hook._ropeLength = HOOK_REST_LENGTH + extraRope;
-  const mockEnemy = { captured: jest.fn(), updateCaptured: jest.fn() };
-  hook.setCatch(mockEnemy);
-  return hook;
-}
+  test('_escapeProgress increases each update with dt (no Space pressed)', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 200;
+    const fish = makeMockFishEntity(10, 2.0);  // progress += 10*2*dt_sec
+    hook.setCatch(fish);
+    hook.update(1000);  // 1 second
+    expect(hook._escapeProgress).toBeCloseTo(10 * 2.0 * 1, 3);
+  });
 
+  test('Space press reduces _escapeProgress by HOOK_STRUGGLE_REEL_POWER', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 200;
+    hook.setCatch(makeMockFishEntity(1, 0.0));  // no passive progress
+    hook._escapeProgress = 50;
+    hook._prevSpaceHeld = false;
+    hook._player._game = makeMockGame(true);
+    hook.update(0);  // dt=0 so no passive progress, but space pressed
+    expect(hook._escapeProgress).toBeCloseTo(50 - HOOK_STRUGGLE_REEL_POWER, 3);
+  });
+
+  test('Space press reduces _ropeLength by HOOK_REEL_DISTANCE_PER_PRESS', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 200;
+    hook.setCatch(makeMockFishEntity(1, 0.0));
+    hook._prevSpaceHeld = false;
+    hook._player._game = makeMockGame(true);
+    const before = hook._ropeLength;
+    hook.update(0);
+    expect(hook._ropeLength).toBeCloseTo(before - HOOK_REEL_DISTANCE_PER_PRESS, 3);
+  });
+
+  test('_escapeProgress floored at 0 (cannot go negative)', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 200;
+    hook.setCatch(makeMockFishEntity(1, 0.0));
+    hook._escapeProgress = 5;  // less than REEL_POWER
+    hook._prevSpaceHeld = false;
+    hook._player._game = makeMockGame(true);
+    hook.update(0);
+    expect(hook._escapeProgress).toBeGreaterThanOrEqual(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe('Hook HOOKED - fish escape', () => {
+  test('escape: when _escapeProgress >= max, dispatches enemyEscaped event and returns to IDLE', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 200;
+    const fish = makeMockFishEntity(10, 2.0);
+    hook.setCatch(fish);
+    hook._escapeProgress = HOOK_STRUGGLE_MAX_ESCAPE - 1;
+
+    const dispatchMock = jest.fn();
+    const savedDoc = global.document;
+    global.document = { dispatchEvent: dispatchMock };
+
+    hook.update(1000);  // pushes over max
+
+    global.document = savedDoc;
+
+    expect(dispatchMock).toHaveBeenCalledTimes(1);
+    const evt = dispatchMock.mock.calls[0][0];
+    expect(evt.type).toBe('enemyEscaped');
+    expect(hook._status).toBe(HOOK_STATUS_IDLE);
+  });
+
+  test('escape: entity.escaped() is called and releaseEnemy re-adds it to swim off screen', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 200;
+    const fish = makeMockFishEntity(10, 2.0);
+    hook.setCatch(fish);
+    hook._escapeProgress = HOOK_STRUGGLE_MAX_ESCAPE + 10;
+
+    const savedDoc = global.document;
+    global.document = { dispatchEvent: jest.fn() };
+    hook.update(0);
+    global.document = savedDoc;
+
+    expect(fish.escaped).toHaveBeenCalledTimes(1);
+    expect(hook._player._game.releaseEnemy).toHaveBeenCalledWith(fish);
+  });
+
+  test('hadCatch() returns false after escape', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 200;
+    hook.setCatch(makeMockFishEntity(10, 2.0));
+    hook._escapeProgress = HOOK_STRUGGLE_MAX_ESCAPE + 10;
+
+    const savedDoc = global.document;
+    global.document = { dispatchEvent: jest.fn() };
+    hook.update(0);
+    global.document = savedDoc;
+
+    expect(hook.hadCatch()).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe('Hook HOOKED - fish capture', () => {
+  test('rope reaching REST while HOOKED dispatches enemyCaptured and returns to IDLE', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + HOOK_REEL_DISTANCE_PER_PRESS;
+    const fish = makeMockFishEntity(1, 0.0);
+    hook.setCatch(fish);
+    hook._escapeProgress = 0;
+
+    // Press Space to reel
+    hook._prevSpaceHeld = false;
+    hook._player._game = makeMockGame(true);
+
+    const dispatchMock = jest.fn();
+    const savedDoc = global.document;
+    global.document = { dispatchEvent: dispatchMock };
+
+    hook.update(0);
+
+    global.document = savedDoc;
+
+    const types = dispatchMock.mock.calls.map(c => c[0].type);
+    expect(types).toContain('enemyCaptured');
+    expect(hook._status).toBe(HOOK_STATUS_IDLE);
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe('Hook HOOKED - inert object auto-reel', () => {
+  test('setCatch with inert entity sets _isFishHook = false', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 100;
+    hook.setCatch(makeMockInertEntity());
+    expect(hook._isFishHook).toBe(false);
+  });
+
+  test('inert: updateCaptured called N times after N update() calls', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 200;
+    const entity = makeMockInertEntity();
+    hook.setCatch(entity);
+    for (let i = 0; i < 5; i++) hook.update(16);
+    expect(entity.updateCaptured).toHaveBeenCalledTimes(5);
+  });
+
+  test('inert: rope shrinks automatically without Space press', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 100;
+    hook.setCatch(makeMockInertEntity());
+    const before = hook._ropeLength;
+    hook.update(16);
+    expect(hook._ropeLength).toBeLessThan(before);
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe('Hook hadCatch() and isHooked()', () => {
+  test('hadCatch() is false in IDLE', () => {
+    const hook = makeHook(false);
+    expect(hook.hadCatch()).toBe(false);
+  });
+
+  test('hadCatch() is true in HOOKED', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 100;
+    hook.setCatch(makeMockInertEntity());
+    expect(hook.hadCatch()).toBe(true);
+  });
+
+  test('hadCatch() is false in RETRIEVING_EMPTY', () => {
+    const hook = makeHook(false);
+    hook._status = HOOK_STATUS_RETRIEVING_EMPTY;
+    expect(hook.hadCatch()).toBe(false);
+  });
+
+  test('isHooked() returns true when HOOKED', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 100;
+    hook.setCatch(makeMockInertEntity());
+    expect(hook.isHooked()).toBe(true);
+  });
+
+  test('isHooked() returns false when IDLE', () => {
+    const hook = makeHook(false);
+    expect(hook.isHooked()).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
 describe('Hook getCapturePhase()', () => {
   test('returns CAPTURE_PHASE_RISING immediately after setCatch', () => {
     const hook = makeHookWithCatch();
@@ -251,8 +506,7 @@ describe('Hook getCapturePhase()', () => {
 
   test('returns CAPTURE_PHASE_THROWING when rope reeled past threshold', () => {
     const extraRope = 100;
-    const hook = makeHookWithCatch(extraRope); // start = REST+100
-    // retracted portion / extraRope >= CAPTURE_THROW_THRESHOLD => below threshold rope level
+    const hook = makeHookWithCatch(extraRope);
     const retractNeeded = Math.ceil(CAPTURE_THROW_THRESHOLD * extraRope) + 1;
     hook._ropeLength = HOOK_REST_LENGTH + extraRope - retractNeeded;
     expect(hook.getCapturePhase()).toBe(CAPTURE_PHASE_THROWING);
@@ -260,17 +514,15 @@ describe('Hook getCapturePhase()', () => {
 
   test('getCaptureRawProgress returns 1 (no NaN) when rope equals REST at catch time', () => {
     const hook = makeHook(false);
-    // Rope not extended - zero-denominator edge case: raw=1 means already at boat
-    const mockEnemy = { captured: jest.fn(), updateCaptured: jest.fn() };
-    hook.setCatch(mockEnemy);
+    hook.setCatch(makeMockInertEntity());
     const raw = hook.getCaptureRawProgress();
     expect(raw).toBe(1);
     expect(isNaN(raw)).toBe(false);
-    // raw=1 >= threshold => THROWING (correct: hook is already at rest, no distance to travel)
     expect(hook.getCapturePhase()).toBe(CAPTURE_PHASE_THROWING);
   });
 });
 
+// ---------------------------------------------------------------------------
 describe('Hook clearCaptured() dispatches enemyCaptured event', () => {
   test('dispatchEvent called with enemyCaptured and correct detail', () => {
     const hook = makeHookWithCatch();
@@ -299,24 +551,11 @@ describe('Hook clearCaptured() dispatches enemyCaptured event', () => {
   });
 });
 
-describe('Hook.update() CATCH block calls updateCaptured() each tick', () => {
-  test('updateCaptured called N times after N update() calls in CATCH state', () => {
-    const hook = makeHook(false);
-    hook._ropeLength = HOOK_REST_LENGTH + 200;
-    const mockEnemy = { captured: jest.fn(), updateCaptured: jest.fn() };
-    hook.setCatch(mockEnemy);
-
-    const N = 5;
-    for (let i = 0; i < N; i++) hook.update();
-
-    expect(mockEnemy.updateCaptured).toHaveBeenCalledTimes(N);
-  });
-});
-
+// ---------------------------------------------------------------------------
 describe('Hook._pivot() follows rendered rod-tip Y during CAST (bob offset)', () => {
   const BOB = 12;
 
-  function makeHookWithBob(bobOffset, state = 'CAST') {
+  function makeHookWithBob(bobOffset, state = PLAYER_STATE_CAST) {
     const game = makeMockGame(false);
     const mockPlayer = {
       getPosition: () => new Point(PLAYER_X, PLAYER_Y + bobOffset),
@@ -328,9 +567,9 @@ describe('Hook._pivot() follows rendered rod-tip Y during CAST (bob offset)', ()
     return new Hook(mockPlayer, makeMockCtx(), new Size(HOOK_H, HOOK_W), new Point(PLAYER_X, PLAYER_Y));
   }
 
-  test('pivot y uses HOOK_CAST_PIVOT_Y_FACTOR during CAST (rod lower in cast frame)', () => {
+  test('pivot y uses HOOK_CAST_PIVOT_Y_FACTOR during CAST', () => {
     const hook = makeHookWithBob(BOB);
-    hook._status = 'CAST';
+    hook._status = HOOK_STATUS_CAST;
     const pivot = hook._pivot();
     const expectedY = (PLAYER_Y + BOB) + PLAYER_H * HOOK_CAST_PIVOT_Y_FACTOR;
     expect(pivot.getY()).toBeCloseTo(expectedY, 4);
@@ -338,15 +577,14 @@ describe('Hook._pivot() follows rendered rod-tip Y during CAST (bob offset)', ()
 
   test('pivot x uses HOOK_CAST_PIVOT_X_OFFSET during CAST', () => {
     const hook = makeHookWithBob(0);
-    hook._status = 'CAST';
+    hook._status = HOOK_STATUS_CAST;
     const pivot = hook._pivot();
     const expectedX = PLAYER_X + HOOK_CAST_PIVOT_X_OFFSET;
     expect(pivot.getX()).toBeCloseTo(expectedX, 4);
   });
 
-  test('pivot y uses HOOK_PIVOT_Y_FACTOR during IDLE (zero bob baseline)', () => {
-    const hook = makeHookWithBob(0, 'IDLE');
-    // IDLE state - existing behaviour must be unchanged
+  test('pivot y uses HOOK_PIVOT_Y_FACTOR during IDLE', () => {
+    const hook = makeHookWithBob(0, PLAYER_STATE_IDLE);
     const pivot = hook._pivot();
     const expectedY = PLAYER_Y + PLAYER_H * HOOK_PIVOT_Y_FACTOR;
     expect(pivot.getY()).toBeCloseTo(expectedY, 4);

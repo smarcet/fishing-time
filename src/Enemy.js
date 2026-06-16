@@ -8,24 +8,34 @@ class Enemy extends GameObject{
     this._status = null;
     this._hook = null;
     this._driftSpeed = DRIFT_SPEED_DEFAULT;
+    this._hasEscaped = false;
   }
 
   update(){
     super.update();
     const formerPosition = this._position;
-    const rBound = formerPosition.getX() + this._size.getWidth();
-    const lBound = formerPosition.getX();
 
-    if(rBound >= this._game.getSize().getWidth()) {
-      this._speedX = -this._driftSpeed;
-      this._direction = -1;
-    }
-    if(lBound === 0) {
-      this._speedX = this._driftSpeed;
-      this._direction = 1;
+    if (!this._hasEscaped) {
+      const rBound = formerPosition.getX() + this._size.getWidth();
+      const lBound = formerPosition.getX();
+
+      if(rBound >= this._game.getSize().getWidth()) {
+        this._speedX = -this._driftSpeed;
+        this._direction = -1;
+      }
+      if(lBound <= 0) {
+        this._speedX = this._driftSpeed;
+        this._direction = 1;
+      }
     }
 
     this._position = new Point(formerPosition.getX() + this._speedX, formerPosition.getY());
+  }
+
+  isOffScreen() {
+    const x = this._position.getX();
+    const gameWidth = this._game.getSize().getWidth();
+    return this._hasEscaped && (x + this._size.getWidth() < 0 || x > gameWidth);
   }
 
   draw(){
@@ -47,6 +57,20 @@ class Enemy extends GameObject{
 
   isCaptured(){
     return this._status === ENEMY_STATUS_CAPTURED;
+  }
+
+  escaped() {
+    if (this._hook) {
+      const ep = this._hook.getEndpoint();
+      this._position = new Point(ep.getX() - this._size.getWidth() / 2, ep.getY());
+    }
+    this._status = null;
+    this._hook = null;
+    this._captureTick = 0;
+    this._hasEscaped = true;
+    if (this._direction !== null) {
+      this._speedX = this._direction * this._driftSpeed * ENEMY_ESCAPE_SPEED_MULTIPLIER;
+    }
   }
 }
 

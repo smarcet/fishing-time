@@ -1,8 +1,11 @@
-class Fish extends EnemyWithAnimation {
+class ButterflyFish extends CatchableFish {
 
-  constructor(game, ctx, size, position, image, maxFrameX, maxFrameY, dieFrameX, dieFrameY) {
+  constructor(game, ctx, size, position, image, maxFrameX, maxFrameY, dieFrameX, dieFrameY, specKey = 'butterfly_fish') {
     super(game, ctx, size, position, image, maxFrameX, maxFrameY, dieFrameX, dieFrameY);
     this._staggerFrame = ANIM_STAGGER_SLOW;
+    const spec = FISH_SPECS[specKey] || FISH_SPECS['butterfly_fish'];
+    this._strength   = spec.strength;
+    this._escapeRate = spec.escape_rate;
   }
 
   static randomSpawnY(canvasHeight, fishHeight, rng = Math.random) {
@@ -16,9 +19,6 @@ class Fish extends EnemyWithAnimation {
   }
 
   update() {
-    // On the first tick, fish not spawned at a wall need an explicit initial direction.
-    // Enemy.update() only sets direction+speed on wall contact, so mid-canvas fish
-    // would sit still forever without this bootstrap.
     if (this._direction === null) {
       this._direction = this._position.getX() < this._game.getSize().getWidth() / 2 ? 1 : -1;
       this._speedX = this._direction * this._driftSpeed;
@@ -53,7 +53,6 @@ class Fish extends EnemyWithAnimation {
       this._ctx.fillRect(dx, dy, w, h);
     }
 
-    // fish1_sprite faces left by default; flip when going right (direction=1)
     const flipX = this._direction === 1 ? -1 : 1;
     this._ctx.save();
     this._ctx.translate(dx + w / 2, dy + h / 2);
@@ -64,5 +63,5 @@ class Fish extends EnemyWithAnimation {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Fish };
+  module.exports = { ButterflyFish };
 }

@@ -1,4 +1,4 @@
-class Trash extends EnemyWithAnimation {
+class DiscardedBottle extends InertObject {
 
   constructor(game, ctx, size, position, image, maxFrames) {
     super(game, ctx, size, position, image, maxFrames);
@@ -28,18 +28,17 @@ class Trash extends EnemyWithAnimation {
     this._ctx.drawImage(this._image, 0, 0, w, h, dx, dy, w, h);
   }
 
-  draw(){
+  draw() {
     const w = this._size.getWidth();
-    const h =  this._size.getHeight();
+    const h = this._size.getHeight();
     const dx = this._position.getX();
     const dy = this._position.getY();
 
-    if(this._status === ENEMY_STATUS_CAPTURED){ this.drawCaptured(); return; }
+    if (this._status === ENEMY_STATUS_CAPTURED) { this.drawCaptured(); return; }
 
-    // debug
-    if(this._game.isDebug()) {
+    if (this._game.isDebug()) {
       this._ctx.fillStyle = 'red';
-      this._ctx.font = "16px serif";
+      this._ctx.font = '16px serif';
       this._ctx.fillText(`X ${dx} `, 10, 200);
       this._ctx.fillText(`Y ${dy} `, 10, 220);
       this._ctx.fillRect(dx, dy + this._bobOffset, w, h);
@@ -54,5 +53,5 @@ class Trash extends EnemyWithAnimation {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Trash };
+  module.exports = { DiscardedBottle };
 }

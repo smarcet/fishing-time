@@ -84,3 +84,39 @@ describe('Player REEL state when hook catches a fish', () => {
     expect(player._state).not.toBe('REEL');
   });
 });
+
+describe('Player deltaTime threading', () => {
+  test('update(dt) passes dt to hook.update(dt)', () => {
+    const player = makePlayer();
+    const spy = jest.fn();
+    player._hook.update = spy;
+    player._hook.hadCatch = jest.fn().mockReturnValue(false);
+    player._hook.isCasting = jest.fn().mockReturnValue(false);
+    player.__castAnimationEnded = true;
+    player.update(50);
+    expect(spy).toHaveBeenCalledWith(50);
+  });
+});
+
+describe('Player CAST state driven by hook.isCasting()', () => {
+  test('enters PLAYER_STATE_CAST when hook.isCasting() is true even with no Space key', () => {
+    const player = makePlayer();
+    player._hook.hadCatch = jest.fn().mockReturnValue(false);
+    player._hook.isCasting = jest.fn().mockReturnValue(true);
+    player._hook.update = jest.fn();
+    player.update(16);
+    expect(player._state).toBe('CAST');
+  });
+
+  test('does not enter PLAYER_STATE_CAST from Space key alone after refactor', () => {
+    const { mockCtx } = makeMocks();
+    const spaceGame = { getSize: () => new Size(600, 800), isDebug: () => false, hasKey: (k) => k === ' ' };
+    const player = new Player(spaceGame, mockCtx, new Size(315, 404), new Point(100, 0));
+    player._hook.hadCatch = jest.fn().mockReturnValue(false);
+    player._hook.isCasting = jest.fn().mockReturnValue(false);
+    player._hook.update = jest.fn();
+    player.update(16);
+    // Space is held but hook.isCasting() returns false => not CAST
+    expect(player._state).not.toBe('CAST');
+  });
+});

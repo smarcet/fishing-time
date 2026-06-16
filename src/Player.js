@@ -29,14 +29,13 @@ class Player extends GameObject {
     return new Point(p.getX(), p.getY() + this._bobOffset);
   }
 
-  update(){
+  update(dt = 0){
     super.update();
 
     const formerPosition = this._position;
-    const rBound = formerPosition.getX() + this._size.getWidth();
     const lBound = formerPosition.getX();
 
-    if(this._game.hasKey(KEY_ARROW_RIGHT) && rBound <= this._game.getSize().getWidth()) {
+    if(this._game.hasKey(KEY_ARROW_RIGHT) && formerPosition.getX() + this._size.getWidth() <= this._game.getSize().getWidth()) {
       this._speedX = 2;
       this._state = PLAYER_STATE_MOVING_R;
     }
@@ -44,7 +43,7 @@ class Player extends GameObject {
       this._speedX = -2;
       this._state = PLAYER_STATE_MOVING_L;
     }
-    else if (this._game.hasKey(KEY_SPACE) && !(this._game.hasKey(KEY_ARROW_LEFT) || this._game.hasKey(KEY_ARROW_RIGHT)) ){
+    else if (this._hook.isCasting()) {
       if(this._state !== PLAYER_STATE_CAST){
         this._frameY = this._frameX = 0;
         this.__castAnimationEnded = false;
@@ -71,7 +70,7 @@ class Player extends GameObject {
 
     this._position = new Point(formerPosition.getX() + this._speedX, formerPosition.getY() + this._speedY);
     if(this.__castAnimationEnded || this._state !== PLAYER_STATE_CAST)
-      this._hook.update();
+      this._hook.update(dt);
   }
 
   draw(){

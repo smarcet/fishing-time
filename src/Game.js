@@ -18,44 +18,15 @@ class Game extends GameObject{
     this._player = new Player(this, ctx, new Size(315.6, 404.75), new Point(100, -10))
     this._enemies = [];
     this._bubbles = [];
-    this._enemies_images = [];
-    this._enemies_images.push(document.getElementById("fish1"));
-    this._enemies_images.push(document.getElementById("fish2"));
-    this._enemies_images.push(document.getElementById("fish3"));
 
+    this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_OCTOPUS, this, ctx));
+    this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_CRAB, this, ctx));
 
-    this._enemies.push(this._enemyFactory.createEnemy('octopus', this, ctx));
-    this._enemies.push(this._enemyFactory.createEnemy('crab', this, ctx));
-
-    for(let i = 0; i < 5 ; i++){
-      this._enemies.push(
-        new Fish(
-          this,
-          ctx,
-          new Size(FISH_FRAME_HEIGHT, FISH_FRAME_WIDTH),
-          new Point(
-            Fish.randomSpawnX(this._size.getWidth(), FISH_FRAME_WIDTH),
-            Fish.randomSpawnY(this._size.getHeight(), FISH_FRAME_HEIGHT)
-          ),
-          document.getElementById('fish1_sprite'),
-          FISH_MAX_FRAME_X
-        )
-      );
+    for (let i = 0; i < 5; i++) {
+      this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_BUTTERFLY_FISH, this, ctx));
     }
 
-    for(let i = 0; i < 1; i++){
-      this._enemies.push(
-        new Trash
-        (
-          this,
-          ctx,
-          new Size(92 , 76),
-          new Point(0, 300),
-          document.getElementById('bottle_1_sprite'),
-          10
-        )
-      );
-    }
+    this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_DISCARDED_BOTTLE, this, ctx));
 
     this._debug = false;
     this._keys = [];
@@ -67,13 +38,19 @@ class Game extends GameObject{
     return this._debug;
   }
 
-  update(){
+  releaseEnemy(enemy) {
+    if (!this._enemies.includes(enemy)) {
+      this._enemies.push(enemy);
+    }
+  }
+
+  update(dt = 0){
     super.update();
     this._layers.forEach(l => l.update());
 
-    // clear dead bubbles
+    // clear dead bubbles and off-screen escaped fish
     this._bubbles = this._bubbles.filter(b => b.isLive());
-    this._enemies =  this._enemies.filter(f => !f.isCaptured());
+    this._enemies = this._enemies.filter(f => !f.isCaptured() && !f.isOffScreen());
 
     // add bubbles
     if(!this._bubbles.length) {
@@ -100,7 +77,7 @@ class Game extends GameObject{
       }
     });
 
-    this._player.update();
+    this._player.update(dt);
 
     this._enemies.forEach(e => {
       e.update();

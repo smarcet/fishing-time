@@ -11,7 +11,10 @@ class Hook extends GameObject {
     this._angle = 0;
     this._castAngle = 0;
     this._ropeLength = HOOK_REST_LENGTH;
-    this._reachedBottom = false;
+    this._prevSpaceHeld = false;
+    this._isFishHook = false;
+    this._escapeProgress = 0;
+    this._drawTick = 0;
   }
 
   _pivot() {
@@ -53,11 +56,10 @@ class Hook extends GameObject {
   getLandingTarget() {
     const pos = this._player.getPosition();
     const w   = this._player.getSize().getWidth();
-    // Horizontal center of the boat at the rod-tip height (where the fish "lands")
     return new Point(pos.getX() + w / 2, this._pivot().getY());
   }
 
-  clearCaptured(){
+  clearCaptured() {
     if (typeof document !== 'undefined' && this._catch) {
       const pos = this.getPosition();
       document.dispatchEvent(new CustomEvent('enemyCaptured', {
@@ -66,9 +68,10 @@ class Hook extends GameObject {
     }
     this._catch = null;
     this._catchRopeStart = null;
+    this._isFishHook = false;
+    this._escapeProgress = 0;
     this._status = HOOK_STATUS_IDLE;
     this._ropeLength = HOOK_REST_LENGTH;
-    this._reachedBottom = false;
   }
 
   getCaptureRawProgress() {
@@ -83,44 +86,74 @@ class Hook extends GameObject {
       ? CAPTURE_PHASE_THROWING : CAPTURE_PHASE_RISING;
   }
 
-  update(){
+  update(dt = 0) {
     super.update();
+    this._drawTick++;
+    const dtSec = dt / 1000;
     const spaceHeld = this._player._game.hasKey(KEY_SPACE) &&
       !(this._player._game.hasKey(KEY_ARROW_LEFT) || this._player._game.hasKey(KEY_ARROW_RIGHT));
+    const spacePressed = spaceHeld && !this._prevSpaceHeld;
+    this._prevSpaceHeld = spaceHeld;
 
     if (this._status === HOOK_STATUS_IDLE) {
-      if (spaceHeld && !this._reachedBottom) {
+      if (spacePressed) {
         this._castAngle = this._angle;
         this._status = HOOK_STATUS_CAST;
         this._ropeLength += HOOK_CAST_SPEED;
       } else {
-        if (!spaceHeld) this._reachedBottom = false;
         this._swingPhase += HOOK_SWING_SPEED;
         this._angle = HOOK_MAX_SWING_ANGLE * Math.sin(this._swingPhase);
       }
     } else if (this._status === HOOK_STATUS_CAST) {
       const gameHeight = this._player._game.getSize().getHeight();
       const atBottom = this._endpoint().getY() >= gameHeight * HOOK_MAX_DEPTH_FACTOR;
-      if (atBottom) this._reachedBottom = true;
-      if (spaceHeld && !atBottom) {
-        this._ropeLength += HOOK_CAST_SPEED;
+      if (atBottom) {
+        this._status = HOOK_STATUS_RETRIEVING_EMPTY;
       } else {
-        this._ropeLength -= HOOK_REEL_SPEED;
-        if (this._ropeLength <= HOOK_REST_LENGTH) {
-          this._ropeLength = HOOK_REST_LENGTH;
-          this._status = HOOK_STATUS_IDLE;
-        }
+        this._ropeLength += HOOK_CAST_SPEED;
       }
-    } else if (this._status === HOOK_STATUS_CATCH) {
+    } else if (this._status === HOOK_STATUS_HOOKED) {
       this._catch.updateCaptured();
-      this._ropeLength -= HOOK_CATCH_REEL_SPEED;
+      if (this._isFishHook) {
+        const fightSpec = this._catch.getFightSpec();
+        this._escapeProgress += fightSpec.strength * fightSpec.escapeRate * dtSec;
+        if (spacePressed) {
+          this._escapeProgress = Math.max(0, this._escapeProgress - HOOK_STRUGGLE_REEL_POWER);
+          this._ropeLength = Math.max(HOOK_REST_LENGTH, this._ropeLength - HOOK_REEL_DISTANCE_PER_PRESS);
+        }
+        if (this._escapeProgress >= HOOK_STRUGGLE_MAX_ESCAPE) {
+          const escapee = this._catch;
+          escapee.escaped();
+          this._player._game.releaseEnemy(escapee);
+          if (typeof document !== 'undefined') {
+            document.dispatchEvent(new CustomEvent('enemyEscaped', {
+              detail: { enemyType: escapee.constructor.name }
+            }));
+          }
+          this._catch = null;
+          this._catchRopeStart = null;
+          this._isFishHook = false;
+          this._escapeProgress = 0;
+          this._status = HOOK_STATUS_IDLE;
+          this._ropeLength = HOOK_REST_LENGTH;
+          return;
+        }
+      } else {
+        this._ropeLength -= HOOK_CATCH_REEL_SPEED;
+      }
       if (this._ropeLength <= HOOK_REST_LENGTH) {
         this.clearCaptured();
+      }
+    } else if (this._status === HOOK_STATUS_RETRIEVING_EMPTY) {
+      this._ropeLength -= HOOK_REEL_SPEED;
+      if (this._ropeLength <= HOOK_REST_LENGTH) {
+        this._ropeLength = HOOK_REST_LENGTH;
+        this._status = HOOK_STATUS_IDLE;
       }
     }
   }
 
-  draw(){
+  draw() {
     super.draw();
     const pivot = this._pivot();
     const ep = this._endpoint();
@@ -138,8 +171,8 @@ class Hook extends GameObject {
     this._ctx.stroke();
     this._ctx.restore();
 
-    if(this._player._game.isDebug()) {
-      this._ctx.fillStyle = this._status === HOOK_STATUS_CATCH ? 'green' : 'red';
+    if (this._player._game.isDebug()) {
+      this._ctx.fillStyle = this._status === HOOK_STATUS_HOOKED ? 'green' : 'red';
       this._ctx.font = "16px serif";
       this._ctx.fillText(`X ${pos.getX().toFixed(1)} Y ${pos.getY().toFixed(1)} angle ${this._angle.toFixed(3)}`, 10, 50);
       this._ctx.fillRect(pos.getX(), pos.getY(), w, h);
@@ -149,24 +182,45 @@ class Hook extends GameObject {
       this._ctx.drawImage(this._image, pos.getX(), pos.getY(), w, h);
     }
 
-    if(this._catch) {
-      this._catch.draw();
+    if (this._catch) {
+      let showCatch = true;
+      if (this._isFishHook && this._escapeProgress > 0) {
+        const progress = this._escapeProgress / HOOK_STRUGGLE_MAX_ESCAPE;
+        if (progress > 0.3) {
+          const blinkInterval = Math.max(2, Math.floor((1 - progress) * 12));
+          showCatch = (this._drawTick % (blinkInterval * 2)) < blinkInterval;
+        }
+      }
+      if (showCatch) {
+        this._catch.draw();
+      }
     }
   }
 
-  hadCatch(){
-    return this._status === HOOK_STATUS_CATCH;
+  hadCatch() {
+    return this._status === HOOK_STATUS_HOOKED;
   }
 
-  isCasting(){
+  isCasting() {
     return this._status === HOOK_STATUS_CAST;
   }
 
-  setCatch(fish){
-    this._status = HOOK_STATUS_CATCH;
-    this._catch = fish;
+  isRetrievingEmpty() {
+    return this._status === HOOK_STATUS_RETRIEVING_EMPTY;
+  }
+
+  isHooked() {
+    return this._status === HOOK_STATUS_HOOKED;
+  }
+
+  setCatch(entity) {
+    this._status = HOOK_STATUS_HOOKED;
+    this._catch = entity;
     this._catchRopeStart = this._ropeLength;
-    this._catch.captured(this);
+    const fightSpec = entity.getFightSpec ? entity.getFightSpec() : null;
+    this._isFishHook = fightSpec !== null;
+    this._escapeProgress = 0;
+    entity.captured(this);
   }
 }
 
