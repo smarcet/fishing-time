@@ -1,3 +1,28 @@
+// Player sprite geometry
+const PLAYER_SPRITE_H        = 315.6;
+const PLAYER_SPRITE_W        = 404.75;
+const PLAYER_INIT_X          = 100;
+const PLAYER_INIT_Y          = -10;
+
+// Layer parallax speeds (0.0 = static, named only where non-obvious)
+const LAYER_SPEED_CLOUD      = 0.1;
+const LAYER_SPEED_OCEAN      = 0.2;
+
+// Enemy spawn counts
+const ENEMY_COUNT_BUTTERFLY  = 3;
+const ENEMY_COUNT_LION_FISH  = 2;
+const ENEMY_COUNT_CLOWN_FISH = 10;
+
+// Game result overlay
+const RESULT_OVERLAY         = 'rgba(0,0,0,0.55)';
+const RESULT_FONT            = 'bold 96px monospace';
+const RESULT_STROKE_W        = 5;
+const RESULT_WIN_COLOR       = '#00ff44';
+const RESULT_LOSE_COLOR      = '#ff2244';
+const RESULT_PULSE_MS        = 500;
+const RESULT_GLOW_MIN        = 20;
+const RESULT_GLOW_MAX        = 60;
+
 class Game extends GameObject{
 
   constructor(ctx, size) {
@@ -6,8 +31,8 @@ class Game extends GameObject{
     const h = this._size.getHeight();
     this._layers = [
       new Layer(document.getElementById('sky'),    w, h, 0.0),
-      new Layer(document.getElementById('cloud'),  w, h, 0.1),
-      new Layer(document.getElementById('ocean'),  w, h, 0.2),
+      new Layer(document.getElementById('cloud'),  w, h, LAYER_SPEED_CLOUD),
+      new Layer(document.getElementById('ocean'),  w, h, LAYER_SPEED_OCEAN),
       new Layer(document.getElementById('ocean1'), w, h, 0.0),
       new Layer(document.getElementById('ocean2'), w, h, 0.0),
       new Layer(document.getElementById('ground'), w, h, 0.0),
@@ -15,22 +40,22 @@ class Game extends GameObject{
       new Layer(document.getElementById('ground3'),w, h, 0.0),
     ];
     this._enemyFactory = new EnemyFactory();
-    this._player = new Player(this, ctx, new Size(315.6, 404.75), new Point(100, -10))
+    this._player = new Player(this, ctx, new Size(PLAYER_SPRITE_H, PLAYER_SPRITE_W), new Point(PLAYER_INIT_X, PLAYER_INIT_Y))
     this._enemies = [];
     this._bubbles = [];
 
     this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_OCTOPUS, this, ctx));
     this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_CRAB, this, ctx));
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < ENEMY_COUNT_BUTTERFLY; i++) {
       this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_BUTTERFLY_FISH, this, ctx));
     }
 
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < ENEMY_COUNT_LION_FISH; i++) {
       this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_LION_FISH, this, ctx));
     }
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < ENEMY_COUNT_CLOWN_FISH; i++) {
       this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_CLOWN_FISH, this, ctx));
     }
 
@@ -45,6 +70,16 @@ class Game extends GameObject{
     this._inputHandler = new InputHandler(this);
     this._scoreSystem = new ScoreSystem();
     this._reelPowerBar = new ReelPowerBar();
+    this._timerSystem    = new TimerSystem(ctx, size);
+    this._gameResult     = null;
+    this._resultElapsed  = 0;
+    this._handleTimeUp = () => {
+      if (this._gameResult !== null) return;
+      this._gameResult = this._scoreSystem.getScore() >= GAME_NEEDED_SCORE ? 'win' : 'lose';
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener(EVENT_TIMER_TIMEUP, this._handleTimeUp);
+    }
     this._audioSystem = new AudioSystem();
   }
 
@@ -60,7 +95,9 @@ class Game extends GameObject{
 
   update(dt = 0){
     super.update();
+    this._timerSystem.update(dt);
     this._scoreSystem.update();
+    if (this._gameResult !== null) { this._resultElapsed += dt; return; }
     this._reelPowerBar.update();
     this._layers.forEach(l => l.update());
 
@@ -122,6 +159,37 @@ class Game extends GameObject{
     this._bubbles.forEach(e => e.draw());
     this._scoreSystem.draw(this._ctx, this._size.getWidth());
     this._reelPowerBar.draw(this._ctx);
+    this._timerSystem.draw();
+    if (this._gameResult !== null) this._drawGameResult();
+  }
+
+  _drawGameResult() {
+    const ctx   = this._ctx;
+    const w     = this._size.getWidth();
+    const h     = this._size.getHeight();
+    const text  = this._gameResult === 'win' ? 'YOU WIN!' : 'GAME OVER';
+    const color = this._gameResult === 'win' ? RESULT_WIN_COLOR : RESULT_LOSE_COLOR;
+    const pulse = Math.abs(Math.sin(this._resultElapsed / RESULT_PULSE_MS * Math.PI));
+    ctx.save();
+    ctx.fillStyle = RESULT_OVERLAY;
+    ctx.fillRect(0, 0, w, h);
+    ctx.font         = RESULT_FONT;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth    = RESULT_STROKE_W;
+    ctx.strokeStyle  = 'black';
+    ctx.shadowColor  = color;
+    ctx.shadowBlur   = RESULT_GLOW_MIN + RESULT_GLOW_MAX * pulse;
+    ctx.fillStyle    = color;
+    ctx.strokeText(text, w / 2, h / 2);
+    ctx.fillText(text, w / 2, h / 2);
+    ctx.restore();
+  }
+
+  destroy() {
+    if (typeof document !== 'undefined') {
+      document.removeEventListener(EVENT_TIMER_TIMEUP, this._handleTimeUp);
+    }
   }
 
   addKey(key){

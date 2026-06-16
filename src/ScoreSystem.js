@@ -103,6 +103,8 @@ class ScoreSystem {
     localStorage.setItem(LS_KEY_HIGH_SCORE, String(this._highScore));
   }
 
+  getScore() { return this._score; }
+
   draw(ctx, canvasWidth) {
     ctx.save();
     ctx.font = HUD_FONT;

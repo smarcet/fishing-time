@@ -92,10 +92,10 @@ const HOOK_REEL_DISTANCE_PER_PRESS  = 15;    // rope shrink (px) per Space press
 const FISH_SPECS = {
   butterfly_fish: { strength: 5,  escape_rate: 1.5 },  // easy - used by ButterflyFish
   lion_fish:      { strength: 15, escape_rate: 2.5 },  // medium - used by LionFish
-  tuna: { strength: 90, escape_rate: 3.5 },  // hardest - above SwordFish
-  shark:          { strength: 60, escape_rate: 3.0 },  // hard - reserved for future SharkFish
-  hammerhead_shark: { strength: 80, escape_rate: 3.0 },  // hard - used by HammerHeadShark
-  sword_fish:       { strength: 88, escape_rate: 3.5 },  // very hard - used by SwordFish
+  tuna: { strength: 90, escape_rate: 3.0 },  // hardest - above SwordFish
+  shark:          { strength: 60, escape_rate: 2.0 },  // hard - reserved for future SharkFish
+  hammerhead_shark: { strength: 50, escape_rate: 2.0 },  // hard - used by HammerHeadShark
+  sword_fish:       { strength: 50, escape_rate: 2.0 },  // very hard - used by SwordFish
   octopus:        { strength: 20, escape_rate: 1.8 },  // moderate - used by Octopus
   crab:           { strength: 40, escape_rate: 2.2 },  // hard - used by Crab
   clown_fish:     { strength: 5,  escape_rate: 1.2 },  // easy - used by ClownFish
@@ -110,6 +110,9 @@ const EVENT_ROD_CASTED       = 'rodCasted';
 const EVENT_REEL_RETRIEVING  = 'reelRetrieving';
 const EVENT_HOOK_IDLE        = 'hookIdle';
 const EVENT_REEL_POWER_CHANGED = 'reelPowerChanged';
+const EVENT_TIMER_TIMEUP       = 'timerTimeUp';
+
+const GAME_NEEDED_SCORE = 500;
 
 // Hook status string constants
 const HOOK_STATUS_IDLE             = 'IDLE';
@@ -185,6 +188,7 @@ if (typeof module !== 'undefined' && module.exports) {
     BUBBLE_SPEED_Y, BUBBLE_SIZE_MIN, BUBBLE_SIZE_MAX, BUBBLE_SPAWN_X_MIN,
     BUBBLE_RING_COUNT, BUBBLE_RING_STAGGER,
     EVENT_ENEMY_CAPTURED, EVENT_ENEMY_ESCAPED, EVENT_ENEMY_EVADED,
-    EVENT_ENEMY_HOOKED, EVENT_ROD_CASTED, EVENT_REEL_RETRIEVING, EVENT_HOOK_IDLE, EVENT_REEL_POWER_CHANGED,
+    EVENT_ENEMY_HOOKED, EVENT_ROD_CASTED, EVENT_REEL_RETRIEVING, EVENT_HOOK_IDLE, EVENT_REEL_POWER_CHANGED, EVENT_TIMER_TIMEUP,
+    GAME_NEEDED_SCORE,
   };
 }

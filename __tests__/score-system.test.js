@@ -22,6 +22,17 @@ describe('ScoreSystem initial state', () => {
     const ss = new ScoreSystem();
     expect(ss._score).toBe(0);
   });
+
+  test('getScore() returns 0 initially', () => {
+    const ss = new ScoreSystem();
+    expect(ss.getScore()).toBe(0);
+  });
+
+  test('getScore() reflects captured score', () => {
+    const ss = new ScoreSystem();
+    ss._handleCapture({ detail: { enemyType: 'Tuna', x: 0, y: 0 } });
+    expect(ss.getScore()).toBe(100);
+  });
 });
 
 describe('ScoreSystem capture handling', () => {
