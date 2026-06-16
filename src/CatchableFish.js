@@ -8,6 +8,10 @@ class CatchableFish extends EnemyWithAnimation {
   getFightSpec() {
     return { strength: this._strength, escapeRate: this._escapeRate };
   }
+
+  static randomSpawnX(canvasWidth, fishWidth, rng = Math.random) {
+    return rng() * (canvasWidth - fishWidth);
+  }
 }
 
 if (typeof module !== 'undefined' && module.exports) {

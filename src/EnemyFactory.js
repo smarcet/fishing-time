@@ -33,6 +33,15 @@ class EnemyFactory {
       dieFrameX: 0,
       dieFrameY: CRAB_DIE_FRAME_Y,
     };
+    this.specs[ENEMY_TYPE_LION_FISH] = {
+      image: (typeof document !== 'undefined') ? document.getElementById('lion_fish_sprite') : null,
+      size: new Size(124, 124),
+      spriteFrameSize: new Size(LION_FISH_FRAME_HEIGHT, LION_FISH_FRAME_WIDTH),
+      maxFrameX: LION_FISH_MAX_FRAME_X,
+      maxFrameY: 1,
+      dieFrameX: 0,
+      dieFrameY: LION_FISH_DIE_FRAME_Y,
+    };
   }
 
   createEnemy(name, game, ctx) {
@@ -59,6 +68,17 @@ class EnemyFactory {
       return new Crab(
         game, ctx, spec.size,
         new Point(0, game.getSize().getHeight() * CRAB_SEABED_FACTOR),
+        spec.image, spec.maxFrameX, spec.maxFrameY,
+        spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
+      );
+    }
+    if (name === ENEMY_TYPE_LION_FISH) {
+      return new LionFish(
+        game, ctx, spec.size,
+        new Point(
+          LionFish.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
+          LionFish.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
+        ),
         spec.image, spec.maxFrameX, spec.maxFrameY,
         spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
       );

@@ -22,8 +22,12 @@ class Game extends GameObject{
     this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_OCTOPUS, this, ctx));
     this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_CRAB, this, ctx));
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 3; i++) {
       this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_BUTTERFLY_FISH, this, ctx));
+    }
+
+    for (let i = 0; i < 2; i++) {
+      this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_LION_FISH, this, ctx));
     }
 
     this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_DISCARDED_BOTTLE, this, ctx));
