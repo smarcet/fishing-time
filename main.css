@@ -19,7 +19,7 @@ html, body {
 
 #fish1, #fish2, #fish3, #fish1_sprite, #hook, #bubble, #bottle_1_sprite, #boat_idle, #boat_cast, #boat_catch, #octopus,
 #sky, #cloud, #ocean, #ocean1, #ocean2, #ground, #ground2, #ground3, #crab, #lion_fish_sprite, #hammerhead_shark_sprite,
-#swordfish_sprite, #tuna_sprite, #clown_fish_sprite, #jelly_fish_sprite, #shark_sprite, #puffer_fish_sprite, #red_apple_sprite, #wheel_sprite, #octopus_sprite, #crab_sprite, #butterfly_fish_sprite {
+#swordfish_sprite, #tuna_sprite, #clown_fish_sprite, #jelly_fish_sprite, #shark_sprite, #puffer_fish_sprite, #red_apple_sprite, #wheel_sprite, #octopus_sprite, #crab_sprite, #butterfly_fish_sprite, #shoe_sprite {
     display: none;
 }
 
