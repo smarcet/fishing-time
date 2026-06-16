@@ -1,8 +1,39 @@
+if (typeof require === 'function') {
+  var CatchableFish = require('./CatchableFish').CatchableFish;
+}
+
+const MILLIS_PER_SECOND = 1000;
+const HOOK_IMAGE_ID     = 'hook';  // DOM id of the hook sprite img element
+
+// Rope rendering
+const HOOK_ROPE_LINE_WIDTH = 5;         // px - rope stroke width
+const HOOK_ROPE_COLOR      = 'brown';   // rope stroke colour
+const HOOK_ROPE_DASH       = [5, 5];    // dash/gap lengths for rope stroke
+
+// Debug overlay
+const HOOK_DEBUG_FONT         = '16px serif';
+const HOOK_DEBUG_TEXT_X       = 10;      // px - x of debug text readout
+const HOOK_DEBUG_TEXT_Y       = 50;      // px - y of debug text readout
+const HOOK_DEBUG_COLOR_HOOKED = 'green'; // bounding-box fill when hooked
+const HOOK_DEBUG_COLOR_IDLE   = 'red';   // bounding-box fill otherwise
+
+// Escape particle tunables - search "TUNE" to find all knobs
+const HOOK_PARTICLE_GRAVITY      = 0.2;                    // px/tick² downward acceleration - TUNE
+const HOOK_PARTICLE_SHADOW_COLOR = 'rgba(255,80,0,0.9)';  // glow colour
+const HOOK_PARTICLE_SHADOW_BLUR  = 12;                     // px shadow spread - TUNE
+const HOOK_PARTICLE_SPEED_MIN    = 3;                      // px/tick minimum radial speed - TUNE
+const HOOK_PARTICLE_SPEED_RANGE  = 4;                      // random extra speed above min - TUNE
+const HOOK_PARTICLE_LIFE         = 40;                     // ticks a particle lives - TUNE
+const HOOK_PARTICLE_SIZE_MIN     = 4;                      // px minimum radius - TUNE
+const HOOK_PARTICLE_SIZE_RANGE   = 4;                      // random extra radius above min - TUNE
+const HOOK_PARTICLE_VY_BIAS      = -2;                     // px/tick upward initial bias - TUNE
+const HOOK_PARTICLE_GREEN_MAX    = 80;                     // 0-255 green channel at full life - TUNE
+
 class Hook extends GameObject {
 
   constructor(player, ctx, size, position) {
     super(ctx, size, position);
-    this._image = (typeof document !== 'undefined') ? document.getElementById('hook') : null;
+    this._image = (typeof document !== 'undefined') ? document.getElementById(HOOK_IMAGE_ID) : null;
     this._player = player;
     this._status = HOOK_STATUS_IDLE;
     this._catch = null;
@@ -12,7 +43,6 @@ class Hook extends GameObject {
     this._castAngle = 0;
     this._ropeLength = HOOK_REST_LENGTH;
     this._prevSpaceHeld = false;
-    this._isFishHook = false;
     this._escapeProgress = 0;
     this._drawTick = 0;
     this._escapeParticles = [];
@@ -69,7 +99,6 @@ class Hook extends GameObject {
     }
     this._catch = null;
     this._catchRopeStart = null;
-    this._isFishHook = false;
     this._escapeProgress = 0;
     this._status = HOOK_STATUS_IDLE;
     this._ropeLength = HOOK_REST_LENGTH;
@@ -90,7 +119,7 @@ class Hook extends GameObject {
   update(dt = 0) {
     super.update();
     this._drawTick++;
-    const dtSec = dt / 1000;
+    const dtSec = dt / MILLIS_PER_SECOND;
     const spaceHeld = this._player._game.hasKey(KEY_SPACE) &&
       !(this._player._game.hasKey(KEY_ARROW_LEFT) || this._player._game.hasKey(KEY_ARROW_RIGHT));
     const spacePressed = spaceHeld && !this._prevSpaceHeld;
@@ -115,7 +144,7 @@ class Hook extends GameObject {
       }
     } else if (this._status === HOOK_STATUS_HOOKED) {
       this._catch.updateCaptured();
-      if (this._isFishHook) {
+      if (this.isCatchableFishHooked()) {
         const fightSpec = this._catch.getFightSpec();
         this._escapeProgress += fightSpec.strength * fightSpec.escapeRate * dtSec;
         if (spacePressed) {
@@ -123,17 +152,7 @@ class Hook extends GameObject {
           this._ropeLength = Math.max(HOOK_REST_LENGTH, this._ropeLength - HOOK_REEL_DISTANCE_PER_PRESS);
         }
         if (this._escapeProgress >= HOOK_STRUGGLE_MAX_ESCAPE) {
-          const escapePos = this._endpoint();
-          for (let i = 0; i < CAPTURE_ESCAPE_PARTICLES; i++) {
-            const angle = (Math.PI * 2 * i) / CAPTURE_ESCAPE_PARTICLES;
-            const speed = 3 + Math.random() * 4;
-            this._escapeParticles.push({
-              x: escapePos.getX(), y: escapePos.getY(),
-              vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 2,
-              life: 40, maxLife: 40,
-              size: 4 + Math.random() * 4
-            });
-          }
+          this._buildEscapeHookExplosion(this._endpoint());
           const escapee = this._catch;
           escapee.escaped();
           this._player._game.releaseEnemy(escapee);
@@ -145,7 +164,6 @@ class Hook extends GameObject {
           }
           this._catch = null;
           this._catchRopeStart = null;
-          this._isFishHook = false;
           this._escapeProgress = 0;
           this._status = HOOK_STATUS_IDLE;
           this._ropeLength = HOOK_REST_LENGTH;
@@ -176,18 +194,18 @@ class Hook extends GameObject {
 
     this._ctx.save();
     this._ctx.beginPath();
-    this._ctx.lineWidth = 5;
-    this._ctx.strokeStyle = "brown";
-    this._ctx.setLineDash([5, 5]);
+    this._ctx.lineWidth = HOOK_ROPE_LINE_WIDTH;
+    this._ctx.strokeStyle = HOOK_ROPE_COLOR;
+    this._ctx.setLineDash(HOOK_ROPE_DASH);
     this._ctx.moveTo(pivot.getX(), pivot.getY());
     this._ctx.lineTo(ep.getX(), ep.getY());
     this._ctx.stroke();
     this._ctx.restore();
 
     if (this._player._game.isDebug()) {
-      this._ctx.fillStyle = this._status === HOOK_STATUS_HOOKED ? 'green' : 'red';
-      this._ctx.font = "16px serif";
-      this._ctx.fillText(`X ${pos.getX().toFixed(1)} Y ${pos.getY().toFixed(1)} angle ${this._angle.toFixed(3)}`, 10, 50);
+      this._ctx.fillStyle = this._status === HOOK_STATUS_HOOKED ? HOOK_DEBUG_COLOR_HOOKED : HOOK_DEBUG_COLOR_IDLE;
+      this._ctx.font = HOOK_DEBUG_FONT;
+      this._ctx.fillText(`X ${pos.getX().toFixed(1)} Y ${pos.getY().toFixed(1)} angle ${this._angle.toFixed(3)}`, HOOK_DEBUG_TEXT_X, HOOK_DEBUG_TEXT_Y);
       this._ctx.fillRect(pos.getX(), pos.getY(), w, h);
     }
 
@@ -199,19 +217,23 @@ class Hook extends GameObject {
       this._catch.draw();
     }
 
+    this._drawEscapeHookExplosion();
+  }
+
+  _drawEscapeHookExplosion() {
     for (let i = this._escapeParticles.length - 1; i >= 0; i--) {
       const p = this._escapeParticles[i];
       p.x += p.vx;
       p.y += p.vy;
-      p.vy += 0.2;
+      p.vy += HOOK_PARTICLE_GRAVITY;
       p.life--;
       if (p.life <= 0) { this._escapeParticles.splice(i, 1); continue; }
       const t = p.life / p.maxLife;
       this._ctx.save();
       this._ctx.globalAlpha = t;
-      this._ctx.shadowColor = 'rgba(255,80,0,0.9)';
-      this._ctx.shadowBlur = 12;
-      this._ctx.fillStyle = `rgba(255,${Math.round(t * 80)},0,1)`;
+      this._ctx.shadowColor = HOOK_PARTICLE_SHADOW_COLOR;
+      this._ctx.shadowBlur = HOOK_PARTICLE_SHADOW_BLUR;
+      this._ctx.fillStyle = `rgba(255,${Math.round(t * HOOK_PARTICLE_GREEN_MAX)},0,1)`;
       this._ctx.beginPath();
       this._ctx.arc(p.x, p.y, p.size * t, 0, Math.PI * 2);
       this._ctx.fill();
@@ -235,12 +257,27 @@ class Hook extends GameObject {
     return this._status === HOOK_STATUS_HOOKED;
   }
 
+  isCatchableFishHooked() {
+    return this._catch instanceof CatchableFish;
+  }
+
+  _buildEscapeHookExplosion(pos) {
+    for (let i = 0; i < CAPTURE_ESCAPE_PARTICLES; i++) {
+      const angle = (Math.PI * 2 * i) / CAPTURE_ESCAPE_PARTICLES;
+      const speed = HOOK_PARTICLE_SPEED_MIN + Math.random() * HOOK_PARTICLE_SPEED_RANGE;
+      this._escapeParticles.push({
+        x: pos.getX(), y: pos.getY(),
+        vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed + HOOK_PARTICLE_VY_BIAS,
+        life: HOOK_PARTICLE_LIFE, maxLife: HOOK_PARTICLE_LIFE,
+        size: HOOK_PARTICLE_SIZE_MIN + Math.random() * HOOK_PARTICLE_SIZE_RANGE
+      });
+    }
+  }
+
   setCatch(entity) {
     this._status = HOOK_STATUS_HOOKED;
     this._catch = entity;
     this._catchRopeStart = this._ropeLength;
-    const fightSpec = entity.getFightSpec ? entity.getFightSpec() : null;
-    this._isFishHook = fightSpec !== null;
     this._escapeProgress = 0;
     entity.captured(this);
   }

@@ -1,6 +1,6 @@
 'use strict';
 
-const { Size, Point, Hook } = require('../index.js');
+const { Size, Point, Hook, CatchableFish, InertObject } = require('../index.js');
 
 const PLAYER_X   = 100;
 const PLAYER_Y   = 0;
@@ -60,12 +60,35 @@ function makeHook(spaceHeld = false) {
   return new Hook(mockPlayer, ctx, new Size(HOOK_H, HOOK_W), new Point(PLAYER_X, PLAYER_Y));
 }
 
+function makeMockEntityCtx() {
+  return {
+    game: { getSize: () => new Size(600, 800), isDebug: () => false, hasKey: () => false },
+    ctx: {
+      drawImage: () => {}, beginPath: () => {}, stroke: () => {}, fillRect: () => {},
+      fillText: () => {}, save: () => {}, restore: () => {}, translate: () => {},
+      rotate: () => {}, scale: jest.fn(), setLineDash: () => {},
+    },
+  };
+}
+
 function makeMockInertEntity() {
-  return { captured: jest.fn(), updateCaptured: jest.fn(), escaped: jest.fn(), getFightSpec: () => null };
+  const { game, ctx } = makeMockEntityCtx();
+  const obj = new InertObject(game, ctx, new Size(80, 100), new Point(200, 400), null, 3, 1, 0, 1);
+  obj.captured = jest.fn();
+  obj.updateCaptured = jest.fn();
+  obj.escaped = jest.fn();
+  return obj;
 }
 
 function makeMockFishEntity(strength = 10, escapeRate = 2.0) {
-  return { captured: jest.fn(), updateCaptured: jest.fn(), escaped: jest.fn(), getFightSpec: () => ({ strength, escapeRate }) };
+  const { game, ctx } = makeMockEntityCtx();
+  const fish = new CatchableFish(game, ctx, new Size(80, 100), new Point(200, 400), null, 3, 1, 0, 1);
+  fish._strength = strength;
+  fish._escapeRate = escapeRate;
+  fish.captured = jest.fn();
+  fish.updateCaptured = jest.fn();
+  fish.escaped = jest.fn();
+  return fish;
 }
 
 const pivotX = PLAYER_X + HOOK_PIVOT_X_OFFSET;
@@ -305,11 +328,11 @@ describe('Hook isCasting()', () => {
 
 // ---------------------------------------------------------------------------
 describe('Hook HOOKED - fish struggle mechanic', () => {
-  test('setCatch with fish entity sets _isFishHook = true', () => {
+  test('setCatch with fish entity makes isCatchableFishHooked() return true', () => {
     const hook = makeHook(false);
     hook._ropeLength = HOOK_REST_LENGTH + 100;
     hook.setCatch(makeMockFishEntity());
-    expect(hook._isFishHook).toBe(true);
+    expect(hook.isCatchableFishHooked()).toBe(true);
   });
 
   test('_escapeProgress increases each update with dt (no Space pressed)', () => {
@@ -438,11 +461,11 @@ describe('Hook HOOKED - fish capture', () => {
 
 // ---------------------------------------------------------------------------
 describe('Hook HOOKED - inert object auto-reel', () => {
-  test('setCatch with inert entity sets _isFishHook = false', () => {
+  test('setCatch with inert entity makes isCatchableFishHooked() return false', () => {
     const hook = makeHook(false);
     hook._ropeLength = HOOK_REST_LENGTH + 100;
     hook.setCatch(makeMockInertEntity());
-    expect(hook._isFishHook).toBe(false);
+    expect(hook.isCatchableFishHooked()).toBe(false);
   });
 
   test('inert: updateCaptured called N times after N update() calls', () => {
