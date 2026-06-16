@@ -72,6 +72,10 @@ class Enemy extends GameObject{
       this._speedX = this._direction * this._driftSpeed * ENEMY_ESCAPE_SPEED_MULTIPLIER;
     }
   }
+
+  static randomSpawnX(canvasWidth, width, rng = Math.random) {
+    return rng() * (canvasWidth - width);
+  }
 }
 
 if (typeof module !== 'undefined' && module.exports) {

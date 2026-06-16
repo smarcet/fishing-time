@@ -193,21 +193,30 @@ class EnemyFactory {
     if (name === ENEMY_TYPE_DISCARDED_BOTTLE) {
       return new DiscardedBottle(
         game, ctx, spec.size,
-        new Point(Math.max(0, Math.random() * (game.getSize().getWidth() - spec.size.getWidth())), WATER_SURFACE_Y),
+          new Point(
+              Enemy.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
+              WATER_SURFACE_Y
+          ),
         spec.image, spec.maxFrames
       );
     }
     if (name === ENEMY_TYPE_RED_APPLE) {
       return new RedApple(
         game, ctx, spec.size,
-        new Point(Math.max(0, Math.random() * (game.getSize().getWidth() - spec.size.getWidth())), WATER_SURFACE_Y),
+          new Point(
+              Enemy.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
+              WATER_SURFACE_Y
+          ),
         spec.image, spec.maxFrames
       );
     }
     if (name === ENEMY_TYPE_WHEEL) {
       return new Wheel(
         game, ctx, spec.size,
-        new Point(Math.max(0, Math.random() * (game.getSize().getWidth() - spec.size.getWidth())), WATER_SURFACE_Y),
+        new Point(
+            Enemy.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
+            WATER_SURFACE_Y
+        ),
         spec.image, spec.maxFrames
       );
     }
