@@ -2,4 +2,3 @@ node_modules/
 .codegraph/
 .playwright-cli/
 .idea/
-.nvmrc
