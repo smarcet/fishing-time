@@ -40,6 +40,7 @@ class Game extends GameObject{
     this._keys = [];
 
     this._inputHandler = new InputHandler(this);
+    this._scoreSystem = new ScoreSystem();
   }
 
   isDebug(){
@@ -54,10 +55,16 @@ class Game extends GameObject{
 
   update(dt = 0){
     super.update();
+    this._scoreSystem.update();
     this._layers.forEach(l => l.update());
 
     // clear dead bubbles and off-screen escaped fish
     this._bubbles = this._bubbles.filter(b => b.isLive());
+    this._enemies.forEach(f => {
+      if (f.isOffScreen() && !f.isCaptured()) {
+        document.dispatchEvent(new CustomEvent(EVENT_ENEMY_EVADED, { detail: { enemyType: f.constructor.name } }));
+      }
+    });
     this._enemies = this._enemies.filter(f => !f.isCaptured() && !f.isOffScreen());
 
     // add bubbles
@@ -107,6 +114,7 @@ class Game extends GameObject{
     this._player.draw();
     this._enemies.forEach(e => e.draw());
     this._bubbles.forEach(e => e.draw());
+    this._scoreSystem.draw(this._ctx, this._size.getWidth());
   }
 
   addKey(key){

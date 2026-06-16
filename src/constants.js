@@ -94,6 +94,11 @@ const FISH_SPECS = {
   crab:           { strength: 40, escape_rate: 2.2 },  // hard - used by Crab
 };
 
+// Game event names
+const EVENT_ENEMY_CAPTURED = 'enemyCaptured';
+const EVENT_ENEMY_ESCAPED  = 'enemyEscaped';
+const EVENT_ENEMY_EVADED   = 'enemyEvaded';
+
 // Hook status string constants
 const HOOK_STATUS_IDLE             = 'IDLE';
 const HOOK_STATUS_CAST             = 'CAST';
@@ -164,5 +169,6 @@ if (typeof module !== 'undefined' && module.exports) {
     BUBBLE_DIE_DURATION, BUBBLE_DIE_THRESHOLD_Y, BUBBLE_BATCH_SIZE,
     BUBBLE_SPEED_Y, BUBBLE_SIZE_MIN, BUBBLE_SIZE_MAX, BUBBLE_SPAWN_X_MIN,
     BUBBLE_RING_COUNT, BUBBLE_RING_STAGGER,
+    EVENT_ENEMY_CAPTURED, EVENT_ENEMY_ESCAPED, EVENT_ENEMY_EVADED,
   };
 }

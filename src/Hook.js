@@ -63,7 +63,7 @@ class Hook extends GameObject {
   clearCaptured() {
     if (typeof document !== 'undefined' && this._catch) {
       const pos = this.getPosition();
-      document.dispatchEvent(new CustomEvent('enemyCaptured', {
+      document.dispatchEvent(new CustomEvent(EVENT_ENEMY_CAPTURED, {
         detail: { enemyType: this._catch.constructor.name, x: pos.getX(), y: pos.getY() }
       }));
     }
@@ -138,8 +138,9 @@ class Hook extends GameObject {
           escapee.escaped();
           this._player._game.releaseEnemy(escapee);
           if (typeof document !== 'undefined') {
-            document.dispatchEvent(new CustomEvent('enemyEscaped', {
-              detail: { enemyType: escapee.constructor.name }
+            const hookPos = this.getPosition();
+            document.dispatchEvent(new CustomEvent(EVENT_ENEMY_ESCAPED, {
+              detail: { enemyType: escapee.constructor.name, x: hookPos.getX(), y: hookPos.getY() }
             }));
           }
           this._catch = null;
