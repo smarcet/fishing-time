@@ -3,13 +3,13 @@
 const SCORE_MAP = {
   ClownFish:        5,
   ButterflyFish:   10,
-  LionFish:        20,
-  Octopus:         15,
-  Crab:            30,
+  LionFish:        10,
+  Octopus:         25,
+  Crab:            1000,
   HammerHeadShark: 50,
   SwordFish:       80,
   Tuna:           100,
-  DiscardedBottle: -20,
+  DiscardedBottle: -10,
 };
 
 const LS_KEY_HIGH_SCORE = 'fishingTime_highScore';
