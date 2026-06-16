@@ -1,12 +1,12 @@
 'use strict';
 
-const TS_CENTER_Y   = 82;
+const TS_CENTER_Y   = 100;
 const TS_RADIUS     = 66;
 const TS_RING_WIDTH = 8;
 const TS_BELL_R     = 11;
 const TS_BELL_DIST  = 36;
-const TS_BG_COLOR   = '#150030';
-const TS_ARC_COLOR  = '#cc00ff';
+const TS_BG_COLOR   = 'white';
+const TS_ARC_COLOR  = 'red';
 const TS_GOLD       = '#ffd700';
 const TS_FONT       = 'bold 30px monospace';
 const TS_INITIAL_SECONDS = 120;
@@ -83,7 +83,7 @@ class TimerSystem extends GameObject {
     ctx.beginPath();
     ctx.moveTo(cx, cy);
     ctx.lineTo(cx, cy - TS_RADIUS * 0.62);
-    ctx.strokeStyle = 'white';
+    ctx.strokeStyle = 'black';
     ctx.lineWidth   = 3;
     ctx.stroke();
 
@@ -91,14 +91,14 @@ class TimerSystem extends GameObject {
     ctx.beginPath();
     ctx.moveTo(cx, cy);
     ctx.lineTo(cx + TS_RADIUS * 0.42, cy + TS_RADIUS * 0.15);
-    ctx.strokeStyle = 'white';
+    ctx.strokeStyle = 'black';
     ctx.lineWidth   = 4;
     ctx.stroke();
 
     // 7. Gold center dot
     ctx.beginPath();
     ctx.arc(cx, cy, 4, 0, Math.PI * 2);
-    ctx.fillStyle = TS_GOLD;
+    ctx.fillStyle = 'black';
     ctx.fill();
 
     // 8. Seconds label below clock
