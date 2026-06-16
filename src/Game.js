@@ -12,6 +12,7 @@ const LAYER_SPEED_OCEAN      = 0.2;
 const ENEMY_COUNT_BUTTERFLY  = 3;
 const ENEMY_COUNT_LION_FISH  = 2;
 const ENEMY_COUNT_CLOWN_FISH = 10;
+const ENEMY_COUNT_JELLY_FISH = 3;
 
 // Game result overlay
 const RESULT_OVERLAY         = 'rgba(0,0,0,0.55)';
@@ -57,6 +58,10 @@ class Game extends GameObject{
 
     for (let i = 0; i < ENEMY_COUNT_CLOWN_FISH; i++) {
       this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_CLOWN_FISH, this, ctx));
+    }
+
+    for (let i = 0; i < ENEMY_COUNT_JELLY_FISH; i++) {
+      this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_JELLY_FISH, this, ctx));
     }
 
     this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_HAMMERHEAD_SHARK, this, ctx));

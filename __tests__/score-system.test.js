@@ -78,10 +78,10 @@ describe('ScoreSystem escape handling', () => {
     expect(ss._score).toBe(125);
   });
 
-  test('escape of negative-value enemy (DiscardedBottle) adds to score (subtracts -3)', () => {
+  test('escape of negative-value enemy (DiscardedBottle) has no effect on score', () => {
     const ss = new ScoreSystem();
-    ss._handleEscape({ detail: { enemyType: 'DiscardedBottle' } }); // -Math.floor(-5/2) = -(-3) = +3
-    expect(ss._score).toBe(3);
+    ss._handleEscape({ detail: { enemyType: 'DiscardedBottle' } });
+    expect(ss._score).toBe(0);
   });
 
   test('escape of unknown enemyType is silently ignored', () => {

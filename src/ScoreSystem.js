@@ -1,6 +1,7 @@
 'use strict';
 
 const SCORE_MAP = {
+  JellyFish:       -25,
   ClownFish:        5,
   ButterflyFish:   10,
   LionFish:        15,
@@ -64,7 +65,7 @@ class ScoreSystem {
     };
     this._handleEscape = (e) => {
       const pts = SCORE_MAP[e.detail.enemyType];
-      if (pts !== undefined) {
+      if (pts !== undefined && pts > 0) {
         this._score -= Math.floor(pts / ESCAPE_PENALTY_DIVISOR);
         this._persist();
         const delta = -Math.floor(pts / ESCAPE_PENALTY_DIVISOR);

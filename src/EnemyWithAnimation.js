@@ -121,7 +121,9 @@ class EnemyWithAnimation extends Enemy {
   }
 
   _drawCapturedSprite(dx, dy, w, h) {
-    this._ctx.drawImage(this._image, this._dieFrameX * w, this._dieFrameY * h, w, h, dx, dy, w, h);
+    const sw = this._sw || w;
+    const sh = this._sh || h;
+    this._ctx.drawImage(this._image, this._dieFrameX * sw, this._dieFrameY * sh, sw, sh, dx, dy, w, h);
   }
 
   draw(){

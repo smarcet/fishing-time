@@ -10,6 +10,7 @@ const DOM_ID_TUNA             = 'tuna_sprite';
 const DOM_ID_CLOWN_FISH       = 'clown_fish_sprite';
 const DOM_ID_SHARK            = 'shark_sprite';
 const DOM_ID_RED_APPLE        = 'red_apple_sprite';
+const DOM_ID_JELLY_FISH       = 'jelly_fish_sprite';
 
 // Shared sprite layout - all CatchableFish-based enemies cycle only row 0 (swim);
 // row 1 is the die row, accessed directly via dieFrameY (not through the frame cycle).
@@ -55,6 +56,8 @@ const TUNA_DISPLAY_H             = 225;
 const TUNA_DISPLAY_W             = 384;
 const CLOWN_FISH_DISPLAY_H       = 114;
 const CLOWN_FISH_DISPLAY_W       = 107;
+const JELLY_FISH_DISPLAY_H       = 106;
+const JELLY_FISH_DISPLAY_W       = 80;
 const SHARK_DISPLAY_H            = 256;  // 512 / 2 - half canonical cell height
 const SHARK_DISPLAY_W            = 530;  // 1060 / 2 - half canonical cell width
 
@@ -142,6 +145,15 @@ class EnemyFactory {
       maxFrameY: SPRITE_SWIM_MAX_FRAME_Y,
       dieFrameX: SPRITE_DIE_FRAME_X,
       dieFrameY: CLOWN_FISH_DIE_FRAME_Y,
+    };
+    this.specs[ENEMY_TYPE_JELLY_FISH] = {
+      image: (typeof document !== 'undefined') ? document.getElementById(DOM_ID_JELLY_FISH) : null,
+      size: new Size(JELLY_FISH_DISPLAY_H, JELLY_FISH_DISPLAY_W),
+      spriteFrameSize: new Size(JELLY_FISH_FRAME_HEIGHT, JELLY_FISH_FRAME_WIDTH),
+      maxFrameX: JELLY_FISH_MAX_FRAME_X,
+      maxFrameY: SPRITE_SWIM_MAX_FRAME_Y,
+      dieFrameX: SPRITE_DIE_FRAME_X,
+      dieFrameY: JELLY_FISH_DIE_FRAME_Y,
     };
     this.specs[ENEMY_TYPE_SHARK] = {
       image: (typeof document !== 'undefined') ? document.getElementById(DOM_ID_SHARK) : null,
@@ -239,6 +251,17 @@ class EnemyFactory {
         new Point(
           ClownFish.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
           ClownFish.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
+        ),
+        spec.image, spec.maxFrameX, spec.maxFrameY,
+        spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
+      );
+    }
+    if (name === ENEMY_TYPE_JELLY_FISH) {
+      return new JellyFish(
+        game, ctx, spec.size,
+        new Point(
+          JellyFish.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
+          JellyFish.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
         ),
         spec.image, spec.maxFrameX, spec.maxFrameY,
         spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
