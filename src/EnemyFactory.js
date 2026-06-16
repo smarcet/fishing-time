@@ -60,6 +60,15 @@ class EnemyFactory {
       dieFrameX: 0,
       dieFrameY: SWORDFISH_DIE_FRAME_Y,
     };
+    this.specs[ENEMY_TYPE_TUNA] = {
+      image: (typeof document !== 'undefined') ? document.getElementById('tuna_sprite') : null,
+      size: new Size(225, 384),
+      spriteFrameSize: new Size(TUNA_FRAME_HEIGHT, TUNA_FRAME_WIDTH),
+      maxFrameX: TUNA_MAX_FRAME_X,
+      maxFrameY: 1,
+      dieFrameX: 0,
+      dieFrameY: TUNA_DIE_FRAME_Y,
+    };
   }
 
   createEnemy(name, game, ctx) {
@@ -118,6 +127,17 @@ class EnemyFactory {
         new Point(
           SwordFish.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
           SwordFish.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
+        ),
+        spec.image, spec.maxFrameX, spec.maxFrameY,
+        spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
+      );
+    }
+    if (name === ENEMY_TYPE_TUNA) {
+      return new Tuna(
+        game, ctx, spec.size,
+        new Point(
+          Tuna.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
+          Tuna.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
         ),
         spec.image, spec.maxFrameX, spec.maxFrameY,
         spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize

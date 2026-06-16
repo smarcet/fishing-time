@@ -32,6 +32,7 @@ class Game extends GameObject{
 
     this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_HAMMERHEAD_SHARK, this, ctx));
     this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_SWORDFISH, this, ctx));
+    this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_TUNA, this, ctx));
 
     this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_DISCARDED_BOTTLE, this, ctx));
 
