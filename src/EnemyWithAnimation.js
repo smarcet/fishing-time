@@ -93,7 +93,7 @@ class EnemyWithAnimation extends Enemy {
 
     // cx/cy = visual center of sprite in world coords
     let cx = hookTip.getX();
-    let cy = hookTip.getY() + h / 2;
+    let cy = hookTip.getY();
     let scale = 1.0;
     let alpha = 1.0;
     let glow = glowSize;
@@ -103,7 +103,7 @@ class EnemyWithAnimation extends Enemy {
       const t = (raw - CAPTURE_THROW_THRESHOLD) / (1 - CAPTURE_THROW_THRESHOLD);
       const target = this._hook.getLandingTarget();
       cx += (target.getX() - hookTip.getX()) * t;
-      cy += (target.getY() - (hookTip.getY() + h / 2)) * t;
+      cy += (target.getY() - hookTip.getY()) * t;
       cy -= Math.sin(t * Math.PI) * CAPTURE_THROW_ARC_Y;
       scale = 1.0 - t * CAPTURE_THROW_SCALE_REDUCTION;
       alpha = 1.0 - t;

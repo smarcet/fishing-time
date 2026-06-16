@@ -48,3 +48,50 @@ describe('InertObject getFightSpec()', () => {
     expect(obj.getFightSpec()).toBeNull();
   });
 });
+
+describe('drawCaptured() fish center positioning', () => {
+  const RX = 100;
+  const RY = 300;
+  const FISH_H = 82;
+  const FISH_W = 100;
+
+  function makeCapturingSetup() {
+    const translateSpy = jest.fn();
+    const ctx = {
+      drawImage: () => {},
+      save: () => {},
+      restore: () => {},
+      translate: translateSpy,
+      scale: () => {},
+      set shadowColor(_) {},
+      set shadowBlur(_) {},
+      set globalAlpha(_) {},
+    };
+    const game = { getSize: () => new Size(600, 800), isDebug: () => false, hasKey: () => false };
+    const mockHook = {
+      getEndpoint: () => new Point(RX, RY),
+      isCatchableFishHooked: () => false,
+      _escapeProgress: 0,
+      getCaptureRawProgress: () => 0,
+      getLandingTarget: () => new Point(0, 0),
+    };
+    const fish = new CatchableFish(
+      game, ctx,
+      new Size(FISH_H, FISH_W),
+      new Point(200, 400),
+      {}, 10, 1, 0, 1
+    );
+    fish.captured(mockHook);
+    return { fish, translateSpy };
+  }
+
+  test('test_drawCaptured_translatesTo_hookEndpoint_not_hookEndpointPlusHalfHeight', () => {
+    const { fish, translateSpy } = makeCapturingSetup();
+    fish.draw();
+    const calls = translateSpy.mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    const [translatedX, translatedY] = calls[0];
+    expect(translatedX).toBe(RX);
+    expect(translatedY).toBe(RY);
+  });
+});

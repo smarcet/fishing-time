@@ -7,8 +7,8 @@ describe('SCORE_MAP values', () => {
     expect(SCORE_MAP.Tuna).toBe(100);
   });
 
-  test('DiscardedBottle is worth -20 points', () => {
-    expect(SCORE_MAP.DiscardedBottle).toBe(-20);
+  test('DiscardedBottle is worth -10 points', () => {
+    expect(SCORE_MAP.DiscardedBottle).toBe(-10);
   });
 
   test('all nine expected keys exist', () => {
@@ -34,7 +34,7 @@ describe('ScoreSystem capture handling', () => {
   test('negative-value capture (DiscardedBottle) decrements score', () => {
     const ss = new ScoreSystem();
     ss._handleCapture({ detail: { enemyType: 'DiscardedBottle' } });
-    expect(ss._score).toBe(-20);
+    expect(ss._score).toBe(-10);
   });
 
   test('unknown enemyType is silently ignored', () => {
@@ -47,7 +47,7 @@ describe('ScoreSystem capture handling', () => {
     const ss = new ScoreSystem();
     ss._handleCapture({ detail: { enemyType: 'DiscardedBottle' } });
     ss._handleCapture({ detail: { enemyType: 'DiscardedBottle' } });
-    expect(ss._score).toBe(-40);
+    expect(ss._score).toBe(-20);
   });
 });
 
@@ -59,10 +59,10 @@ describe('ScoreSystem escape handling', () => {
     expect(ss._score).toBe(50);
   });
 
-  test('escape of negative-value enemy (DiscardedBottle) adds to score (subtracts -10)', () => {
+  test('escape of negative-value enemy (DiscardedBottle) adds to score (subtracts -5)', () => {
     const ss = new ScoreSystem();
-    ss._handleEscape({ detail: { enemyType: 'DiscardedBottle' } }); // -Math.floor(-20/2) = -(-10) = +10
-    expect(ss._score).toBe(10);
+    ss._handleEscape({ detail: { enemyType: 'DiscardedBottle' } }); // -Math.floor(-10/2) = -(-5) = +5
+    expect(ss._score).toBe(5);
   });
 
   test('escape of unknown enemyType is silently ignored', () => {
@@ -73,7 +73,7 @@ describe('ScoreSystem escape handling', () => {
 
   test('escape of DiscardedBottle does not inflate _highScore', () => {
     const ss = new ScoreSystem();
-    ss._handleEscape({ detail: { enemyType: 'DiscardedBottle' } }); // score becomes +10
+    ss._handleEscape({ detail: { enemyType: 'DiscardedBottle' } }); // score becomes +5
     expect(ss._highScore).toBe(0);
   });
 });
@@ -159,7 +159,7 @@ describe('ScoreSystem draw()', () => {
 
   test('draw() calls fillText with updated score after capture', () => {
     const ss = new ScoreSystem();
-    ss._handleCapture({ detail: { enemyType: 'Crab' } }); // +30
+    ss._handleCapture({ detail: { enemyType: 'Crab' } }); // +1000
     const mockCtx = {
       save: jest.fn(),
       restore: jest.fn(),
@@ -172,7 +172,7 @@ describe('ScoreSystem draw()', () => {
       set lineWidth(_) {},
     };
     ss.draw(mockCtx, 800);
-    expect(mockCtx.fillText).toHaveBeenCalledWith('Score: 30', 780, 40);
+    expect(mockCtx.fillText).toHaveBeenCalledWith('Score: 1000', 780, 40);
   });
 
   test('draw() wraps in save()/restore()', () => {
@@ -230,10 +230,10 @@ describe('ScoreSystem score animations', () => {
     expect(ss._animations[0].text).toBe('+100');
   });
 
-  test('animation text is "-20" for negative-value DiscardedBottle', () => {
+  test('animation text is "-10" for negative-value DiscardedBottle', () => {
     const ss = new ScoreSystem();
     ss._handleCapture({ detail: { enemyType: 'DiscardedBottle', x: 0, y: 0 } });
-    expect(ss._animations[0].text).toBe('-20');
+    expect(ss._animations[0].text).toBe('-10');
   });
 
   test('update() advances animation y by vy and reduces alpha', () => {
