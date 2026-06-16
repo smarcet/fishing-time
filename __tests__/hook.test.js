@@ -327,6 +327,32 @@ describe('Hook isCasting()', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Regression: Hook must not require() its own copy of CatchableFish - a private
+// local class would make instanceof fail against the shared global class, silently
+// treating all fish as inert objects (no struggle, no escape particles).
+describe('Hook isCatchableFishHooked() - instanceof identity', () => {
+  test('returns true for an instance of the shared CatchableFish class (same class reference)', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 100;
+    const fish = makeMockFishEntity();
+    hook.setCatch(fish);
+    // If Hook had its own local require('./CatchableFish'), instanceof would
+    // evaluate against a DIFFERENT class object and return false even for real fish.
+    expect(fish instanceof CatchableFish).toBe(true);
+    expect(hook.isCatchableFishHooked()).toBe(true);
+  });
+
+  test('returns false for an InertObject regardless of getFightSpec', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 100;
+    const obj = makeMockInertEntity();
+    hook.setCatch(obj);
+    expect(obj instanceof CatchableFish).toBe(false);
+    expect(hook.isCatchableFishHooked()).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
 describe('Hook HOOKED - fish struggle mechanic', () => {
   test('setCatch with fish entity makes isCatchableFishHooked() return true', () => {
     const hook = makeHook(false);

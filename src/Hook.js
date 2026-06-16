@@ -1,7 +1,3 @@
-if (typeof require === 'function') {
-  var CatchableFish = require('./CatchableFish').CatchableFish;
-}
-
 const MILLIS_PER_SECOND = 1000;
 const HOOK_IMAGE_ID     = 'hook';  // DOM id of the hook sprite img element
 
