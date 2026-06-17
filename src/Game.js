@@ -269,14 +269,14 @@ class Game extends GameObject{
   }
 
   getRuntimeStats() {
-    const activeLargeFish = this._enemies.filter(enemy => {
-      return enemy._trafficType && [
-        ENEMY_TYPE_HAMMERHEAD_SHARK,
-        ENEMY_TYPE_SWORDFISH,
-        ENEMY_TYPE_TUNA,
-        ENEMY_TYPE_SHARK,
-      ].includes(enemy._trafficType);
-    }).length;
+    const largeFishIds = new Set(
+      FISH_DEFINITIONS
+        .filter(def => [FISH_RARITY_RARE, FISH_RARITY_EPIC, FISH_RARITY_LEGENDARY].includes(def.rarity))
+        .map(def => def.id)
+    );
+    const activeLargeFish = this._enemies.filter(
+      enemy => enemy._trafficType && largeFishIds.has(enemy._trafficType)
+    ).length;
     return {
       profileName: this._profile ? this._profile.name : 'unknown',
       paused: this._paused === true,

@@ -3,7 +3,10 @@
 require('../index.js');
 const { Game } = require('../src/Game');
 const { Point, Size } = require('../index.js');
-const { BUBBLE_SIZE_MAX, EVENT_ENEMY_EVADED, GAMEPLAY_PROFILE_MOBILE } = require('../src/constants');
+const {
+  BUBBLE_SIZE_MAX, EVENT_ENEMY_EVADED, GAMEPLAY_PROFILE_MOBILE,
+  ENEMY_TYPE_OCTOPUS, ENEMY_TYPE_TUNA, ENEMY_TYPE_SHARK,
+} = require('../src/constants');
 
 function makeEvent(type, init = {}) {
   this.type = type;
@@ -187,6 +190,21 @@ describe('Game traffic exit handling', () => {
       playerYOffset: -44,
       spriteScale: 0.48,
     }));
+  });
+
+  test('getRuntimeStats.activeLargeFish uses rarity tiers (RARE/EPIC/LEGENDARY), not a hardcoded list', () => {
+    const game = makeGameForUpdate([]);
+    game._profile = { name: 'desktop', maxActiveTraffic: Infinity, maxActiveLargeFish: Infinity };
+    // Octopus = RARE -> large; Tuna = UNCOMMON -> not large; Shark = EPIC -> large
+    game._enemies = [
+      { _trafficType: ENEMY_TYPE_OCTOPUS },
+      { _trafficType: ENEMY_TYPE_TUNA },
+      { _trafficType: ENEMY_TYPE_SHARK },
+    ];
+
+    const { activeLargeFish } = game.getRuntimeStats();
+
+    expect(activeLargeFish).toBe(2); // Octopus + Shark; Tuna excluded
   });
 
   test('mobile profile scales newly spawned bubble sizes', () => {
