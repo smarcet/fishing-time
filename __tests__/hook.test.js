@@ -1,6 +1,8 @@
 'use strict';
 
 const { Size, Point, Hook, CatchableFish, InertObject } = require('../index.js');
+const { EnemyFactory } = require('../src/EnemyFactory');
+const { FISH_DEFINITIONS } = require('../src/constants');
 
 const PLAYER_X   = 100;
 const PLAYER_Y   = 0;
@@ -509,6 +511,27 @@ describe('Hook HOOKED - inert object auto-reel', () => {
     const before = hook._ropeLength;
     hook.update(16);
     expect(hook._ropeLength).toBeLessThan(before);
+  });
+
+  test('configured trash definitions have no resistance and auto-reel', () => {
+    const factory = new EnemyFactory();
+    const trashDefs = FISH_DEFINITIONS.filter(def => def.isTrash);
+
+    trashDefs.forEach(def => {
+      const hook = makeHook(false);
+      const { game, ctx } = makeMockEntityCtx();
+      const entity = factory.createEnemy(def.id, game, ctx);
+      hook._ropeLength = HOOK_REST_LENGTH + 100;
+
+      hook.setCatch(entity);
+      const before = hook._ropeLength;
+      hook.update(16);
+
+      expect(entity instanceof InertObject).toBe(true);
+      expect(entity.getFightSpec()).toBeNull();
+      expect(hook.isCatchableFishHooked()).toBe(false);
+      expect(hook._ropeLength).toBeLessThan(before);
+    });
   });
 });
 

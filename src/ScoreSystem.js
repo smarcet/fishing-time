@@ -1,23 +1,6 @@
 'use strict';
 
-const SCORE_MAP = {
-  JellyFish:       -25,
-  ClownFish:        5,
-  ButterflyFish:   10,
-  LionFish:        15,
-  Octopus:         100,
-  Crab:            1000,
-  HammerHeadShark: 700,
-  SwordFish:       150,
-  Tuna:           250,
-  Shark:          500,
-  PufferFish:      25,
-  DiscardedBottle: -5,
-  RedApple:        -5,
-  Wheel:           -5,
-  Shoe:            -5,
-  FishBone:        -5,
-};
+const SCORE_MAP = FISH_SCORE_MAP;
 
 const LS_KEY_HIGH_SCORE = 'fishingTime_highScore';
 

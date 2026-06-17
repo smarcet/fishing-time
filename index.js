@@ -33,5 +33,6 @@ if (typeof module !== 'undefined' && module.exports) {
   const { Hook }               = require('./src/Hook');               global.Hook               = Hook;
   const { Player }             = require('./src/Player');             global.Player             = Player;
   const { Bubble }             = require('./src/Bubble');             global.Bubble             = Bubble;
-  module.exports = { Size, Point, GameObject, Enemy, EnemyWithAnimation, CatchableFish, InertObject, DiscardedBottle, RedApple, Wheel, Shoe, FishBone, Octopus, Crab, ButterflyFish, LionFish, HammerHeadShark, SwordFish, Tuna, ClownFish, JellyFish, PufferFish, Shark, ScoreSystem, SCORE_MAP, ReelPowerBar, TimerSystem, AudioSystem, Hook, Player, Bubble };
+  const { FishSpawner }        = require('./src/FishSpawner');        global.FishSpawner        = FishSpawner;
+  module.exports = { Size, Point, GameObject, Enemy, EnemyWithAnimation, CatchableFish, InertObject, DiscardedBottle, RedApple, Wheel, Shoe, FishBone, Octopus, Crab, ButterflyFish, LionFish, HammerHeadShark, SwordFish, Tuna, ClownFish, JellyFish, PufferFish, Shark, ScoreSystem, SCORE_MAP, ReelPowerBar, TimerSystem, AudioSystem, Hook, Player, Bubble, FishSpawner };
 }

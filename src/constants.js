@@ -36,6 +36,12 @@ const CRAB_MAX_FRAME_Y   = 1;     // only cycle move row; die row accessed direc
 const CRAB_DIE_FRAME_Y   = 1;     // row index for captured/die animation
 const CRAB_DRIFT_SPEED   = 4.0;   // px/tick - 2.5x fish speed, hardest enemy to catch
 const CRAB_SEABED_FACTOR = 0.85;  // canvas-height fraction for spawn Y (seabed)
+const CRAB_REWARD_GLOW_COLOR = 'rgba(255, 215, 0, 0.95)';
+const CRAB_REWARD_GLOW_SHADOW_BLUR_MIN = 32;
+const CRAB_REWARD_GLOW_SHADOW_BLUR_MAX = 90;
+const CRAB_REWARD_GLOW_PULSE_SPEED = 0.22;
+const CRAB_REWARD_GLOW_ALPHA_MIN = 0.78;
+const CRAB_REWARD_GLOW_ALPHA_MAX = 1.0;
 
 const LION_FISH_FRAME_WIDTH  = 452;  // px - spritesheet cell width (die-frame dimensions, used as canonical)
 const LION_FISH_FRAME_HEIGHT = 437;  // px - spritesheet cell height
@@ -106,20 +112,8 @@ const HOOK_STRUGGLE_REEL_POWER      = 20;    // escape_progress reduction per Sp
 const HOOK_STRUGGLE_MAX_ESCAPE      = 100;   // ceiling; fish breaks free at this value - TUNE
 const HOOK_REEL_DISTANCE_PER_PRESS  = 15;    // rope shrink (px) per Space press - TUNE
 
-// Fish species lookup: strength * escape_rate * dt_sec = progress per second
-const FISH_SPECS = {
-  butterfly_fish: { strength: 5,  escape_rate: 1.5 },  // easy - used by ButterflyFish
-  lion_fish:      { strength: 15, escape_rate: 2.5 },  // medium - used by LionFish
-  tuna: { strength: 60, escape_rate: 3.0 },  // hardest - above SwordFish
-  shark:          { strength: 60, escape_rate: 2.0 },  // hard - used by Shark
-  hammerhead_shark: { strength: 50, escape_rate: 2.0 },  // hard - used by HammerHeadShark
-  sword_fish:       { strength: 50, escape_rate: 2.0 },  // very hard - used by SwordFish
-  octopus:        { strength: 20, escape_rate: 1.8 },  // moderate - used by Octopus
-  crab:           { strength: 40, escape_rate: 2.2 },  // hard - used by Crab
-  clown_fish:     { strength: 5,  escape_rate: 1.2 },  // easy - used by ClownFish
-  jelly_fish:     { strength: 5,  escape_rate: 1.0 },  // easy/penalty - used by JellyFish
-  puffer_fish:    { strength: 30, escape_rate: 2.2 },  // medium-hard - used by PufferFish
-};
+// Fish species lookup: strength * escape_rate * dt_sec = progress per second.
+let FISH_SPECS = {};
 
 // Game event names
 const EVENT_ENEMY_CAPTURED   = 'enemyCaptured';
@@ -157,6 +151,303 @@ const ENEMY_TYPE_PUFFER_FISH       = 'puffer_fish';
 const ENEMY_TYPE_SHOE              = 'shoe';
 const ENEMY_TYPE_FISH_BONE         = 'fish_bone';
 
+const FISH_RARITY_COMMON    = 'common';
+const FISH_RARITY_UNCOMMON  = 'uncommon';
+const FISH_RARITY_RARE      = 'rare';
+const FISH_RARITY_EPIC      = 'epic';
+const FISH_RARITY_LEGENDARY = 'legendary';
+
+const FISH_LANE_SURFACE = 'surface';
+const FISH_LANE_UPPER   = 'upper';
+const FISH_LANE_MIDDLE  = 'middle';
+const FISH_LANE_DEEP    = 'deep';
+const FISH_LANE_BOTTOM  = 'bottom';
+
+const FISH_CLASS_BUTTERFLY_FISH   = 'ButterflyFish';
+const FISH_CLASS_LION_FISH        = 'LionFish';
+const FISH_CLASS_HAMMERHEAD_SHARK = 'HammerHeadShark';
+const FISH_CLASS_SWORDFISH        = 'SwordFish';
+const FISH_CLASS_TUNA             = 'Tuna';
+const FISH_CLASS_CLOWN_FISH       = 'ClownFish';
+const FISH_CLASS_DISCARDED_BOTTLE = 'DiscardedBottle';
+const FISH_CLASS_OCTOPUS          = 'Octopus';
+const FISH_CLASS_CRAB             = 'Crab';
+const FISH_CLASS_SHARK            = 'Shark';
+const FISH_CLASS_RED_APPLE        = 'RedApple';
+const FISH_CLASS_JELLY_FISH       = 'JellyFish';
+const FISH_CLASS_WHEEL            = 'Wheel';
+const FISH_CLASS_PUFFER_FISH      = 'PufferFish';
+const FISH_CLASS_SHOE             = 'Shoe';
+const FISH_CLASS_FISH_BONE        = 'FishBone';
+
+const FISH_TRAFFIC_DIRECTION_RIGHT = 1;
+const FISH_TRAFFIC_DIRECTION_LEFT  = -1;
+const FISH_TRAFFIC_DEFAULT_PRESEED_PER_LANE = 2;
+const FISH_TRAFFIC_SEED_X_MIN_FACTOR = 0.2;
+const FISH_TRAFFIC_SEED_X_RANGE_FACTOR = 0.6;
+const FISH_TRAFFIC_MIN_TIMER_JITTER = 1;
+const FISH_TRAFFIC_COOLDOWN_READY = 0;
+const FISH_TRAFFIC_QUEUE_START_INDEX = 0;
+const FISH_TRAFFIC_TIMER_TICK = 1;
+const FISH_TRAFFIC_LAST_INDEX_OFFSET = 1;
+const FISH_TRAFFIC_WEIGHT_THRESHOLD = 0;
+const FISH_TRAFFIC_MAX_ACTIVE_ONE = 1;
+
+const FISH_LANES = {
+  [FISH_LANE_SURFACE]: { yMin: 0.34, yMax: 0.44, direction: FISH_TRAFFIC_DIRECTION_RIGHT, spawnInterval: 90 },
+  [FISH_LANE_UPPER]:   { yMin: 0.44, yMax: 0.56, direction: FISH_TRAFFIC_DIRECTION_LEFT,  spawnInterval: 120 },
+  [FISH_LANE_MIDDLE]:  { yMin: 0.56, yMax: 0.68, direction: FISH_TRAFFIC_DIRECTION_RIGHT, spawnInterval: 150 },
+  [FISH_LANE_DEEP]:    { yMin: 0.68, yMax: 0.82, direction: FISH_TRAFFIC_DIRECTION_LEFT,  spawnInterval: 210 },
+  [FISH_LANE_BOTTOM]:  { yMin: 0.82, yMax: 0.95, direction: FISH_TRAFFIC_DIRECTION_RIGHT, spawnInterval: 270 },
+};
+
+const FISH_DEFINITIONS = [
+  {
+    id: ENEMY_TYPE_CLOWN_FISH,
+    className: FISH_CLASS_CLOWN_FISH,
+    rarity: FISH_RARITY_COMMON,
+    lanes: [FISH_LANE_SURFACE, FISH_LANE_UPPER, FISH_LANE_MIDDLE],
+    score: 5,
+    strength: 5,
+    escapeRate: 1.2,
+    speedMin: 1.2,
+    speedMax: CLOWN_FISH_DRIFT_SPEED,
+    spawnWeight: 10,
+    spawnFrequency: 80,
+    isTrash: false,
+  },
+  {
+    id: ENEMY_TYPE_JELLY_FISH,
+    className: FISH_CLASS_JELLY_FISH,
+    rarity: FISH_RARITY_COMMON,
+    lanes: [FISH_LANE_SURFACE, FISH_LANE_UPPER, FISH_LANE_MIDDLE],
+    score: -25,
+    strength: 5,
+    escapeRate: 1.0,
+    speedMin: 0.5,
+    speedMax: JELLY_FISH_DRIFT_SPEED,
+    spawnWeight: 8,
+    spawnFrequency: 90,
+    isTrash: false,
+  },
+  {
+    id: ENEMY_TYPE_BUTTERFLY_FISH,
+    className: FISH_CLASS_BUTTERFLY_FISH,
+    rarity: FISH_RARITY_COMMON,
+    lanes: [FISH_LANE_SURFACE, FISH_LANE_UPPER, FISH_LANE_MIDDLE],
+    score: 10,
+    strength: 5,
+    escapeRate: 1.5,
+    speedMin: 1.2,
+    speedMax: DRIFT_SPEED_DEFAULT,
+    spawnWeight: 8,
+    spawnFrequency: 95,
+    isTrash: false,
+  },
+  {
+    id: ENEMY_TYPE_RED_APPLE,
+    className: FISH_CLASS_RED_APPLE,
+    rarity: FISH_RARITY_COMMON,
+    lanes: [FISH_LANE_SURFACE, FISH_LANE_BOTTOM],
+    score: -5,
+    strength: 0,
+    escapeRate: 0,
+    speedMin: 0.4,
+    speedMax: DRIFT_SPEED_SLOW,
+    spawnWeight: 6,
+    spawnFrequency: 120,
+    isTrash: true,
+  },
+  {
+    id: ENEMY_TYPE_DISCARDED_BOTTLE,
+    className: FISH_CLASS_DISCARDED_BOTTLE,
+    rarity: FISH_RARITY_COMMON,
+    lanes: [FISH_LANE_SURFACE, FISH_LANE_UPPER, FISH_LANE_MIDDLE, FISH_LANE_BOTTOM],
+    score: -5,
+    strength: 0,
+    escapeRate: 0,
+    speedMin: 0.4,
+    speedMax: DRIFT_SPEED_SLOW,
+    spawnWeight: 6,
+    spawnFrequency: 120,
+    isTrash: true,
+  },
+  {
+    id: ENEMY_TYPE_FISH_BONE,
+    className: FISH_CLASS_FISH_BONE,
+    rarity: FISH_RARITY_COMMON,
+    lanes: [FISH_LANE_SURFACE, FISH_LANE_UPPER],
+    score: -5,
+    strength: 0,
+    escapeRate: 0,
+    speedMin: 0.4,
+    speedMax: DRIFT_SPEED_SLOW,
+    spawnWeight: 5,
+    spawnFrequency: 150,
+    isTrash: true,
+  },
+  {
+    id: ENEMY_TYPE_WHEEL,
+    className: FISH_CLASS_WHEEL,
+    rarity: FISH_RARITY_COMMON,
+    lanes: [FISH_LANE_SURFACE, FISH_LANE_BOTTOM],
+    score: -5,
+    strength: 0,
+    escapeRate: 0,
+    speedMin: 0.4,
+    speedMax: DRIFT_SPEED_SLOW,
+    spawnWeight: 4,
+    spawnFrequency: 180,
+    isTrash: true,
+  },
+  {
+    id: ENEMY_TYPE_SHOE,
+    className: FISH_CLASS_SHOE,
+    rarity: FISH_RARITY_COMMON,
+    lanes: [FISH_LANE_SURFACE, FISH_LANE_BOTTOM],
+    score: -5,
+    strength: 0,
+    escapeRate: 0,
+    speedMin: 0.4,
+    speedMax: DRIFT_SPEED_SLOW,
+    spawnWeight: 4,
+    spawnFrequency: 180,
+    isTrash: true,
+  },
+  {
+    id: ENEMY_TYPE_PUFFER_FISH,
+    className: FISH_CLASS_PUFFER_FISH,
+    rarity: FISH_RARITY_UNCOMMON,
+    lanes: [FISH_LANE_SURFACE, FISH_LANE_UPPER, FISH_LANE_MIDDLE],
+    score: 25,
+    strength: 30,
+    escapeRate: 2.2,
+    speedMin: 1.2,
+    speedMax: PUFFER_FISH_DRIFT_SPEED,
+    spawnWeight: 4,
+    spawnFrequency: 190,
+    isTrash: false,
+  },
+  {
+    id: ENEMY_TYPE_CRAB,
+    className: FISH_CLASS_CRAB,
+    rarity: FISH_RARITY_UNCOMMON,
+    lanes: [FISH_LANE_BOTTOM],
+    score: 1000,
+    strength: 40,
+    escapeRate: 2.2,
+    speedMin: 3.0,
+    speedMax: CRAB_DRIFT_SPEED,
+    spawnWeight: 2,
+    spawnFrequency: 600,
+    maxActive: FISH_TRAFFIC_MAX_ACTIVE_ONE,
+    isTrash: false,
+  },
+  {
+    id: ENEMY_TYPE_LION_FISH,
+    className: FISH_CLASS_LION_FISH,
+    rarity: FISH_RARITY_UNCOMMON,
+    lanes: [FISH_LANE_UPPER, FISH_LANE_MIDDLE, FISH_LANE_DEEP],
+    score: 15,
+    strength: 15,
+    escapeRate: 2.5,
+    speedMin: 1.5,
+    speedMax: LION_FISH_DRIFT_SPEED,
+    spawnWeight: 4,
+    spawnFrequency: 220,
+    isTrash: false,
+  },
+  {
+    id: ENEMY_TYPE_TUNA,
+    className: FISH_CLASS_TUNA,
+    rarity: FISH_RARITY_UNCOMMON,
+    lanes: [FISH_LANE_MIDDLE, FISH_LANE_DEEP],
+    score: 250,
+    strength: 60,
+    escapeRate: 3.0,
+    speedMin: 3.0,
+    speedMax: TUNA_DRIFT_SPEED,
+    spawnWeight: 3,
+    spawnFrequency: 260,
+    isTrash: false,
+  },
+  {
+    id: ENEMY_TYPE_OCTOPUS,
+    className: FISH_CLASS_OCTOPUS,
+    rarity: FISH_RARITY_RARE,
+    lanes: [FISH_LANE_DEEP, FISH_LANE_BOTTOM],
+    score: 100,
+    strength: 20,
+    escapeRate: 1.8,
+    speedMin: 1.0,
+    speedMax: DRIFT_SPEED_DEFAULT,
+    spawnWeight: 2,
+    spawnFrequency: 360,
+    isTrash: false,
+  },
+  {
+    id: ENEMY_TYPE_SWORDFISH,
+    className: FISH_CLASS_SWORDFISH,
+    rarity: FISH_RARITY_RARE,
+    lanes: [FISH_LANE_DEEP, FISH_LANE_BOTTOM],
+    score: 150,
+    strength: 50,
+    escapeRate: 2.0,
+    speedMin: 3.5,
+    speedMax: SWORDFISH_DRIFT_SPEED,
+    spawnWeight: 2,
+    spawnFrequency: 390,
+    isTrash: false,
+  },
+  {
+    id: ENEMY_TYPE_SHARK,
+    className: FISH_CLASS_SHARK,
+    rarity: FISH_RARITY_EPIC,
+    lanes: [FISH_LANE_BOTTOM],
+    score: 500,
+    strength: 60,
+    escapeRate: 2.0,
+    speedMin: 3.0,
+    speedMax: SHARK_DRIFT_SPEED,
+    spawnWeight: 1,
+    spawnFrequency: 600,
+    isTrash: false,
+  },
+  {
+    id: ENEMY_TYPE_HAMMERHEAD_SHARK,
+    className: FISH_CLASS_HAMMERHEAD_SHARK,
+    rarity: FISH_RARITY_LEGENDARY,
+    lanes: [FISH_LANE_BOTTOM],
+    score: 700,
+    strength: 50,
+    escapeRate: 2.0,
+    speedMin: 2.8,
+    speedMax: HAMMERHEAD_SHARK_DRIFT_SPEED,
+    spawnWeight: 0.5,
+    spawnFrequency: 900,
+    isTrash: false,
+  },
+];
+
+FISH_SPECS = Object.freeze(
+  FISH_DEFINITIONS
+    .filter(def => !def.isTrash)
+    .reduce((specs, def) => {
+      specs[def.id] = {
+        strength: def.strength,
+        escape_rate: def.escapeRate,
+      };
+      return specs;
+    }, {})
+);
+
+const FISH_SCORE_MAP = Object.freeze(
+  FISH_DEFINITIONS.reduce((scores, def) => {
+    scores[def.className] = def.score;
+    return scores;
+  }, {})
+);
+
 const ENEMY_ESCAPE_SPEED_MULTIPLIER = 3;  // sprint speed after breaking free - TUNE
 
 // Enemy / capture status string constants
@@ -190,6 +481,9 @@ if (typeof module !== 'undefined' && module.exports) {
     WATER_SURFACE_Y, FISH_FRAME_WIDTH, FISH_FRAME_HEIGHT, FISH_MAX_FRAME_X,
     CRAB_FRAME_WIDTH, CRAB_FRAME_HEIGHT, CRAB_MAX_FRAME_X, CRAB_MAX_FRAME_Y,
     CRAB_DIE_FRAME_Y, CRAB_DRIFT_SPEED, CRAB_SEABED_FACTOR,
+    CRAB_REWARD_GLOW_COLOR,
+    CRAB_REWARD_GLOW_SHADOW_BLUR_MIN, CRAB_REWARD_GLOW_SHADOW_BLUR_MAX,
+    CRAB_REWARD_GLOW_PULSE_SPEED, CRAB_REWARD_GLOW_ALPHA_MIN, CRAB_REWARD_GLOW_ALPHA_MAX,
     LION_FISH_FRAME_WIDTH, LION_FISH_FRAME_HEIGHT, LION_FISH_MAX_FRAME_X,
     LION_FISH_DIE_FRAME_Y, LION_FISH_DRIFT_SPEED,
     HAMMERHEAD_SHARK_FRAME_WIDTH, HAMMERHEAD_SHARK_FRAME_HEIGHT, HAMMERHEAD_SHARK_MAX_FRAME_X,
@@ -213,6 +507,20 @@ if (typeof module !== 'undefined' && module.exports) {
     FISH_SPECS,
     HOOK_STATUS_IDLE, HOOK_STATUS_CAST, HOOK_STATUS_HOOKED, HOOK_STATUS_RETRIEVING_EMPTY,
     ENEMY_TYPE_BUTTERFLY_FISH, ENEMY_TYPE_LION_FISH, ENEMY_TYPE_HAMMERHEAD_SHARK, ENEMY_TYPE_SWORDFISH, ENEMY_TYPE_TUNA, ENEMY_TYPE_CLOWN_FISH, ENEMY_TYPE_DISCARDED_BOTTLE, ENEMY_TYPE_OCTOPUS, ENEMY_TYPE_CRAB, ENEMY_TYPE_SHARK, ENEMY_TYPE_RED_APPLE, ENEMY_TYPE_JELLY_FISH, ENEMY_TYPE_WHEEL, ENEMY_TYPE_PUFFER_FISH, ENEMY_TYPE_SHOE, ENEMY_TYPE_FISH_BONE,
+    FISH_RARITY_COMMON, FISH_RARITY_UNCOMMON, FISH_RARITY_RARE, FISH_RARITY_EPIC, FISH_RARITY_LEGENDARY,
+    FISH_LANE_SURFACE, FISH_LANE_UPPER, FISH_LANE_MIDDLE, FISH_LANE_DEEP, FISH_LANE_BOTTOM,
+    FISH_CLASS_BUTTERFLY_FISH, FISH_CLASS_LION_FISH, FISH_CLASS_HAMMERHEAD_SHARK,
+    FISH_CLASS_SWORDFISH, FISH_CLASS_TUNA, FISH_CLASS_CLOWN_FISH,
+    FISH_CLASS_DISCARDED_BOTTLE, FISH_CLASS_OCTOPUS, FISH_CLASS_CRAB,
+    FISH_CLASS_SHARK, FISH_CLASS_RED_APPLE, FISH_CLASS_JELLY_FISH,
+    FISH_CLASS_WHEEL, FISH_CLASS_PUFFER_FISH, FISH_CLASS_SHOE, FISH_CLASS_FISH_BONE,
+    FISH_TRAFFIC_DIRECTION_RIGHT, FISH_TRAFFIC_DIRECTION_LEFT,
+    FISH_TRAFFIC_DEFAULT_PRESEED_PER_LANE, FISH_TRAFFIC_SEED_X_MIN_FACTOR,
+    FISH_TRAFFIC_SEED_X_RANGE_FACTOR, FISH_TRAFFIC_MIN_TIMER_JITTER,
+    FISH_TRAFFIC_COOLDOWN_READY, FISH_TRAFFIC_QUEUE_START_INDEX,
+    FISH_TRAFFIC_TIMER_TICK, FISH_TRAFFIC_LAST_INDEX_OFFSET,
+    FISH_TRAFFIC_WEIGHT_THRESHOLD, FISH_TRAFFIC_MAX_ACTIVE_ONE,
+    FISH_LANES, FISH_DEFINITIONS, FISH_SCORE_MAP,
     ENEMY_ESCAPE_SPEED_MULTIPLIER, ENEMY_STATUS_CAPTURED,
     PLAYER_STATE_IDLE, PLAYER_STATE_MOVING_R, PLAYER_STATE_MOVING_L,
     PLAYER_STATE_CAST, PLAYER_STATE_REEL,

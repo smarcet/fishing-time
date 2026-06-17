@@ -1,6 +1,12 @@
 'use strict';
 
 const { Size, Point, EnemyWithAnimation, Crab } = require('../index.js');
+const {
+  FISH_TRAFFIC_DIRECTION_RIGHT,
+  CRAB_REWARD_GLOW_COLOR,
+  CRAB_REWARD_GLOW_ALPHA_MIN,
+  CRAB_REWARD_GLOW_ALPHA_MAX,
+} = require('../src/constants');
 
 const CRAB_FRAME_WIDTH   = 408;
 const CRAB_FRAME_HEIGHT  = 197;
@@ -15,8 +21,12 @@ function makeMocks() {
     isDebug: () => false,
     hasKey: () => false,
   };
+  const shadowBlurHistory = [];
+  const globalAlphaHistory = [];
+  const operations = [];
   const mockCtx = {
-    drawImage: () => {},
+    drawImage: jest.fn(() => { operations.push('drawImage'); }),
+    strokeRect: jest.fn(() => { operations.push('strokeRect'); }),
     beginPath: () => {},
     stroke: () => {},
     fillRect: () => {},
@@ -27,6 +37,19 @@ function makeMocks() {
     rotate: () => {},
     scale: jest.fn(),
     setLineDash: () => {},
+    set strokeStyle(v) { this._strokeStyle = v; operations.push(`strokeStyle:${v}`); },
+    get strokeStyle() { return this._strokeStyle; },
+    set lineWidth(v) { this._lineWidth = v; operations.push(`lineWidth:${v}`); },
+    get lineWidth() { return this._lineWidth; },
+    set shadowColor(v) { this._shadowColor = v; operations.push(`shadowColor:${v}`); },
+    get shadowColor() { return this._shadowColor; },
+    set shadowBlur(v) { this._shadowBlur = v; shadowBlurHistory.push(v); operations.push('shadowBlur'); },
+    get shadowBlur() { return this._shadowBlur; },
+    set globalAlpha(v) { this._globalAlpha = v; globalAlphaHistory.push(v); operations.push('globalAlpha'); },
+    get globalAlpha() { return this._globalAlpha; },
+    shadowBlurHistory,
+    globalAlphaHistory,
+    operations,
   };
   return { mockGame, mockCtx, mockImage: {} };
 }
@@ -51,18 +74,21 @@ describe('Crab inheritance', () => {
   });
 });
 
-describe('Crab direction bootstrap (seabed spawn at x=0)', () => {
-  test('after first update at x=0, direction is 1 and speedX > 0', () => {
+describe('Crab traffic movement assignment', () => {
+  test('constructor leaves direction unset until FishSpawner assigns traffic state', () => {
     const crab = makeCrab(0);
-    crab.update();
-    expect(crab._direction).toBe(1);
-    expect(crab._speedX).toBeGreaterThan(0);
+    expect(crab._direction).toBeNull();
+    expect(crab._speedX).toBe(0);
   });
 
-  test('drift speed is CRAB_DRIFT_SPEED (2.5) after bootstrap', () => {
+  test('moves at CRAB_DRIFT_SPEED after traffic state is assigned', () => {
     const crab = makeCrab(0);
+    crab._direction = FISH_TRAFFIC_DIRECTION_RIGHT;
+    crab._speedX = CRAB_DRIFT_SPEED;
     crab.update();
+    expect(crab._direction).toBe(FISH_TRAFFIC_DIRECTION_RIGHT);
     expect(crab._speedX).toBe(CRAB_DRIFT_SPEED);
+    expect(crab.getPosition().getX()).toBe(CRAB_DRIFT_SPEED);
   });
 });
 
@@ -93,5 +119,32 @@ describe('Crab draw() direction flip', () => {
     crab._direction = -1;
     crab.draw();
     expect(mockCtx.scale).toHaveBeenCalledWith(-1, 1);
+  });
+
+  test('draw() renders pulsing golden reward glow around crab body shape', () => {
+    const { mockGame, mockCtx, mockImage } = makeMocks();
+    const crab = new Crab(
+      mockGame, mockCtx,
+      new Size(98, 204), new Point(100, 510),
+      mockImage,
+      CRAB_MAX_FRAME_X, CRAB_MAX_FRAME_Y, 0, CRAB_DIE_FRAME_Y,
+      new Size(CRAB_FRAME_HEIGHT, CRAB_FRAME_WIDTH)
+    );
+
+    crab.draw();
+
+    expect(mockCtx.shadowColor).toBe(CRAB_REWARD_GLOW_COLOR);
+    expect(mockCtx.shadowBlurHistory[0]).toBeGreaterThan(0);
+    expect(mockCtx.globalAlphaHistory[0]).toBeGreaterThanOrEqual(CRAB_REWARD_GLOW_ALPHA_MIN);
+    expect(mockCtx.globalAlphaHistory[0]).toBeLessThanOrEqual(CRAB_REWARD_GLOW_ALPHA_MAX);
+    expect(mockCtx.strokeRect).not.toHaveBeenCalled();
+    expect(mockCtx.drawImage).toHaveBeenCalledTimes(2);
+
+    const firstDraw = mockCtx.operations.indexOf('drawImage');
+    expect(mockCtx.operations.indexOf(`shadowColor:${CRAB_REWARD_GLOW_COLOR}`)).toBeLessThan(firstDraw);
+    expect(mockCtx.operations.indexOf('shadowBlur')).toBeLessThan(firstDraw);
+    expect(mockCtx.drawImage.mock.invocationCallOrder[0]).toBeLessThan(
+      mockCtx.drawImage.mock.invocationCallOrder[1]
+    );
   });
 });

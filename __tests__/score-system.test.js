@@ -1,6 +1,7 @@
 'use strict';
 
 const { ScoreSystem, SCORE_MAP } = require('../index.js');
+const { FISH_DEFINITIONS, FISH_SCORE_MAP, FISH_SPECS } = require('../src/constants');
 
 describe('SCORE_MAP values', () => {
   test('Tuna is worth 250 points', () => {
@@ -23,9 +24,24 @@ describe('SCORE_MAP values', () => {
     expect(SCORE_MAP.Shark).toBe(500);
   });
 
-  test('all expected keys exist', () => {
-    const keys = ['ClownFish', 'ButterflyFish', 'LionFish', 'Octopus', 'Crab', 'HammerHeadShark', 'SwordFish', 'Tuna', 'Shark', 'DiscardedBottle', 'RedApple', 'Wheel'];
+  test('all configured class names exist in SCORE_MAP', () => {
+    const keys = FISH_DEFINITIONS.map(def => def.className);
+    expect(keys).toHaveLength(16);
     keys.forEach(k => expect(SCORE_MAP).toHaveProperty(k));
+  });
+
+  test('SCORE_MAP is derived from FISH_SCORE_MAP', () => {
+    expect(SCORE_MAP).toEqual(FISH_SCORE_MAP);
+  });
+
+  test('FISH_SPECS is derived for non-trash definitions', () => {
+    const catchableDefs = FISH_DEFINITIONS.filter(def => !def.isTrash);
+    catchableDefs.forEach(def => {
+      expect(FISH_SPECS[def.id]).toEqual({
+        strength: def.strength,
+        escape_rate: def.escapeRate,
+      });
+    });
   });
 });
 

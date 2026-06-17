@@ -8,13 +8,6 @@ const PLAYER_INIT_Y          = -10;
 const LAYER_SPEED_CLOUD      = 0.1;
 const LAYER_SPEED_OCEAN      = 0.2;
 
-// Enemy spawn counts
-const ENEMY_COUNT_BUTTERFLY  = 3;
-const ENEMY_COUNT_LION_FISH  = 2;
-const ENEMY_COUNT_CLOWN_FISH = 10;
-const ENEMY_COUNT_JELLY_FISH  = 3;
-const ENEMY_COUNT_PUFFER_FISH = 3;
-
 // Game result overlay
 const RESULT_OVERLAY         = 'rgba(0,0,0,0.55)';
 const RESULT_FONT            = 'bold 96px monospace';
@@ -42,42 +35,10 @@ class Game extends GameObject{
       new Layer(document.getElementById('ground3'),w, h, 0.0),
     ];
     this._enemyFactory = new EnemyFactory();
+    this._fishSpawner = new FishSpawner(this, ctx, this._enemyFactory);
     this._player = new Player(this, ctx, new Size(PLAYER_SPRITE_H, PLAYER_SPRITE_W), new Point(PLAYER_INIT_X, PLAYER_INIT_Y))
     this._enemies = [];
     this._bubbles = [];
-
-    this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_OCTOPUS, this, ctx));
-    this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_CRAB, this, ctx));
-
-    for (let i = 0; i < ENEMY_COUNT_BUTTERFLY; i++) {
-      this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_BUTTERFLY_FISH, this, ctx));
-    }
-
-    for (let i = 0; i < ENEMY_COUNT_LION_FISH; i++) {
-      this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_LION_FISH, this, ctx));
-    }
-
-    for (let i = 0; i < ENEMY_COUNT_CLOWN_FISH; i++) {
-      this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_CLOWN_FISH, this, ctx));
-    }
-
-    for (let i = 0; i < ENEMY_COUNT_JELLY_FISH; i++) {
-      this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_JELLY_FISH, this, ctx));
-    }
-
-    for (let i = 0; i < ENEMY_COUNT_PUFFER_FISH; i++) {
-      this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_PUFFER_FISH, this, ctx));
-    }
-
-    this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_HAMMERHEAD_SHARK, this, ctx));
-    this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_SHARK, this, ctx));
-    this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_SWORDFISH, this, ctx));
-    this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_TUNA, this, ctx));
-    this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_DISCARDED_BOTTLE, this, ctx));
-    this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_RED_APPLE, this, ctx));
-    this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_WHEEL, this, ctx));
-    this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_SHOE, this, ctx));
-    this._enemies.push(this._enemyFactory.createEnemy(ENEMY_TYPE_FISH_BONE, this, ctx));
 
     this._debug = false;
     this._keys = [];
@@ -119,11 +80,13 @@ class Game extends GameObject{
     // clear dead bubbles and off-screen escaped fish
     this._bubbles = this._bubbles.filter(b => b.isLive());
     this._enemies.forEach(f => {
-      if (f.isOffScreen() && !f.isCaptured()) {
+      if (f.isOffScreen() && !f.isCaptured() && f._hasEscaped && typeof document !== 'undefined') {
         document.dispatchEvent(new CustomEvent(EVENT_ENEMY_EVADED, { detail: { enemyType: f.constructor.name } }));
       }
     });
     this._enemies = this._enemies.filter(f => !f.isCaptured() && !f.isOffScreen());
+    const spawnedEnemies = this._fishSpawner.update(this._enemies);
+    if (spawnedEnemies.length) this._enemies.push(...spawnedEnemies);
 
     // add bubbles
     if(!this._bubbles.length) {
@@ -230,4 +193,8 @@ class Game extends GameObject{
     );
     return res;
   }
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { Game };
 }

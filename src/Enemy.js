@@ -14,28 +14,13 @@ class Enemy extends GameObject{
   update(){
     super.update();
     const formerPosition = this._position;
-
-    if (!this._hasEscaped) {
-      const rBound = formerPosition.getX() + this._size.getWidth();
-      const lBound = formerPosition.getX();
-
-      if(rBound >= this._game.getSize().getWidth()) {
-        this._speedX = -this._driftSpeed;
-        this._direction = -1;
-      }
-      if(lBound <= 0) {
-        this._speedX = this._driftSpeed;
-        this._direction = 1;
-      }
-    }
-
     this._position = new Point(formerPosition.getX() + this._speedX, formerPosition.getY());
   }
 
   isOffScreen() {
     const x = this._position.getX();
     const gameWidth = this._game.getSize().getWidth();
-    return this._hasEscaped && (x + this._size.getWidth() < 0 || x > gameWidth);
+    return x + this._size.getWidth() < 0 || x > gameWidth;
   }
 
   draw(){

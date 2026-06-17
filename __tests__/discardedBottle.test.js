@@ -1,6 +1,7 @@
 'use strict';
 
 const { Size, Point, EnemyWithAnimation, InertObject, DiscardedBottle } = require('../index.js');
+const { DRIFT_SPEED_DEFAULT, FISH_TRAFFIC_DIRECTION_RIGHT } = require('../src/constants');
 
 function makeMocks(startX = 0) {
   const mockGame = {
@@ -136,9 +137,17 @@ describe('EnemyWithAnimation regression (behavior unchanged)', () => {
     expect(enemy._frameX).toBe(2);
   });
 
-  test('getX() === 1.5 after first update (drift speed 1.5 default)', () => {
+  test('base enemy does not drift until traffic speed is assigned', () => {
     const enemy = makeEnemy(0);
     enemy.update();
-    expect(enemy.getPosition().getX()).toBe(1.5);
+    expect(enemy.getPosition().getX()).toBe(0);
+  });
+
+  test('base enemy moves once traffic direction and speed are assigned', () => {
+    const enemy = makeEnemy(0);
+    enemy._direction = FISH_TRAFFIC_DIRECTION_RIGHT;
+    enemy._speedX = DRIFT_SPEED_DEFAULT;
+    enemy.update();
+    expect(enemy.getPosition().getX()).toBe(DRIFT_SPEED_DEFAULT);
   });
 });

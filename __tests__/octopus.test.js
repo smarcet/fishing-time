@@ -1,6 +1,7 @@
 'use strict';
 
 const { Size, Point, EnemyWithAnimation, Octopus } = require('../index.js');
+const { DRIFT_SPEED_DEFAULT, FISH_TRAFFIC_DIRECTION_RIGHT } = require('../src/constants');
 
 function makeMocks(startX = 0) {
   const mockGame = {
@@ -94,11 +95,20 @@ describe('Octopus animation', () => {
     });
   });
 
-  describe('direction (rightward from spawn at lBound=0)', () => {
-    test('_direction is 1 after first update (spawns at left wall)', () => {
+  describe('traffic movement assignment', () => {
+    test('_direction stays unset until FishSpawner assigns traffic state', () => {
       const oct = makeOctopus(0);
+      expect(oct._direction).toBeNull();
+      expect(oct._speedX).toBe(0);
+    });
+
+    test('moves after traffic direction and speed are assigned', () => {
+      const oct = makeOctopus(0);
+      oct._direction = FISH_TRAFFIC_DIRECTION_RIGHT;
+      oct._speedX = DRIFT_SPEED_DEFAULT;
       oct.update();
-      expect(oct._direction).toBe(1);
+      expect(oct._direction).toBe(FISH_TRAFFIC_DIRECTION_RIGHT);
+      expect(oct.getPosition().getX()).toBe(DRIFT_SPEED_DEFAULT);
     });
   });
 

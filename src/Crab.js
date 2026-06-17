@@ -17,6 +17,27 @@ class Crab extends CatchableFish {
     this._ctx.drawImage(this._image, this._dieFrameX * sw, this._dieFrameY * sh, sw, sh, dx, dy, w, h);
   }
 
+  _drawTrafficSprite(dx, dy, w, h, sw, sh, flipX) {
+    this._ctx.translate(dx + w / 2, dy + h / 2);
+    this._ctx.scale(flipX, 1);
+    this._ctx.drawImage(this._image, this._frameX * sw, this._frameY * sh, sw, sh, -w / 2, -h / 2, w, h);
+  }
+
+  _drawRewardGlow(dx, dy, w, h, sw, sh, flipX) {
+    const pulse = Math.abs(Math.sin(this._tick * CRAB_REWARD_GLOW_PULSE_SPEED));
+    const shadowBlur = CRAB_REWARD_GLOW_SHADOW_BLUR_MIN
+      + pulse * (CRAB_REWARD_GLOW_SHADOW_BLUR_MAX - CRAB_REWARD_GLOW_SHADOW_BLUR_MIN);
+    const alpha = CRAB_REWARD_GLOW_ALPHA_MIN
+      + pulse * (CRAB_REWARD_GLOW_ALPHA_MAX - CRAB_REWARD_GLOW_ALPHA_MIN);
+
+    this._ctx.save();
+    this._ctx.shadowColor = CRAB_REWARD_GLOW_COLOR;
+    this._ctx.shadowBlur = shadowBlur;
+    this._ctx.globalAlpha = alpha;
+    this._drawTrafficSprite(dx, dy, w, h, sw, sh, flipX);
+    this._ctx.restore();
+  }
+
   draw() {
     const w  = this._size.getWidth();
     const h  = this._size.getHeight();
@@ -35,10 +56,10 @@ class Crab extends CatchableFish {
     }
 
     const flipX = this._direction === -1 ? -1 : 1;
+    this._drawRewardGlow(dx, dy, w, h, sw, sh, flipX);
+
     this._ctx.save();
-    this._ctx.translate(dx + w / 2, dy + h / 2);
-    this._ctx.scale(flipX, 1);
-    this._ctx.drawImage(this._image, this._frameX * sw, this._frameY * sh, sw, sh, -w / 2, -h / 2, w, h);
+    this._drawTrafficSprite(dx, dy, w, h, sw, sh, flipX);
     this._ctx.restore();
   }
 }

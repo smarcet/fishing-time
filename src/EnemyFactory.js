@@ -370,12 +370,15 @@ class EnemyFactory {
         spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
       );
     }
-    return new Octopus(
-      game, ctx, spec.size,
-      new Point(0, game.getSize().getHeight() * OCTOPUS_SPAWN_Y_FACTOR),
-      spec.image, spec.maxFrameX, spec.maxFrameY,
-      spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
-    );
+    if (name === ENEMY_TYPE_OCTOPUS) {
+      return new Octopus(
+        game, ctx, spec.size,
+        new Point(0, game.getSize().getHeight() * OCTOPUS_SPAWN_Y_FACTOR),
+        spec.image, spec.maxFrameX, spec.maxFrameY,
+        spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
+      );
+    }
+    return null;
   }
 }
 
