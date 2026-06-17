@@ -3,7 +3,7 @@
 require('../index.js');
 const { Game } = require('../src/Game');
 const { Point, Size } = require('../index.js');
-const { BUBBLE_SIZE_MAX, EVENT_ENEMY_EVADED } = require('../src/constants');
+const { BUBBLE_SIZE_MAX, EVENT_ENEMY_EVADED, GAMEPLAY_PROFILE_MOBILE } = require('../src/constants');
 
 function makeEvent(type, init = {}) {
   this.type = type;
@@ -135,6 +135,33 @@ describe('Game traffic exit handling', () => {
     expect(game._enemies).toEqual([hooked]);
     expect(game._bubbles).toEqual([]);
     expect(game._player._position.getX()).toBe(800);
+  });
+
+  test('iPad-sized mobile resize lowers the boat with a short-edge responsive offset', () => {
+    const game = Object.create(Game.prototype);
+    game._size = new Size(390, 844);
+    game._layers = [{ width: 844, height: 390 }];
+    game._timerSystem = { resize: jest.fn(), setScale: jest.fn() };
+    game._scoreSystem = { setScale: jest.fn() };
+    game._fishSpawner = { setProfile: jest.fn() };
+    game._enemyFactory = { setProfile: jest.fn() };
+    game._player = {
+      _position: new Point(100, 0),
+      getSize: () => new Size(100, 100),
+      setDisplayScale: jest.fn(),
+      setProfileYOffset: jest.fn(),
+    };
+    game._enemies = [];
+    game._bubbles = [];
+
+    game.resize(new Size(390, 844), GAMEPLAY_PROFILE_MOBILE, { resetTraffic: true });
+    expect(game._player.setProfileYOffset).toHaveBeenLastCalledWith(-44);
+
+    game.resize(new Size(820, 1180), GAMEPLAY_PROFILE_MOBILE, { resetTraffic: true });
+    expect(game._player.setProfileYOffset).toHaveBeenLastCalledWith(59);
+
+    game.resize(new Size(1024, 1366), GAMEPLAY_PROFILE_MOBILE, { resetTraffic: true });
+    expect(game._player.setProfileYOffset).toHaveBeenLastCalledWith(108);
   });
 
   test('getRuntimeStats reports profile, pause state, and active entity counts', () => {

@@ -219,7 +219,7 @@ class Game extends GameObject{
       this._player.setDisplayScale(playerScale);
     }
     if (this._player && typeof this._player.setProfileYOffset === 'function') {
-      this._player.setProfileYOffset(this._profile && this._profile.playerYOffset ? this._profile.playerYOffset : 0);
+      this._player.setProfileYOffset(this._resolvePlayerYOffset());
     }
     if (this._timerSystem && typeof this._timerSystem.setScale === 'function') {
       this._timerSystem.setScale(hudScale);
@@ -227,6 +227,25 @@ class Game extends GameObject{
     if (this._scoreSystem && typeof this._scoreSystem.setScale === 'function') {
       this._scoreSystem.setScale(hudScale);
     }
+  }
+
+  _resolvePlayerYOffset() {
+    if (!this._profile) return 0;
+    const baseOffset = this._profile.playerYOffset || 0;
+    const shortEdgeBase = this._profile.playerYOffsetShortEdgeBase;
+    const shortEdgeSlope = this._profile.playerYOffsetShortEdgeSlope;
+    const maxOffset = this._profile.playerYOffsetMax;
+    if (
+      Number.isFinite(shortEdgeBase) &&
+      Number.isFinite(shortEdgeSlope)
+    ) {
+      const shortEdge = Math.min(this._size.getWidth(), this._size.getHeight());
+      const responsiveOffset = baseOffset + Math.max(0, shortEdge - shortEdgeBase) * shortEdgeSlope;
+      return Math.round(Number.isFinite(maxOffset)
+        ? Math.min(maxOffset, responsiveOffset)
+        : responsiveOffset);
+    }
+    return baseOffset;
   }
 
   _clampPlayerToBounds() {
