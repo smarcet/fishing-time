@@ -4,27 +4,37 @@ class FishSpawner {
     this._ctx = ctx;
     this._enemyFactory = enemyFactory;
     this._rng = options.rng || Math.random;
-    this._preseedPerLane = options.preseedPerLane ?? FISH_TRAFFIC_DEFAULT_PRESEED_PER_LANE;
+    this._profile = options.profile || GAMEPLAY_PROFILE_DESKTOP;
+    this._preseedPerLane = options.preseedPerLane ?? this._profile.preseedPerLane ?? FISH_TRAFFIC_DEFAULT_PRESEED_PER_LANE;
     this._initialLaneTimer = options.initialLaneTimer;
     this._laneTimers = {};
     this._speciesCooldowns = {};
+    this._guaranteeTimers = this._createGuaranteeTimers();
     this._pending = [];
 
     Object.entries(FISH_LANES).forEach(([laneName, laneDef]) => {
       this._laneTimers[laneName] = this._initialLaneTimer ?? this._nextLaneDelay(laneDef);
       for (let i = FISH_TRAFFIC_QUEUE_START_INDEX; i < this._preseedPerLane; i += FISH_TRAFFIC_TIMER_TICK) {
-        const enemy = this._spawnForLane(laneName, laneDef, true);
+        const enemy = this._spawnForLane(laneName, laneDef, true, this._pending);
         if (enemy) this._pending.push(enemy);
       }
     });
   }
 
-  update(activeEnemies = []) {
+  setProfile(profile) {
+    this._profile = profile || GAMEPLAY_PROFILE_DESKTOP;
+    this._guaranteeTimers = this._createGuaranteeTimers();
+  }
+
+  update(activeEnemies = [], dt = 0) {
     const spawned = this._pending.splice(FISH_TRAFFIC_QUEUE_START_INDEX);
     const activeTraffic = activeEnemies.concat(spawned);
     this._tickCooldowns();
+    this._tickGuarantees(dt);
+    this._spawnGuaranteedSpecies(activeEnemies, activeTraffic).forEach(enemy => spawned.push(enemy));
 
     Object.entries(FISH_LANES).forEach(([laneName, laneDef]) => {
+      if (activeTraffic.length >= this._profile.maxActiveTraffic) return;
       this._laneTimers[laneName] -= FISH_TRAFFIC_TIMER_TICK;
       if (this._laneTimers[laneName] <= FISH_TRAFFIC_COOLDOWN_READY) {
         const enemy = this._spawnForLane(laneName, laneDef, false, activeTraffic);
@@ -39,6 +49,15 @@ class FishSpawner {
     return spawned;
   }
 
+  _createGuaranteeTimers() {
+    const intervals = this._profile.guaranteedSpeciesIntervals || {};
+    const offsets = this._profile.guaranteedSpeciesInitialOffsets || {};
+    return Object.keys(intervals).reduce((timers, id) => {
+      timers[id] = Number.isFinite(offsets[id]) ? offsets[id] : intervals[id];
+      return timers;
+    }, {});
+  }
+
   _tickCooldowns() {
     Object.keys(this._speciesCooldowns).forEach(id => {
       this._speciesCooldowns[id] = Math.max(
@@ -48,9 +67,85 @@ class FishSpawner {
     });
   }
 
+  _tickGuarantees(dt = 0) {
+    const tick = dt > 0
+      ? Math.max(FISH_TRAFFIC_TIMER_TICK, dt / (1000 / 60))
+      : FISH_TRAFFIC_TIMER_TICK;
+    Object.keys(this._guaranteeTimers).forEach(id => {
+      const nextTimer = this._guaranteeTimers[id] - tick;
+      this._guaranteeTimers[id] = nextTimer <= 0.0001
+        ? FISH_TRAFFIC_COOLDOWN_READY
+        : nextTimer;
+    });
+  }
+
   _nextLaneDelay(laneDef) {
     const jitter = Math.floor(this._rng() * Math.max(FISH_TRAFFIC_MIN_TIMER_JITTER, laneDef.spawnInterval));
-    return laneDef.spawnInterval + jitter;
+    return Math.round((laneDef.spawnInterval + jitter) * (this._profile.spawnIntervalMultiplier || 1));
+  }
+
+  _spawnGuaranteedSpecies(activeEnemies = [], activeTraffic = activeEnemies) {
+    const spawned = [];
+    Object.keys(this._guaranteeTimers).forEach(id => {
+      if (this._guaranteeTimers[id] > FISH_TRAFFIC_COOLDOWN_READY) return;
+
+      const spec = FISH_DEFINITIONS.find(def => def.id === id);
+      if (spec && this._hasActiveTrafficType(spec.id, activeTraffic)) {
+        this._resetGuaranteeTimer(spec.id);
+        return;
+      }
+      if (!this._reserveGuaranteedSlot(spec, activeEnemies, activeTraffic)) return;
+      if (!spec || !this._hasActiveCapacity(spec, activeTraffic)) return;
+
+      const laneName = spec.lanes[0];
+      const enemy = this._createTrafficEnemy(spec, laneName, FISH_LANES[laneName], false);
+      if (enemy) {
+        spawned.push(enemy);
+        activeTraffic.push(enemy);
+      }
+    });
+    return spawned;
+  }
+
+  _reserveGuaranteedSlot(spec, activeEnemies, activeTraffic) {
+    if (!spec) return false;
+    if (this._isLargeFishSpec(spec) && Number.isFinite(this._profile.maxActiveLargeFish)) {
+      const activeLargeCount = activeTraffic.filter(enemy => {
+        const activeSpec = FISH_DEFINITIONS.find(def => def.id === enemy._trafficType);
+        return activeSpec && this._isLargeFishSpec(activeSpec);
+      }).length;
+      if (activeLargeCount >= this._profile.maxActiveLargeFish) {
+        this._removeReplaceableTraffic(activeEnemies, activeTraffic, true);
+      }
+    }
+    if (activeTraffic.length >= this._profile.maxActiveTraffic) {
+      this._removeReplaceableTraffic(activeEnemies, activeTraffic, false);
+    }
+    return activeTraffic.length < this._profile.maxActiveTraffic && this._hasActiveCapacity(spec, activeTraffic);
+  }
+
+  _removeReplaceableTraffic(activeEnemies, activeTraffic, largeOnly) {
+    const guaranteedIds = Object.keys(this._profile.guaranteedSpeciesIntervals || {});
+    const removeIndex = activeEnemies.findIndex(enemy => {
+      if (this._isCapturedEnemy(enemy)) return false;
+      if (guaranteedIds.includes(enemy._trafficType)) return false;
+      if (!largeOnly) return true;
+      const activeSpec = FISH_DEFINITIONS.find(def => def.id === enemy._trafficType);
+      return activeSpec && this._isLargeFishSpec(activeSpec);
+    });
+    if (removeIndex === -1) return null;
+    const removed = activeEnemies.splice(removeIndex, 1)[0];
+    const trafficIndex = activeTraffic.indexOf(removed);
+    if (trafficIndex > -1) activeTraffic.splice(trafficIndex, 1);
+    return removed;
+  }
+
+  _isCapturedEnemy(enemy) {
+    return enemy && typeof enemy.isCaptured === 'function' && enemy.isCaptured();
+  }
+
+  _hasActiveTrafficType(type, activeEnemies) {
+    return activeEnemies.some(enemy => enemy._trafficType === type);
   }
 
   _spawnForLane(laneName, laneDef, seeded, activeEnemies = []) {
@@ -62,12 +157,33 @@ class FishSpawner {
     if (!candidates.length) return null;
 
     const spec = this._weightedRandom(candidates);
+    return this._createTrafficEnemy(spec, laneName, laneDef, seeded);
+  }
+
+  _createTrafficEnemy(spec, laneName, laneDef, seeded) {
     const enemy = this._enemyFactory.createEnemy(spec.id, this._game, this._ctx);
     if (!enemy) return null;
 
     this._applyTrafficState(enemy, spec, laneName, laneDef, seeded);
-    this._speciesCooldowns[spec.id] = spec.spawnFrequency;
+    this._applySpeciesCooldown(spec);
+    this._resetGuaranteeTimer(spec.id);
     return enemy;
+  }
+
+  _resetGuaranteeTimer(id) {
+    const intervals = this._profile.guaranteedSpeciesIntervals || {};
+    if (Number.isFinite(intervals[id])) {
+      this._guaranteeTimers[id] = intervals[id];
+    }
+  }
+
+  _applySpeciesCooldown(spec) {
+    const multipliers = this._profile.speciesCooldownMultipliers || {};
+    const multiplier = multipliers[spec.id] || 1;
+    this._speciesCooldowns[spec.id] = Math.max(
+      FISH_TRAFFIC_TIMER_TICK,
+      Math.round(spec.spawnFrequency * multiplier)
+    );
   }
 
   _applyTrafficState(enemy, spec, laneName, laneDef, seeded) {
@@ -98,9 +214,20 @@ class FishSpawner {
   }
 
   _hasActiveCapacity(spec, activeEnemies) {
+    if (this._isLargeFishSpec(spec) && Number.isFinite(this._profile.maxActiveLargeFish)) {
+      const activeLargeCount = activeEnemies.filter(enemy => {
+        const activeSpec = FISH_DEFINITIONS.find(def => def.id === enemy._trafficType);
+        return activeSpec && this._isLargeFishSpec(activeSpec);
+      }).length;
+      if (activeLargeCount >= this._profile.maxActiveLargeFish) return false;
+    }
     if (typeof spec.maxActive !== 'number') return true;
     const activeCount = activeEnemies.filter(enemy => enemy._trafficType === spec.id).length;
     return activeCount < spec.maxActive;
+  }
+
+  _isLargeFishSpec(spec) {
+    return spec && [FISH_RARITY_RARE, FISH_RARITY_EPIC, FISH_RARITY_LEGENDARY].includes(spec.rarity);
   }
 
   _randomSpeed(spec) {
@@ -122,7 +249,10 @@ class FishSpawner {
     const gameHeight = this._game.getSize().getHeight();
     const enemyHeight = enemy.getSize().getHeight();
     const absoluteMax = Math.max(FISH_TRAFFIC_COOLDOWN_READY, gameHeight - enemyHeight);
-    const laneMin = Math.max(WATER_SURFACE_Y, gameHeight * laneDef.yMin);
+    const waterSurfaceY = this._profile.waterSurfaceFactor
+      ? gameHeight * this._profile.waterSurfaceFactor
+      : WATER_SURFACE_Y;
+    const laneMin = Math.max(waterSurfaceY, gameHeight * laneDef.yMin);
     const laneMax = gameHeight * laneDef.yMax - enemyHeight;
     const minY = Math.min(laneMin, absoluteMax);
     const maxY = Math.min(Math.max(minY, laneMax), absoluteMax);

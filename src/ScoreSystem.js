@@ -31,6 +31,7 @@ class ScoreSystem {
     this._score = 0;
     this._highScore = hasStorage ? (parseInt(localStorage.getItem(LS_KEY_HIGH_SCORE)) || 0) : 0;
     this._animations = [];
+    this._scale = 1;
 
     this._handleCapture = (e) => {
       const pts = SCORE_MAP[e.detail.enemyType];
@@ -95,27 +96,34 @@ class ScoreSystem {
 
   getScore() { return this._score; }
 
+  setScale(scale) {
+    this._scale = Number.isFinite(scale) && scale > 0 ? scale : 1;
+  }
+
   draw(ctx, canvasWidth) {
+    const scale = this._scale;
     ctx.save();
-    ctx.font = HUD_FONT;
+    ctx.font = `bold ${Math.round(34 * scale)}px monospace`;
     ctx.textAlign = 'right';
-    ctx.lineWidth = HUD_LINE_WIDTH;
+    ctx.lineWidth = Math.max(1, HUD_LINE_WIDTH * scale);
     ctx.strokeStyle = HUD_STROKE_COLOR;
     ctx.fillStyle = HUD_FILL_COLOR;
-    const x = canvasWidth - HUD_MARGIN_RIGHT;
+    const x = canvasWidth - HUD_MARGIN_RIGHT * scale;
+    const scoreY = HUD_SCORE_Y * scale;
+    const bestY = HUD_BEST_Y * scale;
     const scoreColor = this._score < 0 ? ANIM_COLOR_NEGATIVE : this._score > 0 ? ANIM_COLOR_POSITIVE : HUD_FILL_COLOR;
     ctx.fillStyle = scoreColor;
-    ctx.strokeText(`Score: ${this._score}`, x, HUD_SCORE_Y);
-    ctx.fillText(`Score: ${this._score}`, x, HUD_SCORE_Y);
+    ctx.strokeText(`Score: ${this._score}`, x, scoreY);
+    ctx.fillText(`Score: ${this._score}`, x, scoreY);
     ctx.fillStyle = HUD_FILL_COLOR;
-    ctx.strokeText(`Best: ${this._highScore}`, x, HUD_BEST_Y);
-    ctx.fillText(`Best: ${this._highScore}`, x, HUD_BEST_Y);
+    ctx.strokeText(`Best: ${this._highScore}`, x, bestY);
+    ctx.fillText(`Best: ${this._highScore}`, x, bestY);
     ctx.textAlign = 'left';
-    ctx.lineWidth = ANIM_LINE_WIDTH;
+    ctx.lineWidth = Math.max(1, ANIM_LINE_WIDTH * scale);
     for (const a of this._animations) {
       const color = a.color || ANIM_COLOR_POSITIVE;
       ctx.globalAlpha = a.alpha;
-      ctx.font = `bold ${Math.round(a.fontSize ?? ANIM_FONT_SIZE_START)}px monospace`;
+      ctx.font = `bold ${Math.round((a.fontSize ?? ANIM_FONT_SIZE_START) * scale)}px monospace`;
       ctx.shadowBlur = ANIM_SHADOW_BLUR;
       ctx.shadowColor = color;
       ctx.strokeStyle = color;

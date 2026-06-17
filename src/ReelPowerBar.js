@@ -9,11 +9,11 @@ const RPB_BAR_Y      = 32;
 const RPB_BG_PAD     = 6;
 const RPB_SEGMENTS   = 10;
 const RPB_SEG_GAP    = 2;
-const RPB_SEG_WIDTH  = (RPB_WIDTH - (RPB_SEGMENTS - 1) * RPB_SEG_GAP) / RPB_SEGMENTS;
 const RPB_BG_HEIGHT  = RPB_BAR_Y + RPB_HEIGHT - RPB_Y + RPB_BG_PAD * 2;
 const RPB_FONT       = 'bold 12px monospace';
 const RPB_TRACK_COLOR = 'rgba(0,0,0,0.35)';
 const RPB_BG_COLOR   = 'rgba(0,0,0,0.55)';
+const RPB_DIVIDER_COLOR = 'rgba(0,0,0,0.55)';
 
 class ReelPowerBar {
   constructor() {
@@ -39,8 +39,7 @@ class ReelPowerBar {
 
   draw(ctx) {
     if (!this._visible) return;
-    const power = this._power;
-    const filledCount = Math.round(power * RPB_SEGMENTS);
+    const power = Math.max(0, Math.min(1, this._power));
     const r = Math.round(255 * (1 - power));
     const g = Math.round(255 * power);
     const fillColor = `rgb(${r},${g},0)`;
@@ -50,11 +49,15 @@ class ReelPowerBar {
     ctx.fillRect(RPB_X - RPB_BG_PAD, RPB_Y - RPB_BG_PAD, RPB_WIDTH + RPB_BG_PAD * 2, RPB_BG_HEIGHT);
     ctx.fillStyle = 'white';
     ctx.font = RPB_FONT;
-    ctx.fillText('REEL', RPB_X, RPB_LABEL_Y);
-    for (let i = 0; i < RPB_SEGMENTS; i++) {
-      const segX = RPB_X + i * (RPB_SEG_WIDTH + RPB_SEG_GAP);
-      ctx.fillStyle = i < filledCount ? fillColor : RPB_TRACK_COLOR;
-      ctx.fillRect(segX, RPB_BAR_Y, RPB_SEG_WIDTH, RPB_HEIGHT);
+    ctx.fillText('TENSION', RPB_X, RPB_LABEL_Y);
+    ctx.fillStyle = RPB_TRACK_COLOR;
+    ctx.fillRect(RPB_X, RPB_BAR_Y, RPB_WIDTH, RPB_HEIGHT);
+    ctx.fillStyle = fillColor;
+    ctx.fillRect(RPB_X, RPB_BAR_Y, RPB_WIDTH * power, RPB_HEIGHT);
+    ctx.fillStyle = RPB_DIVIDER_COLOR;
+    for (let i = 1; i < RPB_SEGMENTS; i++) {
+      const dividerX = RPB_X + (RPB_WIDTH / RPB_SEGMENTS) * i - RPB_SEG_GAP / 2;
+      ctx.fillRect(dividerX, RPB_BAR_Y, RPB_SEG_GAP, RPB_HEIGHT);
     }
     ctx.restore();
   }

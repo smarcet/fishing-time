@@ -1,7 +1,10 @@
 class ButterflyFish extends CatchableFish {
 
-  constructor(game, ctx, size, position, image, maxFrameX, maxFrameY, dieFrameX, dieFrameY) {
+  constructor(game, ctx, size, position, image, maxFrameX, maxFrameY, dieFrameX, dieFrameY, spriteFrameSize = size) {
     super(game, ctx, size, position, image, maxFrameX, maxFrameY, dieFrameX, dieFrameY);
+    this._spriteFrameSize = spriteFrameSize;
+    this._sw = this._spriteFrameSize.getWidth();
+    this._sh = this._spriteFrameSize.getHeight();
     this._staggerFrame = ANIM_STAGGER_SLOW;
     this._strength   = FISH_SPECS['butterfly_fish'].strength;
     this._escapeRate = FISH_SPECS['butterfly_fish'].escape_rate;
@@ -29,7 +32,7 @@ class ButterflyFish extends CatchableFish {
   }
 
   _drawCapturedSprite(dx, dy, w, h) {
-    this._ctx.drawImage(this._image, this._frameX * w, 0, w, h, dx, dy, w, h);
+    this._ctx.drawImage(this._image, this._frameX * this._sw, 0, this._sw, this._sh, dx, dy, w, h);
   }
 
   draw() {
@@ -52,7 +55,7 @@ class ButterflyFish extends CatchableFish {
     this._ctx.save();
     this._ctx.translate(dx + w / 2, dy + h / 2);
     this._ctx.scale(flipX, 1);
-    this._ctx.drawImage(this._image, this._frameX * w, this._frameY * h, w, h, -w / 2, -h / 2, w, h);
+    this._ctx.drawImage(this._image, this._frameX * this._sw, this._frameY * this._sh, this._sw, this._sh, -w / 2, -h / 2, w, h);
     this._ctx.restore();
   }
 }

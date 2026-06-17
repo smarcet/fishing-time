@@ -2,29 +2,36 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Fishing Time!!!</title>
-    <link href="main.css" rel="stylesheet"/>
-    <script src="src/constants.js?v=1"></script>
+    <link rel="icon" href="data:,">
+    <link href="main.css?v=2" rel="stylesheet"/>
+    <script src="src/constants.js?v=6"></script>
+    <script src="src/InputSystem.js?v=1"></script>
+    <script src="src/KeyboardInputSystem.js?v=1"></script>
+    <script src="src/TouchInputSystem.js?v=2"></script>
+    <script src="src/MobileSystem.js?v=2"></script>
+    <script src="src/E2ETestHarness.js?v=1"></script>
     <script src="src/AudioSystem.js?v=1"></script>
-    <script src="src/ScoreSystem.js?v=6"></script>
-    <script src="src/ReelPowerBar.js?v=1"></script>
+    <script src="src/ScoreSystem.js?v=7"></script>
+    <script src="src/ReelPowerBar.js?v=3"></script>
     <script src="src/Size.js"></script>
     <script src="src/Point.js"></script>
     <script src="src/GameObject.js"></script>
-    <script src="src/TimerSystem.js?v=1"></script>
-    <script src="src/InputHandler.js"></script>
+    <script src="src/TimerSystem.js?v=2"></script>
+    <script src="src/InputHandler.js?v=1"></script>
     <script src="src/Enemy.js"></script>
     <script src="src/EnemyWithAnimation.js?v=2"></script>
     <script src="src/CatchableFish.js"></script>
     <script src="src/InertObject.js"></script>
-    <script src="src/DiscardedBottle.js"></script>
+    <script src="src/DiscardedBottle.js?v=1"></script>
     <script src="src/RedApple.js"></script>
     <script src="src/Wheel.js"></script>
     <script src="src/Shoe.js"></script>
     <script src="src/FishBone.js"></script>
     <script src="src/Octopus.js"></script>
     <script src="src/Crab.js"></script>
-    <script src="src/ButterflyFish.js"></script>
+    <script src="src/ButterflyFish.js?v=1"></script>
     <script src="src/LionFish.js"></script>
     <script src="src/HammerHeadShark.js"></script>
     <script src="src/SwordFish.js"></script>
@@ -33,18 +40,21 @@
     <script src="src/JellyFish.js"></script>
     <script src="src/PufferFish.js"></script>
     <script src="src/Shark.js"></script>
-    <script src="src/Hook.js?v=2"></script>
-    <script src="src/Player.js"></script>
+    <script src="src/Hook.js?v=3"></script>
+    <script src="src/Player.js?v=2"></script>
     <script src="src/Bubble.js"></script>
-    <script src="src/EnemyFactory.js"></script>
-    <script src="src/FishSpawner.js"></script>
+    <script src="src/EnemyFactory.js?v=2"></script>
+    <script src="src/FishSpawner.js?v=4"></script>
     <script src="src/Layer.js"></script>
-    <script src="src/Game.js?v=1"></script>
-    <script src="src/main.js"></script>
+    <script src="src/Game.js?v=7"></script>
+    <script src="src/main.js?v=6"></script>
 </head>
 <body>
     <canvas id="canvas1" class="disable-anti-aliasing">
     </canvas>
+    <div id="rotate-overlay" hidden>Rotate your phone to play</div>
+    <button id="touch-left" class="touch-nav touch-nav-left" type="button" aria-label="Move left" hidden>&lsaquo;</button>
+    <button id="touch-right" class="touch-nav touch-nav-right" type="button" aria-label="Move right" hidden>&rsaquo;</button>
     <img src="images/fishes/butterfly_fish_sprite.png" id="butterfly_fish_sprite"/>
     <img src="images/backgrounds/game_background_4/layers/sky.png" id="sky"/>
     <img src="images/backgrounds/game_background_4/layers/cloud.png" id="cloud"/>

@@ -54,6 +54,34 @@ describe('Player left-flip in draw()', () => {
   });
 });
 
+describe('Player display scaling', () => {
+  test('setDisplayScale scales the rendered boat while preserving source frame dimensions', () => {
+    const { mockGame, mockCtx } = makeMocks();
+    mockCtx.drawImage = jest.fn();
+    const player = new Player(mockGame, mockCtx, new Size(315, 404), new Point(100, 0));
+
+    player.setDisplayScale(0.6);
+    player.draw();
+
+    const idleDrawCall = mockCtx.drawImage.mock.calls[0];
+    expect(player.getSize().getWidth()).toBeCloseTo(404 * 0.6, 5);
+    expect(player.getSize().getHeight()).toBeCloseTo(315 * 0.6, 5);
+    expect(idleDrawCall[3]).toBe(404);
+    expect(idleDrawCall[4]).toBe(315);
+    expect(idleDrawCall[7]).toBeCloseTo(404 * 0.6, 5);
+    expect(idleDrawCall[8]).toBeCloseTo(315 * 0.6, 5);
+  });
+
+  test('setProfileYOffset moves the rendered boat upward without changing base position', () => {
+    const player = makePlayer();
+
+    player.setProfileYOffset(-44);
+
+    expect(player.getPosition().getY()).toBe(-44);
+    expect(player._position.getY()).toBe(0);
+  });
+});
+
 describe('Player water bob in update()', () => {
   test('_bobOffset follows sinusoidal formula after N updates', () => {
     const player = makePlayer();

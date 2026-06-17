@@ -151,7 +151,7 @@ describe('ReelPowerBar draw() color interpolation', () => {
     expect(barFill).toMatch(/rgb\(0,\s*255,\s*0\)/);
   });
 
-  test('draw() shows no filled segments (no rgb fill) when power=0.0', () => {
+  test('draw() applies a red fill when power=0.0', () => {
     const bar = new ReelPowerBar();
     global.document.dispatchEvent(makeReelPowerChangedEvent(0.0));
     const capturedFills = [];
@@ -163,9 +163,8 @@ describe('ReelPowerBar draw() color interpolation', () => {
       set fillStyle(v) { capturedFills.push(v); },
     };
     bar.draw(ctx);
-    // power=0.0 -> 0 segments filled, only track/bg colors used (no rgb())
     const barFill = capturedFills.find(f => f && f.startsWith('rgb('));
-    expect(barFill).toBeUndefined();
+    expect(barFill).toMatch(/rgb\(255,\s*0,\s*0\)/);
   });
 
   test('draw() applies a red-dominant fillStyle when power=0.1 (1 segment filled)', () => {
@@ -186,6 +185,39 @@ describe('ReelPowerBar draw() color interpolation', () => {
     expect(match).toBeTruthy();
     // red channel dominates at low power
     expect(parseInt(match[1])).toBeGreaterThan(parseInt(match[2]));
+  });
+
+  test('draw() uses one continuous proportional fill for current power', () => {
+    const bar = new ReelPowerBar();
+    global.document.dispatchEvent(makeReelPowerChangedEvent(0.5));
+    const ctx = {
+      save: jest.fn(),
+      restore: jest.fn(),
+      fillRect: jest.fn(),
+      fillText: jest.fn(),
+      set fillStyle(v) {},
+    };
+    bar.draw(ctx);
+
+    const proportionalFill = ctx.fillRect.mock.calls.find(call => call[2] === 100);
+    expect(proportionalFill).toBeDefined();
+  });
+
+  test('draw() keeps visible segment dividers over the continuous fill', () => {
+    const bar = new ReelPowerBar();
+    global.document.dispatchEvent(makeReelPowerChangedEvent(0.5));
+    const ctx = {
+      save: jest.fn(),
+      restore: jest.fn(),
+      fillRect: jest.fn(),
+      fillText: jest.fn(),
+      set fillStyle(v) {},
+    };
+
+    bar.draw(ctx);
+
+    const dividerCalls = ctx.fillRect.mock.calls.filter(call => call[3] === 20 && call[2] === 2);
+    expect(dividerCalls).toHaveLength(9);
   });
 });
 

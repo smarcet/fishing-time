@@ -38,18 +38,47 @@ class Hook extends GameObject {
     this._angle = 0;
     this._castAngle = 0;
     this._ropeLength = HOOK_REST_LENGTH;
-    this._prevSpaceHeld = false;
     this._escapeProgress = 0;
     this._drawTick = 0;
     this._escapeParticles = [];
     this._hookedEventFired = false;
+    this._castRequested = false;
+    this._reelTapCount = 0;
+    this._reelForce = 0;
+    this._isReeling = false;
+
+    this._handleCastRequested = () => {
+      if (this._status === HOOK_STATUS_IDLE) this._castRequested = true;
+    };
+    this._handleReelTap = () => {
+      if (this._status === HOOK_STATUS_HOOKED) {
+        this._reelTapCount += 1;
+        this._reelForce = Math.min(HOOK_STRUGGLE_MAX_ESCAPE, this._reelForce + HOOK_STRUGGLE_REEL_POWER);
+      }
+    };
+    this._handleReelStart = () => {
+      this._isReeling = true;
+    };
+    this._handleReelStop = () => {
+      this._isReeling = false;
+    };
+
+    if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+      document.addEventListener(EVENT_CAST_REQUESTED, this._handleCastRequested);
+      document.addEventListener(EVENT_REEL_TAP, this._handleReelTap);
+      document.addEventListener(EVENT_REEL_START, this._handleReelStart);
+      document.addEventListener(EVENT_REEL_STOP, this._handleReelStop);
+    }
   }
 
   _pivot() {
     const pos = this._player.getPosition();
     const w = this._player.getSize().getWidth();
     const casting = this._player._state === PLAYER_STATE_CAST;
-    const xOffset = casting ? HOOK_CAST_PIVOT_X_OFFSET : HOOK_PIVOT_X_OFFSET;
+    const displayScale = typeof this._player.getDisplayScale === 'function'
+      ? this._player.getDisplayScale()
+      : 1;
+    const xOffset = (casting ? HOOK_CAST_PIVOT_X_OFFSET : HOOK_PIVOT_X_OFFSET) * displayScale;
     const yFactor = casting ? HOOK_CAST_PIVOT_Y_FACTOR : HOOK_PIVOT_Y_FACTOR;
     const flipped = this._player._state === PLAYER_STATE_MOVING_L;
     const px = flipped
@@ -119,13 +148,14 @@ class Hook extends GameObject {
     super.update();
     this._drawTick++;
     const dtSec = dt / MILLIS_PER_SECOND;
-    const spaceHeld = this._player._game.hasKey(KEY_SPACE) &&
-      !(this._player._game.hasKey(KEY_ARROW_LEFT) || this._player._game.hasKey(KEY_ARROW_RIGHT));
-    const spacePressed = spaceHeld && !this._prevSpaceHeld;
-    this._prevSpaceHeld = spaceHeld;
+    const castRequested = this._castRequested;
+    const reelTapCount = this._reelTapCount;
+    this._castRequested = false;
+    this._reelTapCount = 0;
+    this._reelForce = Math.max(0, this._reelForce - HOOK_STRUGGLE_REEL_POWER * dtSec);
 
     if (this._status === HOOK_STATUS_IDLE) {
-      if (spacePressed) {
+      if (castRequested) {
         this._castAngle = this._angle;
         this._status = HOOK_STATUS_CAST;
         this._ropeLength += HOOK_CAST_SPEED;
@@ -160,9 +190,12 @@ class Hook extends GameObject {
         }
         const fightSpec = this._catch.getFightSpec();
         this._escapeProgress += fightSpec.strength * fightSpec.escapeRate * dtSec;
-        if (spacePressed) {
-          this._escapeProgress = Math.max(0, this._escapeProgress - HOOK_STRUGGLE_REEL_POWER);
-          this._ropeLength = Math.max(HOOK_REST_LENGTH, this._ropeLength - HOOK_REEL_DISTANCE_PER_PRESS);
+        if (reelTapCount > 0) {
+          this._escapeProgress = Math.max(0, this._escapeProgress - HOOK_STRUGGLE_REEL_POWER * reelTapCount);
+          this._ropeLength = Math.max(HOOK_REST_LENGTH, this._ropeLength - HOOK_REEL_DISTANCE_PER_PRESS * reelTapCount);
+        }
+        if (this._isReeling && this._reelForce > 0 && dtSec > 0) {
+          this._escapeProgress = Math.max(0, this._escapeProgress - this._reelForce * dtSec);
         }
         if (this._escapeProgress >= HOOK_STRUGGLE_MAX_ESCAPE) {
           this._buildEscapeHookExplosion(this._endpoint());
@@ -293,6 +326,15 @@ class Hook extends GameObject {
         life: HOOK_PARTICLE_LIFE, maxLife: HOOK_PARTICLE_LIFE,
         size: HOOK_PARTICLE_SIZE_MIN + Math.random() * HOOK_PARTICLE_SIZE_RANGE
       });
+    }
+  }
+
+  destroy() {
+    if (typeof document !== 'undefined' && typeof document.removeEventListener === 'function') {
+      document.removeEventListener(EVENT_CAST_REQUESTED, this._handleCastRequested);
+      document.removeEventListener(EVENT_REEL_TAP, this._handleReelTap);
+      document.removeEventListener(EVENT_REEL_START, this._handleReelStart);
+      document.removeEventListener(EVENT_REEL_STOP, this._handleReelStop);
     }
   }
 

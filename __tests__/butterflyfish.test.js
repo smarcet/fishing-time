@@ -40,6 +40,22 @@ function makeButterflyFish(startX = 0) {
   );
 }
 
+function makeScaledButterflyFish() {
+  const { mockGame, mockCtx } = makeMocks();
+  mockCtx.drawImage = jest.fn();
+  return new ButterflyFish(
+    mockGame, mockCtx,
+    new Size(FISH_FRAME_HEIGHT * 0.48, FISH_FRAME_WIDTH * 0.48),
+    new Point(0, 350),
+    {},
+    FISH_MAX_FRAME_X,
+    1,
+    0,
+    0,
+    new Size(FISH_FRAME_HEIGHT, FISH_FRAME_WIDTH)
+  );
+}
+
 describe('ButterflyFish animation cadence (smooth - ANIM_STAGGER_SLOW = 6 ticks)', () => {
   test('_frameX stays 0 for the first 5 updates', () => {
     const fish = makeButterflyFish();
@@ -69,6 +85,19 @@ describe('ButterflyFish direction flip in draw()', () => {
     fish._direction = 1;
     fish.draw();
     expect(fish._ctx.scale).toHaveBeenCalledWith(-1, 1);
+  });
+
+  test('draw() preserves source frame dimensions when display size is scaled', () => {
+    const fish = makeScaledButterflyFish();
+    fish._direction = -1;
+
+    fish.draw();
+
+    const drawCall = fish._ctx.drawImage.mock.calls[0];
+    expect(drawCall[3]).toBe(FISH_FRAME_WIDTH);
+    expect(drawCall[4]).toBe(FISH_FRAME_HEIGHT);
+    expect(drawCall[7]).toBeCloseTo(FISH_FRAME_WIDTH * 0.48, 5);
+    expect(drawCall[8]).toBeCloseTo(FISH_FRAME_HEIGHT * 0.48, 5);
   });
 });
 

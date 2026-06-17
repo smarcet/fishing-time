@@ -162,4 +162,20 @@ describe('TimerSystem draw()', () => {
     expect(ctx.save).toHaveBeenCalledTimes(1);
     expect(ctx.restore).toHaveBeenCalledTimes(1);
   });
+
+  test('setScale draws a compact mobile clock', () => {
+    const ctx = makeCtxMock();
+    const ts = new TimerSystem(ctx, makeSize(844, 390), 60);
+
+    ts.setScale(0.42);
+    ts.draw();
+
+    const radii = ctx.arc.mock.calls.map(call => call[2]);
+    expect(radii.some(radius => Math.abs(radius - 66 * 0.42) < 0.001)).toBe(true);
+    expect(ctx.fillText).toHaveBeenCalledWith(
+      '60',
+      422,
+      expect.closeTo((100 + 66 + 10) * 0.42, 5)
+    );
+  });
 });

@@ -26,7 +26,17 @@ class DiscardedBottle extends InertObject {
   }
 
   _drawCapturedSprite(dx, dy, w, h) {
-    this._ctx.drawImage(this._image, 0, 0, w, h, dx, dy, w, h);
+    const frame = this._sourceFrame();
+    this._ctx.drawImage(this._image, 0, 0, frame.width, frame.height, dx, dy, w, h);
+  }
+
+  _sourceFrame() {
+    const imageWidth = this._image && this._image.naturalWidth ? this._image.naturalWidth : this._size.getWidth() * this._maxFrameX;
+    const imageHeight = this._image && this._image.naturalHeight ? this._image.naturalHeight : this._size.getHeight();
+    return {
+      width: imageWidth / this._maxFrameX,
+      height: imageHeight,
+    };
   }
 
   draw() {
@@ -48,7 +58,8 @@ class DiscardedBottle extends InertObject {
     this._ctx.save();
     this._ctx.translate(dx + w / 2, dy + this._bobOffset + h / 2);
     this._ctx.rotate(this._angle);
-    this._ctx.drawImage(this._image, this._frameX * w, 0, w, h, -w / 2, -h / 2, w, h);
+    const frame = this._sourceFrame();
+    this._ctx.drawImage(this._image, this._frameX * frame.width, 0, frame.width, frame.height, -w / 2, -h / 2, w, h);
     this._ctx.restore();
   }
 }

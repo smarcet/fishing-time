@@ -125,6 +125,12 @@ const EVENT_REEL_RETRIEVING  = 'reelRetrieving';
 const EVENT_HOOK_IDLE        = 'hookIdle';
 const EVENT_REEL_POWER_CHANGED = 'reelPowerChanged';
 const EVENT_TIMER_TIMEUP       = 'timerTimeUp';
+const EVENT_CAST_REQUESTED     = 'castRequested';
+const EVENT_REEL_TAP           = 'reelTap';
+const EVENT_REEL_START         = 'reelStart';
+const EVENT_REEL_STOP          = 'reelStop';
+const TOUCH_REEL_STOP_DELAY_MS = 80;
+const TOUCH_DUPLICATE_TAP_GUARD_MS = 30;
 
 const GAME_NEEDED_SCORE = 500;
 
@@ -192,6 +198,7 @@ const FISH_TRAFFIC_TIMER_TICK = 1;
 const FISH_TRAFFIC_LAST_INDEX_OFFSET = 1;
 const FISH_TRAFFIC_WEIGHT_THRESHOLD = 0;
 const FISH_TRAFFIC_MAX_ACTIVE_ONE = 1;
+const MOBILE_SHORT_EDGE_MAX = 820;
 
 const FISH_LANES = {
   [FISH_LANE_SURFACE]: { yMin: 0.34, yMax: 0.44, direction: FISH_TRAFFIC_DIRECTION_RIGHT, spawnInterval: 90 },
@@ -463,6 +470,58 @@ const BUBBLE_SPAWN_X_MIN       = 200;  // px - minimum x spawn position
 const BUBBLE_RING_COUNT        = 3;    // number of expanding rings in death animation
 const BUBBLE_RING_STAGGER      = 0.15; // fractional delay between successive rings (0-1)
 
+const GAMEPLAY_PROFILE_DESKTOP = Object.freeze({
+  name: 'desktop',
+  isMobile: false,
+  preseedPerLane: FISH_TRAFFIC_DEFAULT_PRESEED_PER_LANE,
+  spawnIntervalMultiplier: 1,
+  densityMultiplier: 1,
+  spriteScale: 1,
+  playerScale: 1,
+  hudScale: 1,
+  playerYOffset: 0,
+  bubbleSizeScale: 1,
+  bubbleDieThresholdFactor: null,
+  waterSurfaceFactor: null,
+  bubbleBatchSize: BUBBLE_BATCH_SIZE,
+  maxActiveTraffic: Infinity,
+  maxActiveLargeFish: Infinity,
+  speciesCooldownMultipliers: Object.freeze({}),
+  guaranteedSpeciesIntervals: Object.freeze({}),
+  guaranteedSpeciesInitialOffsets: Object.freeze({}),
+});
+
+const GAMEPLAY_PROFILE_MOBILE = Object.freeze({
+  name: 'mobile',
+  isMobile: true,
+  preseedPerLane: 1,
+  spawnIntervalMultiplier: 1.55,
+  densityMultiplier: 0.72,
+  spriteScale: 0.48,
+  playerScale: 0.62,
+  hudScale: 0.42,
+  playerYOffset: -44,
+  bubbleSizeScale: 0.45,
+  bubbleDieThresholdFactor: 0.42,
+  waterSurfaceFactor: 0.28,
+  bubbleBatchSize: Math.max(1, Math.floor(BUBBLE_BATCH_SIZE * 0.35)),
+  maxActiveTraffic: 8,
+  maxActiveLargeFish: 2,
+  speciesCooldownMultipliers: Object.freeze({
+    [ENEMY_TYPE_CRAB]: 0.35,
+  }),
+  guaranteedSpeciesIntervals: Object.freeze({
+    [ENEMY_TYPE_CRAB]: 600,
+    [ENEMY_TYPE_HAMMERHEAD_SHARK]: 1200,
+    [ENEMY_TYPE_SHARK]: 1200,
+  }),
+  guaranteedSpeciesInitialOffsets: Object.freeze({
+    [ENEMY_TYPE_CRAB]: 600,
+    [ENEMY_TYPE_HAMMERHEAD_SHARK]: 300,
+    [ENEMY_TYPE_SHARK]: 900,
+  }),
+});
+
 // Player state string constants
 const PLAYER_STATE_IDLE     = 'IDLE';
 const PLAYER_STATE_MOVING_R = 'MOVING_R';
@@ -520,6 +579,7 @@ if (typeof module !== 'undefined' && module.exports) {
     FISH_TRAFFIC_COOLDOWN_READY, FISH_TRAFFIC_QUEUE_START_INDEX,
     FISH_TRAFFIC_TIMER_TICK, FISH_TRAFFIC_LAST_INDEX_OFFSET,
     FISH_TRAFFIC_WEIGHT_THRESHOLD, FISH_TRAFFIC_MAX_ACTIVE_ONE,
+    MOBILE_SHORT_EDGE_MAX, GAMEPLAY_PROFILE_DESKTOP, GAMEPLAY_PROFILE_MOBILE,
     FISH_LANES, FISH_DEFINITIONS, FISH_SCORE_MAP,
     ENEMY_ESCAPE_SPEED_MULTIPLIER, ENEMY_STATUS_CAPTURED,
     PLAYER_STATE_IDLE, PLAYER_STATE_MOVING_R, PLAYER_STATE_MOVING_L,
@@ -529,6 +589,8 @@ if (typeof module !== 'undefined' && module.exports) {
     BUBBLE_RING_COUNT, BUBBLE_RING_STAGGER,
     EVENT_ENEMY_CAPTURED, EVENT_ENEMY_ESCAPED, EVENT_ENEMY_EVADED,
     EVENT_ENEMY_HOOKED, EVENT_ROD_CASTED, EVENT_REEL_RETRIEVING, EVENT_HOOK_IDLE, EVENT_REEL_POWER_CHANGED, EVENT_TIMER_TIMEUP,
+    EVENT_CAST_REQUESTED, EVENT_REEL_TAP, EVENT_REEL_START, EVENT_REEL_STOP,
+    TOUCH_REEL_STOP_DELAY_MS, TOUCH_DUPLICATE_TAP_GUARD_MS,
     GAME_NEEDED_SCORE,
   };
 }

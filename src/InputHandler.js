@@ -1,17 +1,29 @@
-class InputHandler {
-  constructor(game) {
-    this._game = game;
+'use strict';
 
-    window.addEventListener('keydown', (e) => {
-      console.log(`InputHandler keydown`, e.key);
-      if(AllowedKeys.indexOf(e.key) > -1)
-        this._game.addKey(e.key);
-    });
+class InputHandler extends KeyboardInputSystem {
+  constructor(targetOrGame = (typeof window !== 'undefined' ? window : null)) {
+    const target = targetOrGame && typeof targetOrGame.addEventListener === 'function'
+      ? targetOrGame
+      : (typeof window !== 'undefined' ? window : null);
+    super(target);
+    this._legacyGame = target === targetOrGame ? null : targetOrGame;
+    this.attach();
+  }
 
-    window.addEventListener('keyup', (e) => {
-       console.log(e.key);
-       this._game.removeKey(e.key);
-    });
+  _onKeyDown(event) {
+    super._onKeyDown(event);
+    if (!this._legacyGame || !event || event.key === KEY_SPACE || !this._enabled) return;
+    if (AllowedKeys.indexOf(event.key) > -1 && typeof this._legacyGame.addKey === 'function') {
+      this._legacyGame.addKey(event.key);
+    }
+  }
+
+  _onKeyUp(event) {
+    super._onKeyUp(event);
+    if (!this._legacyGame || !event || event.key === KEY_SPACE) return;
+    if (AllowedKeys.indexOf(event.key) > -1 && typeof this._legacyGame.removeKey === 'function') {
+      this._legacyGame.removeKey(event.key);
+    }
   }
 }
 

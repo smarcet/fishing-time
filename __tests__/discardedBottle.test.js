@@ -29,6 +29,13 @@ function makeDiscardedBottle(startX = 0) {
   return new DiscardedBottle(mockGame, mockCtx, new Size(92, 76), new Point(startX, 300), mockImage, 10);
 }
 
+function makeScaledBottle() {
+  const { mockGame, mockCtx } = makeMocks(0);
+  mockCtx.drawImage = jest.fn();
+  const mockImage = { naturalWidth: 760, naturalHeight: 92 };
+  return new DiscardedBottle(mockGame, mockCtx, new Size(44.16, 36.48), new Point(0, 300), mockImage, 10);
+}
+
 function makeEnemy(startX = 0) {
   const { mockGame, mockCtx, mockImage } = makeMocks(startX);
   return new EnemyWithAnimation(
@@ -113,6 +120,20 @@ describe('DiscardedBottle animation', () => {
       bottle.update();
       expect(bottle.getPosition().getX()).toBeCloseTo(1.2, 5);
     });
+  });
+
+  test('draw() preserves spritesheet frame source when display size is scaled', () => {
+    const bottle = makeScaledBottle();
+
+    bottle.draw();
+
+    const drawCall = bottle._ctx.drawImage.mock.calls[0];
+    expect(drawCall[1]).toBe(0);
+    expect(drawCall[2]).toBe(0);
+    expect(drawCall[3]).toBe(76);
+    expect(drawCall[4]).toBe(92);
+    expect(drawCall[7]).toBeCloseTo(36.48, 5);
+    expect(drawCall[8]).toBeCloseTo(44.16, 5);
   });
 });
 

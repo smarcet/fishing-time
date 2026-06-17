@@ -12,8 +12,14 @@ const {
   FISH_TRAFFIC_DEFAULT_PRESEED_PER_LANE,
   FISH_TRAFFIC_COOLDOWN_READY,
   FISH_TRAFFIC_MAX_ACTIVE_ONE,
+  ENEMY_TYPE_CLOWN_FISH,
   ENEMY_TYPE_CRAB,
+  ENEMY_TYPE_SHARK,
+  ENEMY_TYPE_HAMMERHEAD_SHARK,
+  ENEMY_TYPE_SWORDFISH,
   WATER_SURFACE_Y,
+  GAMEPLAY_PROFILE_DESKTOP,
+  GAMEPLAY_PROFILE_MOBILE,
 } = require('../src/constants');
 
 const CANVAS_W = 800;
@@ -34,6 +40,7 @@ function makeGame(width = CANVAS_W, height = CANVAS_H) {
 function makeEnemy(type, size = new Size(ENEMY_H, ENEMY_W)) {
   return {
     type,
+    _trafficType: type,
     _position: new Point(0, 0),
     _direction: null,
     _driftSpeed: 0,
@@ -197,5 +204,211 @@ describe('FishSpawner traffic integration', () => {
 
     expect(spawned).toEqual([]);
     expect(factory.createEnemy).not.toHaveBeenCalled();
+  });
+
+  test('mobile profile preseeds one enemy per lane instead of desktop density', () => {
+    const factory = makeFactory();
+    const spawner = new FishSpawner(makeGame(), {}, factory, {
+      rng: () => 0,
+      profile: GAMEPLAY_PROFILE_MOBILE,
+    });
+
+    const spawned = spawner.update();
+
+    expect(spawned).toHaveLength(Object.keys(FISH_LANES).length * GAMEPLAY_PROFILE_MOBILE.preseedPerLane);
+  });
+
+  test('mobile profile lengthens lane spawn intervals', () => {
+    const desktopSpawner = new FishSpawner(makeGame(), {}, makeFactory(), {
+      rng: () => 0,
+      profile: GAMEPLAY_PROFILE_DESKTOP,
+      preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+    });
+    const mobileSpawner = new FishSpawner(makeGame(), {}, makeFactory(), {
+      rng: () => 0,
+      profile: GAMEPLAY_PROFILE_MOBILE,
+      preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+    });
+    const laneDef = { spawnInterval: 100 };
+
+    expect(desktopSpawner._nextLaneDelay(laneDef)).toBe(100);
+    expect(mobileSpawner._nextLaneDelay(laneDef)).toBe(155);
+  });
+
+  test('mobile profile limits simultaneous large fish across species', () => {
+    const spawner = new FishSpawner(makeGame(), {}, makeFactory(), {
+      rng: () => 0,
+      profile: GAMEPLAY_PROFILE_MOBILE,
+      preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+    });
+    const hammerheadDef = FISH_DEFINITIONS.find(def => def.id === ENEMY_TYPE_HAMMERHEAD_SHARK);
+    const activeShark = makeEnemy(ENEMY_TYPE_SHARK);
+    const secondActiveShark = makeEnemy(ENEMY_TYPE_SHARK);
+    activeShark._trafficType = ENEMY_TYPE_SHARK;
+    secondActiveShark._trafficType = ENEMY_TYPE_SHARK;
+
+    expect(GAMEPLAY_PROFILE_MOBILE.maxActiveLargeFish).toBe(2);
+    expect(spawner._hasActiveCapacity(hammerheadDef, [activeShark])).toBe(true);
+    expect(spawner._hasActiveCapacity(hammerheadDef, [activeShark, secondActiveShark])).toBe(false);
+  });
+
+  test('mobile profile maxActiveTraffic prevents extra spawns when traffic is capped', () => {
+    const factory = makeFactory();
+    const profile = Object.assign({}, GAMEPLAY_PROFILE_MOBILE, { maxActiveTraffic: 1 });
+    const spawner = new FishSpawner(makeGame(), {}, factory, {
+      rng: () => 0,
+      profile,
+      preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+      initialLaneTimer: FISH_TRAFFIC_COOLDOWN_READY,
+    });
+
+    const spawned = spawner.update([makeEnemy(ENEMY_TYPE_SHARK)]);
+
+    expect(spawned).toEqual([]);
+    expect(factory.createEnemy).not.toHaveBeenCalled();
+  });
+
+  test('mobile profile reduces crab cooldown for higher bottom-lane cadence', () => {
+    const factory = makeFactory();
+    const spawner = new FishSpawner(makeGame(), {}, factory, {
+      rng: () => 0,
+      profile: GAMEPLAY_PROFILE_MOBILE,
+      preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+    });
+    const crabDef = FISH_DEFINITIONS.find(def => def.id === ENEMY_TYPE_CRAB);
+
+    spawner._applySpeciesCooldown(crabDef);
+
+    expect(spawner._speciesCooldowns[ENEMY_TYPE_CRAB]).toBeLessThan(crabDef.spawnFrequency);
+    expect(spawner._speciesCooldowns[ENEMY_TYPE_CRAB]).toBe(210);
+    expect(GAMEPLAY_PROFILE_MOBILE.guaranteedSpeciesIntervals[ENEMY_TYPE_CRAB]).toBe(600);
+    expect(GAMEPLAY_PROFILE_MOBILE.guaranteedSpeciesIntervals[ENEMY_TYPE_HAMMERHEAD_SHARK]).toBe(1200);
+    expect(GAMEPLAY_PROFILE_MOBILE.guaranteedSpeciesIntervals[ENEMY_TYPE_SHARK]).toBe(1200);
+  });
+
+  test('mobile profile forces a crab spawn when the guarantee interval elapses', () => {
+    const factory = makeFactory();
+    const profile = Object.assign({}, GAMEPLAY_PROFILE_MOBILE, {
+      guaranteedSpeciesIntervals: Object.freeze({ [ENEMY_TYPE_CRAB]: 3 }),
+      guaranteedSpeciesInitialOffsets: Object.freeze({ [ENEMY_TYPE_CRAB]: 3 }),
+    });
+    const spawner = new FishSpawner(makeGame(), {}, factory, {
+      rng: () => 0.99,
+      profile,
+      preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+      initialLaneTimer: 999,
+    });
+
+    expect(spawner.update([])).toEqual([]);
+    expect(spawner.update([])).toEqual([]);
+
+    const spawned = spawner.update([]);
+
+    expect(spawned).toHaveLength(1);
+    expect(spawned[0].type).toBe(ENEMY_TYPE_CRAB);
+    expect(spawned[0]._trafficLane).toBe(FISH_LANE_BOTTOM);
+  });
+
+  test('mobile species guarantees advance from elapsed frame time', () => {
+    const factory = makeFactory();
+    const profile = Object.assign({}, GAMEPLAY_PROFILE_MOBILE, {
+      guaranteedSpeciesIntervals: Object.freeze({ [ENEMY_TYPE_CRAB]: 60 }),
+      guaranteedSpeciesInitialOffsets: Object.freeze({ [ENEMY_TYPE_CRAB]: 60 }),
+    });
+    const spawner = new FishSpawner(makeGame(), {}, factory, {
+      rng: () => 0.99,
+      profile,
+      preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+      initialLaneTimer: 999,
+    });
+
+    expect(spawner.update([], 500)).toEqual([]);
+    expect(spawner.update([], 500).map(enemy => enemy.type)).toEqual([ENEMY_TYPE_CRAB]);
+  });
+
+  test('mobile species guarantees make room when the traffic cap is full', () => {
+    const factory = makeFactory();
+    const profile = Object.assign({}, GAMEPLAY_PROFILE_MOBILE, {
+      maxActiveTraffic: 2,
+      guaranteedSpeciesIntervals: Object.freeze({ [ENEMY_TYPE_CRAB]: 1 }),
+      guaranteedSpeciesInitialOffsets: Object.freeze({ [ENEMY_TYPE_CRAB]: 1 }),
+    });
+    const spawner = new FishSpawner(makeGame(), {}, factory, {
+      rng: () => 0.99,
+      profile,
+      preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+      initialLaneTimer: 999,
+    });
+    const activeEnemies = [
+      makeEnemy(ENEMY_TYPE_CLOWN_FISH),
+      makeEnemy(ENEMY_TYPE_CLOWN_FISH),
+    ];
+
+    const spawned = spawner.update(activeEnemies);
+
+    expect(spawned.map(enemy => enemy.type)).toEqual([ENEMY_TYPE_CRAB]);
+    expect(activeEnemies).toHaveLength(1);
+  });
+
+  test('mobile shark guarantees make room when large-fish capacity is full', () => {
+    const factory = makeFactory();
+    const profile = Object.assign({}, GAMEPLAY_PROFILE_MOBILE, {
+      maxActiveLargeFish: 1,
+      guaranteedSpeciesIntervals: Object.freeze({ [ENEMY_TYPE_SHARK]: 1 }),
+      guaranteedSpeciesInitialOffsets: Object.freeze({ [ENEMY_TYPE_SHARK]: 1 }),
+    });
+    const spawner = new FishSpawner(makeGame(), {}, factory, {
+      rng: () => 0.99,
+      profile,
+      preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+      initialLaneTimer: 999,
+    });
+    const activeEnemies = [makeEnemy(ENEMY_TYPE_SWORDFISH)];
+
+    const spawned = spawner.update(activeEnemies);
+
+    expect(spawned.map(enemy => enemy.type)).toEqual([ENEMY_TYPE_SHARK]);
+    expect(activeEnemies).toHaveLength(0);
+  });
+
+  test('mobile profile forces each shark type on its own guarantee interval', () => {
+    const factory = makeFactory();
+    const profile = Object.assign({}, GAMEPLAY_PROFILE_MOBILE, {
+      maxActiveLargeFish: 2,
+      guaranteedSpeciesIntervals: Object.freeze({
+        [ENEMY_TYPE_HAMMERHEAD_SHARK]: 8,
+        [ENEMY_TYPE_SHARK]: 4,
+      }),
+      guaranteedSpeciesInitialOffsets: Object.freeze({
+        [ENEMY_TYPE_HAMMERHEAD_SHARK]: 2,
+        [ENEMY_TYPE_SHARK]: 4,
+      }),
+    });
+    const spawner = new FishSpawner(makeGame(), {}, factory, {
+      rng: () => 0.99,
+      profile,
+      preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+      initialLaneTimer: 999,
+    });
+
+    expect(spawner.update([])).toEqual([]);
+    expect(spawner.update([]).map(enemy => enemy.type)).toEqual([ENEMY_TYPE_HAMMERHEAD_SHARK]);
+    expect(spawner.update([])).toEqual([]);
+    expect(spawner.update([]).map(enemy => enemy.type)).toEqual([ENEMY_TYPE_SHARK]);
+  });
+
+  test('mobile profile uses responsive water surface so lanes do not collapse to the bottom', () => {
+    const spawner = new FishSpawner(makeGame(844, 390), {}, makeFactory(new Size(40, 48)), {
+      rng: () => 0,
+      profile: GAMEPLAY_PROFILE_MOBILE,
+      preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+    });
+    const surfaceY = spawner._laneY(FISH_LANES[FISH_LANE_SURFACE], makeEnemy(ENEMY_TYPE_CLOWN_FISH, new Size(40, 48)));
+    const middleY = spawner._laneY(FISH_LANES[FISH_LANE_MIDDLE], makeEnemy(ENEMY_TYPE_CLOWN_FISH, new Size(40, 48)));
+    const bottomY = spawner._laneY(FISH_LANES[FISH_LANE_BOTTOM], makeEnemy(ENEMY_TYPE_CLOWN_FISH, new Size(40, 48)));
+
+    expect(surfaceY).toBeLessThan(190);
+    expect(middleY).toBeGreaterThan(surfaceY);
+    expect(bottomY).toBeGreaterThan(middleY);
   });
 });

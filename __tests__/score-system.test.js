@@ -231,6 +231,29 @@ describe('ScoreSystem draw()', () => {
     expect(mockCtx.save).toHaveBeenCalledTimes(1);
     expect(mockCtx.restore).toHaveBeenCalledTimes(1);
   });
+
+  test('setScale draws compact mobile HUD text', () => {
+    const ss = new ScoreSystem();
+    const fonts = [];
+    const mockCtx = {
+      save: jest.fn(),
+      restore: jest.fn(),
+      fillText: jest.fn(),
+      strokeText: jest.fn(),
+      set font(v) { fonts.push(v); },
+      set textAlign(_) {},
+      set fillStyle(_) {},
+      set strokeStyle(_) {},
+      set lineWidth(_) {},
+    };
+
+    ss.setScale(0.42);
+    ss.draw(mockCtx, 844);
+
+    expect(fonts).toContain('bold 14px monospace');
+    expect(mockCtx.fillText).toHaveBeenCalledWith('Score: 0', 835.6, 16.8);
+    expect(mockCtx.fillText).toHaveBeenCalledWith('Best: 0', 835.6, 35.699999999999996);
+  });
 });
 
 describe('ScoreSystem evaded handling', () => {

@@ -1,10 +1,25 @@
 if (typeof window !== 'undefined') { window.addEventListener('load', function(){
   const canvas = document.getElementById("canvas1");
+  const overlay = document.getElementById("rotate-overlay");
+  const touchLeft = document.getElementById("touch-left");
+  const touchRight = document.getElementById("touch-right");
   const ctx = canvas.getContext('2d');
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  const mobileSystem = new MobileSystem({ window, document, canvas, overlay, navControls: [touchLeft, touchRight] });
+  const initialSnapshot = mobileSystem.getSnapshot();
+  canvas.width = initialSnapshot.width;
+  canvas.height = initialSnapshot.height;
+  const inputSystem = initialSnapshot.isMobile
+    ? new TouchInputSystem(canvas, { leftControl: touchLeft, rightControl: touchRight })
+    : new KeyboardInputSystem(window);
+  inputSystem.attach();
 
-  const game = new Game(ctx, new Size(canvas.height, canvas.width));
+  const game = new Game(ctx, new Size(canvas.height, canvas.width), {
+    inputSystem,
+    profile: initialSnapshot.profile,
+  });
+  mobileSystem.attach(game, inputSystem);
+  const e2eHarness = new E2ETestHarness(game, { window });
+  e2eHarness.attach();
 
   /*
   window.requestAnimFrame = (function(callback) {
@@ -41,6 +56,16 @@ if (typeof window !== 'undefined') { window.addEventListener('load', function(){
   }
 
   disableAntiAliasing(ctx)
+  const restoreCanvasSettings = () => disableAntiAliasing(ctx);
+  window.addEventListener('resize', restoreCanvasSettings);
+  window.addEventListener('orientationchange', restoreCanvasSettings);
+  window.addEventListener('beforeunload', () => {
+    window.removeEventListener('resize', restoreCanvasSettings);
+    window.removeEventListener('orientationchange', restoreCanvasSettings);
+    e2eHarness.destroy();
+    mobileSystem.destroy();
+    game.destroy();
+  });
   animationLoop(0);
 
 }); } // end if (typeof window !== 'undefined')

@@ -84,11 +84,13 @@ const PUFFER_FISH_DISPLAY_W      = 179;  // 358 / 2 - half canonical cell width
 
 class EnemyFactory {
 
-  constructor() {
+  constructor(profile = GAMEPLAY_PROFILE_DESKTOP) {
+    this._profile = profile || GAMEPLAY_PROFILE_DESKTOP;
     this.specs = [];
     this.specs[ENEMY_TYPE_BUTTERFLY_FISH] = {
       image: (typeof document !== 'undefined') ? document.getElementById(DOM_ID_BUTTERFLY_FISH) : null,
       size: new Size(FISH_FRAME_HEIGHT, FISH_FRAME_WIDTH),
+      spriteFrameSize: new Size(FISH_FRAME_HEIGHT, FISH_FRAME_WIDTH),
       maxFrameX: FISH_MAX_FRAME_X,
       maxFrameY: SPRITE_SWIM_MAX_FRAME_Y,
       dieFrameX: BUTTERFLY_FISH_DIE_FRAME_X,
@@ -209,6 +211,25 @@ class EnemyFactory {
       dieFrameX: SPRITE_DIE_FRAME_X,
       dieFrameY: PUFFER_FISH_DIE_FRAME_Y,
     };
+    this._applyProfileScale();
+  }
+
+  setProfile(profile) {
+    this._profile = profile || GAMEPLAY_PROFILE_DESKTOP;
+    this._applyProfileScale();
+  }
+
+  _applyProfileScale() {
+    const scale = this._profile.spriteScale || 1;
+    Object.keys(this.specs).forEach(key => {
+      const spec = this.specs[key];
+      if (!spec || !spec.size) return;
+      if (!spec.baseSize) spec.baseSize = spec.size;
+      spec.size = new Size(
+        spec.baseSize.getHeight() * scale,
+        spec.baseSize.getWidth() * scale
+      );
+    });
   }
 
   createEnemy(name, game, ctx) {
@@ -222,6 +243,7 @@ class EnemyFactory {
           ButterflyFish.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
         ),
         spec.image, spec.maxFrameX, spec.maxFrameY, spec.dieFrameX, spec.dieFrameY
+        , spec.spriteFrameSize
       );
     }
     if (name === ENEMY_TYPE_DISCARDED_BOTTLE) {

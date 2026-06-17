@@ -2,11 +2,15 @@ class Player extends GameObject {
   constructor(game, ctx, size, position) {
     super(ctx, size, position)
     this._game = game;
+    this._sourceFrameSize = size;
+    this._baseDisplaySize = size;
+    this._hookBaseSize = new Size(25, 25);
+    this._profileYOffset = 0;
     this._speedY  = 0;
     this._speedX  = 0;
     this._frameX = 0;
     this._frameY = 0;
-    this._hook = new Hook (this, ctx, new Size(25, 25) , new Point(position.getX() , position.getY() + (size.getHeight() * HOOK_PIVOT_Y_FACTOR)));
+    this._hook = new Hook (this, ctx, this._hookBaseSize , new Point(position.getX() , position.getY() + (size.getHeight() * HOOK_PIVOT_Y_FACTOR)));
     this._image = (typeof document !== 'undefined') ? document.getElementById('boat_idle') : null;
     this._castAnimation = (typeof document !== 'undefined') ? document.getElementById('boat_cast') : null;
     this._catchAnimation = (typeof document !== 'undefined') ? document.getElementById('boat_catch') : null;
@@ -24,9 +28,31 @@ class Player extends GameObject {
     return this._hook;
   }
 
+  setDisplayScale(scale) {
+    const nextScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
+    this._size = new Size(
+      this._baseDisplaySize.getHeight() * nextScale,
+      this._baseDisplaySize.getWidth() * nextScale
+    );
+    if (this._hook) {
+      this._hook._size = new Size(
+        this._hookBaseSize.getHeight() * nextScale,
+        this._hookBaseSize.getWidth() * nextScale
+      );
+    }
+  }
+
+  getDisplayScale() {
+    return this._size.getWidth() / this._baseDisplaySize.getWidth();
+  }
+
+  setProfileYOffset(offsetY) {
+    this._profileYOffset = Number.isFinite(offsetY) ? offsetY : 0;
+  }
+
   getPosition() {
     const p = super.getPosition();
-    return new Point(p.getX(), p.getY() + this._bobOffset);
+    return new Point(p.getX(), p.getY() + this._profileYOffset + this._bobOffset);
   }
 
   update(dt = 0){
@@ -78,6 +104,8 @@ class Player extends GameObject {
     const pos = this.getPosition();
     const w = this._size.getWidth();
     const h = this._size.getHeight();
+    const sourceW = this._sourceFrameSize.getWidth();
+    const sourceH = this._sourceFrameSize.getHeight();
     const cx = pos.getX() + w / 2;
     const cy = pos.getY() + h / 2;
 
@@ -101,7 +129,7 @@ class Player extends GameObject {
       this._ctx.save();
       this._ctx.translate(cx, cy);
       this._ctx.scale(1, 1);
-      this._ctx.drawImage(this._catchAnimation, this._catchFrameX * w, this._catchFrameY * h, w, h, -w / 2, -h / 2, w, h);
+      this._ctx.drawImage(this._catchAnimation, this._catchFrameX * sourceW, this._catchFrameY * sourceH, sourceW, sourceH, -w / 2, -h / 2, w, h);
       this._ctx.restore();
     } else if (this._state === PLAYER_STATE_MOVING_L || this._state === PLAYER_STATE_MOVING_R || this._state === PLAYER_STATE_IDLE) {
       if (this._gameFrame % PLAYER_ANIM_STAGGER === 0) {
@@ -116,7 +144,7 @@ class Player extends GameObject {
       this._ctx.save();
       this._ctx.translate(cx, cy);
       this._ctx.scale(flipX, 1);
-      this._ctx.drawImage(this._image, this._frameX * w, this._frameY * h, w, h, -w / 2, -h / 2, w, h);
+      this._ctx.drawImage(this._image, this._frameX * sourceW, this._frameY * sourceH, sourceW, sourceH, -w / 2, -h / 2, w, h);
       this._ctx.restore();
     } else {
       // CAST state
@@ -142,7 +170,7 @@ class Player extends GameObject {
       this._ctx.save();
       this._ctx.translate(cx, cy);
       this._ctx.scale(1, 1);
-      this._ctx.drawImage(this._castAnimation, this._frameX * w, this._frameY * h, w, h, -w / 2, -h / 2, w, h);
+      this._ctx.drawImage(this._castAnimation, this._frameX * sourceW, this._frameY * sourceH, sourceW, sourceH, -w / 2, -h / 2, w, h);
       this._ctx.restore();
     }
 

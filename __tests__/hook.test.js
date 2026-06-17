@@ -2,7 +2,11 @@
 
 const { Size, Point, Hook, CatchableFish, InertObject } = require('../index.js');
 const { EnemyFactory } = require('../src/EnemyFactory');
-const { FISH_DEFINITIONS } = require('../src/constants');
+const {
+  FISH_DEFINITIONS,
+  EVENT_CAST_REQUESTED,
+  EVENT_REEL_TAP,
+} = require('../src/constants');
 
 const PLAYER_X   = 100;
 const PLAYER_Y   = 0;
@@ -96,12 +100,14 @@ function makeMockFishEntity(strength = 10, escapeRate = 2.0) {
 const pivotX = PLAYER_X + HOOK_PIVOT_X_OFFSET;
 const pivotY = PLAYER_Y + PLAYER_H * HOOK_PIVOT_Y_FACTOR;
 
-// Helper: put hook into CAST state via rising-edge press
+// Helper: put hook into CAST state via the input event path
 function castHook(hook) {
-  hook._player._game = makeMockGame(false);
-  hook._prevSpaceHeld = false;
-  hook._player._game = makeMockGame(true);
+  hook._handleCastRequested();
   hook.update(16);  // IDLE -> CAST
+}
+
+function reelTap(hook) {
+  hook._handleReelTap();
 }
 
 function makeHookWithCatch(extraRope = 100) {
@@ -109,6 +115,45 @@ function makeHookWithCatch(extraRope = 100) {
   hook._ropeLength = HOOK_REST_LENGTH + extraRope;
   hook.setCatch(makeMockInertEntity());
   return hook;
+}
+
+function makeCustomEvent(type, init = {}) {
+  this.type = type;
+  this.detail = init.detail;
+}
+
+function makeDocumentEventBus() {
+  const listeners = {};
+  return {
+    addEventListener: jest.fn((type, fn) => {
+      listeners[type] = listeners[type] || [];
+      listeners[type].push(fn);
+    }),
+    removeEventListener: jest.fn((type, fn) => {
+      listeners[type] = (listeners[type] || []).filter(listener => listener !== fn);
+    }),
+    dispatchEvent: jest.fn(event => {
+      (listeners[event.type] || []).forEach(listener => listener(event));
+    }),
+    getElementById: jest.fn(() => null),
+    listenerCount: (type) => (listeners[type] || []).length,
+  };
+}
+
+function makeInputEventHook() {
+  const savedDoc = global.document;
+  const savedCustomEvent = global.CustomEvent;
+  global.document = makeDocumentEventBus();
+  global.CustomEvent = makeCustomEvent;
+  const hook = makeHook(false);
+  return {
+    hook,
+    document: global.document,
+    restore: () => {
+      global.document = savedDoc;
+      global.CustomEvent = savedCustomEvent;
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -164,21 +209,18 @@ describe('Hook getPosition() projection', () => {
 });
 
 // ---------------------------------------------------------------------------
-describe('Hook single-press cast (rising-edge)', () => {
-  test('holding Space on the first update (prevSpaceHeld=false) fires IDLE -> CAST', () => {
+describe('Hook single cast request', () => {
+  test('cast request on the first update fires IDLE -> CAST', () => {
     const hook = makeHook(false);
-    hook._player._game = makeMockGame(true);
-    hook._prevSpaceHeld = false;
+    hook._handleCastRequested();
     hook.update(16);
     expect(hook._status).toBe(HOOK_STATUS_CAST);
   });
 
-  test('second update with Space still held does NOT re-fire (prevSpaceHeld=true)', () => {
+  test('second update without another cast request does NOT re-fire', () => {
     const hook = makeHook(false);
-    hook._player._game = makeMockGame(true);
-    hook._prevSpaceHeld = false;
+    hook._handleCastRequested();
     hook.update(16);  // -> CAST
-    // Still in CAST; space still held -> spacePressed = false, no second transition
     hook.update(16);
     expect(hook._status).toBe(HOOK_STATUS_CAST);
   });
@@ -189,14 +231,14 @@ describe('Hook single-press cast (rising-edge)', () => {
     expect(hook._status).toBe(HOOK_STATUS_IDLE);
   });
 
-  test('pressing Space captures _castAngle === _angle at that tick', () => {
+  test('cast request captures _castAngle === _angle at that tick', () => {
     const hookIdle = makeHook(false);
     for (let i = 0; i < 5; i++) hookIdle.update();
     const angleAtPress = hookIdle._angle;
 
     const hookCast = makeHook(false);
     for (let i = 0; i < 5; i++) hookCast.update();
-    hookCast._player._game = makeMockGame(true);
+    hookCast._handleCastRequested();
     hookCast.update(16);
 
     expect(hookCast._status).toBe(HOOK_STATUS_CAST);
@@ -206,11 +248,51 @@ describe('Hook single-press cast (rising-edge)', () => {
   test('_castAngle is frozen across subsequent CAST updates', () => {
     const hook = makeHook(false);
     for (let i = 0; i < 3; i++) hook.update();
-    hook._player._game = makeMockGame(true);
+    hook._handleCastRequested();
     hook.update(16); // -> CAST
     const frozen = hook._castAngle;
     for (let i = 0; i < 5; i++) hook.update(16);
     expect(hook._castAngle).toBeCloseTo(frozen, 5);
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe('Hook input custom events', () => {
+  test('EVENT_CAST_REQUESTED starts a cast from IDLE without Space key state', () => {
+    const { hook, document, restore } = makeInputEventHook();
+
+    document.dispatchEvent(new CustomEvent(EVENT_CAST_REQUESTED));
+    hook.update(16);
+
+    restore();
+    expect(hook._status).toBe(HOOK_STATUS_CAST);
+  });
+
+  test('EVENT_REEL_TAP during a fish fight reduces escape progress and rope length', () => {
+    const { hook, document, restore } = makeInputEventHook();
+    hook._ropeLength = HOOK_REST_LENGTH + 200;
+    hook.setCatch(makeMockFishEntity(1, 0.0));
+    hook._escapeProgress = 50;
+    const beforeRope = hook._ropeLength;
+
+    document.dispatchEvent(new CustomEvent(EVENT_REEL_TAP));
+    hook.update(0);
+
+    restore();
+    expect(hook._escapeProgress).toBeLessThan(50);
+    expect(hook._ropeLength).toBeLessThan(beforeRope);
+  });
+
+  test('destroy removes input event listeners', () => {
+    const { hook, document, restore } = makeInputEventHook();
+
+    expect(document.listenerCount(EVENT_CAST_REQUESTED)).toBe(1);
+    expect(document.listenerCount(EVENT_REEL_TAP)).toBe(1);
+    hook.destroy();
+
+    expect(document.listenerCount(EVENT_CAST_REQUESTED)).toBe(0);
+    expect(document.listenerCount(EVENT_REEL_TAP)).toBe(0);
+    restore();
   });
 });
 
@@ -238,7 +320,7 @@ describe('Hook CAST - auto-extend without key input', () => {
     const hook = makeHook(false);
     for (let i = 0; i < 10; i++) hook.update();
     const nonZeroAngle = hook._angle;
-    hook._player._game = makeMockGame(true);
+    hook._handleCastRequested();
     hook._player._state = PLAYER_STATE_CAST;
     hook.update(16);  // -> CAST, ropeLength grows
 
@@ -313,10 +395,9 @@ describe('Hook isCasting()', () => {
     expect(hook.isCasting()).toBe(false);
   });
 
-  test('isCasting() is true immediately after rising-edge press (CAST)', () => {
+  test('isCasting() is true immediately after cast request (CAST)', () => {
     const hook = makeHook(false);
-    hook._prevSpaceHeld = false;
-    hook._player._game = makeMockGame(true);
+    hook._handleCastRequested();
     hook.update(16);
     expect(hook.isCasting()).toBe(true);
   });
@@ -372,23 +453,21 @@ describe('Hook HOOKED - fish struggle mechanic', () => {
     expect(hook._escapeProgress).toBeCloseTo(10 * 2.0 * 1, 3);
   });
 
-  test('Space press reduces _escapeProgress by HOOK_STRUGGLE_REEL_POWER', () => {
+  test('reel tap reduces _escapeProgress by HOOK_STRUGGLE_REEL_POWER', () => {
     const hook = makeHook(false);
     hook._ropeLength = HOOK_REST_LENGTH + 200;
     hook.setCatch(makeMockFishEntity(1, 0.0));  // no passive progress
     hook._escapeProgress = 50;
-    hook._prevSpaceHeld = false;
-    hook._player._game = makeMockGame(true);
-    hook.update(0);  // dt=0 so no passive progress, but space pressed
+    reelTap(hook);
+    hook.update(0);  // dt=0 so no passive progress, but tap applied
     expect(hook._escapeProgress).toBeCloseTo(50 - HOOK_STRUGGLE_REEL_POWER, 3);
   });
 
-  test('Space press reduces _ropeLength by HOOK_REEL_DISTANCE_PER_PRESS', () => {
+  test('reel tap reduces _ropeLength by HOOK_REEL_DISTANCE_PER_PRESS', () => {
     const hook = makeHook(false);
     hook._ropeLength = HOOK_REST_LENGTH + 200;
     hook.setCatch(makeMockFishEntity(1, 0.0));
-    hook._prevSpaceHeld = false;
-    hook._player._game = makeMockGame(true);
+    reelTap(hook);
     const before = hook._ropeLength;
     hook.update(0);
     expect(hook._ropeLength).toBeCloseTo(before - HOOK_REEL_DISTANCE_PER_PRESS, 3);
@@ -399,8 +478,7 @@ describe('Hook HOOKED - fish struggle mechanic', () => {
     hook._ropeLength = HOOK_REST_LENGTH + 200;
     hook.setCatch(makeMockFishEntity(1, 0.0));
     hook._escapeProgress = 5;  // less than REEL_POWER
-    hook._prevSpaceHeld = false;
-    hook._player._game = makeMockGame(true);
+    reelTap(hook);
     hook.update(0);
     expect(hook._escapeProgress).toBeGreaterThanOrEqual(0);
   });
@@ -468,9 +546,7 @@ describe('Hook HOOKED - fish capture', () => {
     hook.setCatch(fish);
     hook._escapeProgress = 0;
 
-    // Press Space to reel
-    hook._prevSpaceHeld = false;
-    hook._player._game = makeMockGame(true);
+    reelTap(hook);
 
     const dispatchMock = jest.fn();
     const savedDoc = global.document;
@@ -645,15 +721,31 @@ describe('Hook._pivot() follows rendered rod-tip Y during CAST (bob offset)', ()
     expect(pivot.getY()).toBeCloseTo(expectedY, 4);
   });
 
-  test('pivot x uses HOOK_CAST_PIVOT_X_OFFSET during CAST', () => {
+test('pivot x uses HOOK_CAST_PIVOT_X_OFFSET during CAST', () => {
     const hook = makeHookWithBob(0);
     hook._status = HOOK_STATUS_CAST;
     const pivot = hook._pivot();
     const expectedX = PLAYER_X + HOOK_CAST_PIVOT_X_OFFSET;
     expect(pivot.getX()).toBeCloseTo(expectedX, 4);
-  });
+});
 
-  test('pivot y uses HOOK_PIVOT_Y_FACTOR during IDLE', () => {
+test('pivot x offset scales with player display size', () => {
+  const game = makeMockGame(false);
+  const player = {
+    getPosition: () => new Point(PLAYER_X, PLAYER_Y),
+    getSize: () => new Size(PLAYER_H * 0.62, PLAYER_W * 0.62),
+    getDisplayScale: () => 0.62,
+    _game: game,
+    _state: PLAYER_STATE_IDLE,
+  };
+  const hook = new Hook(player, makeMockCtx(), new Size(25, 25), new Point(0, 0));
+
+  const pivot = hook.getPivotPoint();
+
+  expect(pivot.getX()).toBeCloseTo(PLAYER_X + HOOK_PIVOT_X_OFFSET * 0.62, 5);
+});
+
+test('pivot y uses HOOK_PIVOT_Y_FACTOR during IDLE', () => {
     const hook = makeHookWithBob(0, PLAYER_STATE_IDLE);
     const pivot = hook._pivot();
     const expectedY = PLAYER_Y + PLAYER_H * HOOK_PIVOT_Y_FACTOR;
