@@ -1,7 +1,7 @@
 # ADR 0025 - Fish Traffic Model: Lane Spawning, Rarity, and Configuration-Driven Population
 
 **Date:** 2026-06-16
-**Status:** Accepted
+**Status:** Accepted (Decision 7 superseded by ADR-0027)
 
 ## Context
 
@@ -95,6 +95,8 @@ Species are assigned to lanes according to habitat and risk/reward:
 This gives the hook depth a clearer strategic meaning: deeper targets generally carry more reward and more resistance, but appear less frequently.
 
 ### 7. New species are added through configuration after factory support exists
+
+> **Superseded by ADR-0027.** The `EnemyFactory` branch described here was eliminated when the factory was made fully data-driven. A single `FISH_DEFINITIONS` entry (now including render geometry) is sufficient — no separate factory code is required.
 
 Once an enemy class and `EnemyFactory` branch exist, the traffic system needs only a new definition entry:
 

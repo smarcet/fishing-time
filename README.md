@@ -127,7 +127,7 @@ The game is won by reaching `500` points before the `120` second timer expires. 
 
 - **Arcade feel over realism:** sine waves, constant speeds, rectangles, and simple normalized values keep the game responsive and easy to tune.
 - **Finite state machines:** hook and player behavior are driven by explicit states such as `IDLE`, `CAST`, `HOOKED`, `RETRIEVING_EMPTY`, and `REEL`.
-- **Configuration as source of truth:** species score, rarity, strength, escape rate, lanes, speed, cooldown, and spawn weight live in `FISH_DEFINITIONS`.
+- **Configuration as source of truth:** every per-species value — score, rarity, strength, escape rate, lanes, speed, cooldown, spawn weight, sprite dimensions, DOM element ID, and frame layout — lives in a single `FISH_DEFINITIONS` entry. `EnemyFactory` and `FishSpawner` both read from it; no per-species code lives outside the entry and the class file.
 - **Separation of responsibilities:** `Game` coordinates; `Hook` handles casting and fights; `FishSpawner` handles population; `ScoreSystem` handles scoring; `EnemyWithAnimation` owns capture rendering.
 - **Event-driven decoupling:** input, scoring, audio, reel tension, timer expiration, captures, and escapes communicate through custom events instead of direct object coupling.
 - **Responsive profiles:** desktop and mobile use different gameplay profiles for density, scaling, HUD size, waterline, and active traffic caps.
@@ -143,7 +143,7 @@ python3 -m http.server 8081   # start dev server
 ```
 
 ```bash
-npm test              # run all 32 test suites (368 tests)
+npm test              # run all 33 test suites (369 tests)
 npx jest __tests__/butterflyfish.test.js   # run one file
 ```
 
@@ -179,4 +179,4 @@ Mobile and desktop rendering are handled by two gameplay profiles (`GAMEPLAY_PRO
 
 ## Adding a New Species
 
-Every new species requires changes in six places: constants in `src/constants.js`, the class file in `src/`, registration in `index.js`, a factory branch in `src/EnemyFactory.js`, an `<img>` tag in `main.html`, and a Jest test in `__tests__/`. Finish with an ADR in `docs/adr/`.
+Every new species requires changes in five places: a `FISH_DEFINITIONS` entry in `src/constants.js` (with all gameplay and render geometry fields), the class file in `src/`, registration in `index.js`, an `<img>` tag in `main.html`, and a Jest test in `__tests__/`. `EnemyFactory` picks it up automatically from the entry. Finish with an ADR in `docs/adr/`.
