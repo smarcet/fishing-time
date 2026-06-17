@@ -24,17 +24,9 @@ const HOOK_REEL_SPEED       = 5;      // px/tick - rope retraction speed while r
 const HOOK_CATCH_REEL_SPEED = 3;      // px/tick - rope retraction speed while reeling a catch (slower for animation)
 const HOOK_MAX_DEPTH_FACTOR = 0.95;   // fraction of canvas height - deepest the hook can descend
 
-const WATER_SURFACE_Y   = 300;  // px - y of the water surface; entities spawn at or below this line
-const FISH_FRAME_WIDTH  = 100;  // px - fish spritesheet cell width (= render width)
-const FISH_FRAME_HEIGHT = 82;   // px - fish spritesheet cell height (= render height)
-const FISH_MAX_FRAME_X  = 10;   // columns in the fish1_sprite spritesheet
+const WATER_SURFACE_Y = 300;  // px - y of the water surface; entities spawn at or below this line
 
-const CRAB_FRAME_WIDTH   = 408;   // px - natural sprite cell width
-const CRAB_FRAME_HEIGHT  = 197;   // px - natural sprite cell height
-const CRAB_MAX_FRAME_X   = 10;    // columns in spritesheet (move row)
-const CRAB_MAX_FRAME_Y   = 1;     // only cycle move row; die row accessed directly via dieFrameY
-const CRAB_DIE_FRAME_Y   = 1;     // row index for captured/die animation
-const CRAB_DRIFT_SPEED   = 4.0;   // px/tick - 2.5x fish speed, hardest enemy to catch
+const CRAB_DRIFT_SPEED       = 4.0;   // px/tick - 2.5x fish speed, hardest enemy to catch
 const CRAB_SEABED_FACTOR     = 0.85;  // canvas-height fraction for spawn Y (seabed)
 const OCTOPUS_SPAWN_Y_FACTOR = 0.65;  // canvas-height fraction for spawn Y (mid-deep)
 const CRAB_REWARD_GLOW_COLOR = 'rgba(255, 215, 0, 0.95)';
@@ -44,53 +36,14 @@ const CRAB_REWARD_GLOW_PULSE_SPEED = 0.22;
 const CRAB_REWARD_GLOW_ALPHA_MIN = 0.78;
 const CRAB_REWARD_GLOW_ALPHA_MAX = 1.0;
 
-const LION_FISH_FRAME_WIDTH  = 452;  // px - spritesheet cell width (die-frame dimensions, used as canonical)
-const LION_FISH_FRAME_HEIGHT = 437;  // px - spritesheet cell height
-const LION_FISH_MAX_FRAME_X  = 10;   // 10 frames per row (guard is < maxFrameX-1, so frames 0-9)
-const LION_FISH_DIE_FRAME_Y  = 1;    // row 0 = move, row 1 = die (captured animation)
-const LION_FISH_DRIFT_SPEED  = 2.0;  // px/tick - mid-water, between butterfly (1.5) and crab (4.0)
-
-const HAMMERHEAD_SHARK_FRAME_WIDTH  = 798;  // px - die-frame width = canonical cell horizontal stride
-const HAMMERHEAD_SHARK_FRAME_HEIGHT = 463;  // px - die-frame height = canonical cell vertical stride
-const HAMMERHEAD_SHARK_MAX_FRAME_X  = 10;   // 10 frames per row (guard < maxFrameX-1, frames 0-9)
-const HAMMERHEAD_SHARK_DIE_FRAME_Y  = 1;    // row 0 = move, row 1 = die (captured animation)
-const HAMMERHEAD_SHARK_DRIFT_SPEED  = 3.5;  // px/tick - between lionfish 2.0 and swordfish 4.5
-
-const SHARK_FRAME_WIDTH  = 1060;  // px - canonical cell width (die-frame natural width)
-const SHARK_FRAME_HEIGHT = 512;   // px - canonical cell height (die-frame natural height)
-const SHARK_MAX_FRAME_X  = 10;    // 10 frames per row
-const SHARK_DIE_FRAME_Y  = 1;     // row 0 = move, row 1 = die
-const SHARK_DRIFT_SPEED  = 4.0;   // px/tick - same tier as tuna, above hammerhead (3.5)
-
-const SWORDFISH_FRAME_WIDTH  = 1033;  // px - canonical cell horizontal stride
-const SWORDFISH_FRAME_HEIGHT = 416;   // px - canonical cell vertical stride (rest-frame height)
-const SWORDFISH_MAX_FRAME_X  = 16;    // 16 frames per row
-const SWORDFISH_DIE_FRAME_Y  = 1;     // row 0 = swim, row 1 = rest (captured animation)
-const SWORDFISH_DRIFT_SPEED  = 4.5;   // px/tick - genuinely fastest fish (above crab 4.0)
-
-const TUNA_FRAME_WIDTH   = 512;   // px - canonical cell horizontal stride
-const TUNA_FRAME_HEIGHT  = 300;   // px - canonical cell vertical stride
-const TUNA_MAX_FRAME_X   = 8;     // 8 frames per row (swim + rest both padded to 8)
-const TUNA_DIE_FRAME_Y   = 1;     // row 0 = swim, row 1 = rest (captured animation)
-const TUNA_DRIFT_SPEED   = 4.0;   // px/tick - fast but below SwordFish (4.5)
-
-const CLOWN_FISH_FRAME_WIDTH  = 342;  // px - canonical cell width (die-frame natural size)
-const CLOWN_FISH_FRAME_HEIGHT = 321;  // px - canonical cell height
-const CLOWN_FISH_MAX_FRAME_X  = 10;   // 10 move frames per row
-const CLOWN_FISH_DIE_FRAME_Y  = 1;    // row 0 = move, row 1 = die
-const CLOWN_FISH_DRIFT_SPEED  = 1.5;  // px/tick - same tier as ButterflyFish (easy)
-
-const JELLY_FISH_FRAME_WIDTH  = 221;  // px - canonical cell width (die-frame natural size)
-const JELLY_FISH_FRAME_HEIGHT = 294;  // px - canonical cell height
-const JELLY_FISH_MAX_FRAME_X  = 10;   // 10 move frames per row
-const JELLY_FISH_DIE_FRAME_Y  = 1;    // row 0 = move, row 1 = die
-const JELLY_FISH_DRIFT_SPEED  = 0.8;  // px/tick - slow drift (jellyfish float)
-
-const PUFFER_FISH_FRAME_WIDTH  = 358;  // px - canonical cell width (die-frame natural width)
-const PUFFER_FISH_FRAME_HEIGHT = 305;  // px - canonical cell height (die-frame natural height)
-const PUFFER_FISH_MAX_FRAME_X  = 10;   // 10 frames per row
-const PUFFER_FISH_DIE_FRAME_Y  = 1;    // row 0 = attack/swim (padded), row 1 = die
-const PUFFER_FISH_DRIFT_SPEED  = 1.5;  // px/tick - same tier as ClownFish (easy drift)
+const LION_FISH_DRIFT_SPEED      = 2.0;  // px/tick
+const HAMMERHEAD_SHARK_DRIFT_SPEED = 3.5;  // px/tick
+const SHARK_DRIFT_SPEED          = 4.0;  // px/tick
+const SWORDFISH_DRIFT_SPEED      = 4.5;  // px/tick
+const TUNA_DRIFT_SPEED           = 4.0;  // px/tick
+const CLOWN_FISH_DRIFT_SPEED     = 1.5;  // px/tick
+const JELLY_FISH_DRIFT_SPEED     = 0.8;  // px/tick
+const PUFFER_FISH_DRIFT_SPEED    = 1.5;  // px/tick
 
 const PLAYER_ANIM_STAGGER      = 5;   // ticks per sprite frame (boat idle/cast)
 const PLAYER_CATCH_MAX_FRAME_X = 3;   // 0-indexed: 4 columns in catch spritesheet
@@ -209,10 +162,18 @@ const FISH_LANES = {
   [FISH_LANE_BOTTOM]:  { yMin: 0.82, yMax: 0.95, direction: FISH_TRAFFIC_DIRECTION_RIGHT, spawnInterval: 270 },
 };
 
+// Single source of truth for all per-species data (gameplay + render geometry).
+// EnemyFactory reads domId/display*/frame*/maxFrame*/dieFrame*/maxFrames to build specs.
+// FishSpawner reads id/lanes/rarity/score/strength/escapeRate/speed*/spawnWeight/spawnFrequency.
 const FISH_DEFINITIONS = [
   {
     id: ENEMY_TYPE_CLOWN_FISH,
     className: FISH_CLASS_CLOWN_FISH,
+    domId: 'clown_fish_sprite',
+    displayH: 114,  displayW: 107,
+    frameH: 321,    frameW: 342,
+    maxFrameX: 10,  maxFrameY: 1,
+    dieFrameX: 0,   dieFrameY: 1,
     rarity: FISH_RARITY_COMMON,
     lanes: [FISH_LANE_SURFACE, FISH_LANE_UPPER, FISH_LANE_MIDDLE],
     score: 5,
@@ -227,6 +188,11 @@ const FISH_DEFINITIONS = [
   {
     id: ENEMY_TYPE_JELLY_FISH,
     className: FISH_CLASS_JELLY_FISH,
+    domId: 'jelly_fish_sprite',
+    displayH: 106,  displayW: 80,
+    frameH: 294,    frameW: 221,
+    maxFrameX: 10,  maxFrameY: 1,
+    dieFrameX: 0,   dieFrameY: 1,
     rarity: FISH_RARITY_COMMON,
     lanes: [FISH_LANE_SURFACE, FISH_LANE_UPPER, FISH_LANE_MIDDLE],
     score: -25,
@@ -241,6 +207,11 @@ const FISH_DEFINITIONS = [
   {
     id: ENEMY_TYPE_BUTTERFLY_FISH,
     className: FISH_CLASS_BUTTERFLY_FISH,
+    domId: 'butterfly_fish_sprite',
+    displayH: 82,  displayW: 100,
+    frameH: 82,    frameW: 100,
+    maxFrameX: 10, maxFrameY: 1,
+    dieFrameX: 0,  dieFrameY: 0,   // die frame on swim row (no separate die row)
     rarity: FISH_RARITY_COMMON,
     lanes: [FISH_LANE_SURFACE, FISH_LANE_UPPER, FISH_LANE_MIDDLE],
     score: 10,
@@ -255,6 +226,9 @@ const FISH_DEFINITIONS = [
   {
     id: ENEMY_TYPE_RED_APPLE,
     className: FISH_CLASS_RED_APPLE,
+    domId: 'red_apple_sprite',
+    displayH: 60,  displayW: 35,
+    maxFrames: 1,
     rarity: FISH_RARITY_COMMON,
     lanes: [FISH_LANE_SURFACE, FISH_LANE_BOTTOM],
     score: -5,
@@ -269,6 +243,9 @@ const FISH_DEFINITIONS = [
   {
     id: ENEMY_TYPE_DISCARDED_BOTTLE,
     className: FISH_CLASS_DISCARDED_BOTTLE,
+    domId: 'bottle_1_sprite',
+    displayH: 92,  displayW: 76,
+    maxFrames: 10,
     rarity: FISH_RARITY_COMMON,
     lanes: [FISH_LANE_SURFACE, FISH_LANE_UPPER, FISH_LANE_MIDDLE, FISH_LANE_BOTTOM],
     score: -5,
@@ -283,6 +260,9 @@ const FISH_DEFINITIONS = [
   {
     id: ENEMY_TYPE_FISH_BONE,
     className: FISH_CLASS_FISH_BONE,
+    domId: 'fish_bone_sprite',
+    displayH: 40,  displayW: 100,
+    maxFrames: 2,
     rarity: FISH_RARITY_COMMON,
     lanes: [FISH_LANE_SURFACE, FISH_LANE_UPPER],
     score: -5,
@@ -297,6 +277,9 @@ const FISH_DEFINITIONS = [
   {
     id: ENEMY_TYPE_WHEEL,
     className: FISH_CLASS_WHEEL,
+    domId: 'wheel_sprite',
+    displayH: 76,  displayW: 84,
+    maxFrames: 1,
     rarity: FISH_RARITY_COMMON,
     lanes: [FISH_LANE_SURFACE, FISH_LANE_BOTTOM],
     score: -5,
@@ -311,6 +294,9 @@ const FISH_DEFINITIONS = [
   {
     id: ENEMY_TYPE_SHOE,
     className: FISH_CLASS_SHOE,
+    domId: 'shoe_sprite',
+    displayH: 55,  displayW: 84,
+    maxFrames: 1,
     rarity: FISH_RARITY_COMMON,
     lanes: [FISH_LANE_SURFACE, FISH_LANE_BOTTOM],
     score: -5,
@@ -325,6 +311,11 @@ const FISH_DEFINITIONS = [
   {
     id: ENEMY_TYPE_PUFFER_FISH,
     className: FISH_CLASS_PUFFER_FISH,
+    domId: 'puffer_fish_sprite',
+    displayH: 152,  displayW: 179,
+    frameH: 305,    frameW: 358,
+    maxFrameX: 10,  maxFrameY: 1,
+    dieFrameX: 0,   dieFrameY: 1,
     rarity: FISH_RARITY_UNCOMMON,
     lanes: [FISH_LANE_SURFACE, FISH_LANE_UPPER, FISH_LANE_MIDDLE],
     score: 25,
@@ -339,6 +330,11 @@ const FISH_DEFINITIONS = [
   {
     id: ENEMY_TYPE_CRAB,
     className: FISH_CLASS_CRAB,
+    domId: 'crab_sprite',
+    displayH: 98,   displayW: 204,
+    frameH: 197,    frameW: 408,
+    maxFrameX: 10,  maxFrameY: 1,
+    dieFrameX: 0,   dieFrameY: 1,
     rarity: FISH_RARITY_UNCOMMON,
     lanes: [FISH_LANE_BOTTOM],
     score: 1000,
@@ -354,6 +350,11 @@ const FISH_DEFINITIONS = [
   {
     id: ENEMY_TYPE_LION_FISH,
     className: FISH_CLASS_LION_FISH,
+    domId: 'lion_fish_sprite',
+    displayH: 124,  displayW: 124,
+    frameH: 437,    frameW: 452,
+    maxFrameX: 10,  maxFrameY: 1,
+    dieFrameX: 0,   dieFrameY: 1,
     rarity: FISH_RARITY_UNCOMMON,
     lanes: [FISH_LANE_UPPER, FISH_LANE_MIDDLE, FISH_LANE_DEEP],
     score: 15,
@@ -368,6 +369,11 @@ const FISH_DEFINITIONS = [
   {
     id: ENEMY_TYPE_TUNA,
     className: FISH_CLASS_TUNA,
+    domId: 'tuna_sprite',
+    displayH: 225,  displayW: 384,
+    frameH: 300,    frameW: 512,
+    maxFrameX: 8,   maxFrameY: 1,
+    dieFrameX: 0,   dieFrameY: 1,
     rarity: FISH_RARITY_UNCOMMON,
     lanes: [FISH_LANE_MIDDLE, FISH_LANE_DEEP],
     score: 250,
@@ -382,6 +388,11 @@ const FISH_DEFINITIONS = [
   {
     id: ENEMY_TYPE_OCTOPUS,
     className: FISH_CLASS_OCTOPUS,
+    domId: 'octopus_sprite',
+    displayH: 244.75,  displayW: 198.75,
+    frameH: 489.5,     frameW: 397.5,
+    maxFrameX: 4,      maxFrameY: 4,
+    dieFrameX: 1,      dieFrameY: 1,
     rarity: FISH_RARITY_RARE,
     lanes: [FISH_LANE_DEEP, FISH_LANE_BOTTOM],
     score: 100,
@@ -396,6 +407,11 @@ const FISH_DEFINITIONS = [
   {
     id: ENEMY_TYPE_SWORDFISH,
     className: FISH_CLASS_SWORDFISH,
+    domId: 'swordfish_sprite',
+    displayH: 187.5,  displayW: 465,
+    frameH: 416,      frameW: 1033,
+    maxFrameX: 16,    maxFrameY: 1,
+    dieFrameX: 0,     dieFrameY: 1,
     rarity: FISH_RARITY_RARE,
     lanes: [FISH_LANE_DEEP, FISH_LANE_BOTTOM],
     score: 150,
@@ -410,6 +426,11 @@ const FISH_DEFINITIONS = [
   {
     id: ENEMY_TYPE_SHARK,
     className: FISH_CLASS_SHARK,
+    domId: 'shark_sprite',
+    displayH: 256,  displayW: 530,
+    frameH: 512,    frameW: 1060,
+    maxFrameX: 10,  maxFrameY: 1,
+    dieFrameX: 0,   dieFrameY: 1,
     rarity: FISH_RARITY_EPIC,
     lanes: [FISH_LANE_BOTTOM],
     score: 500,
@@ -424,6 +445,11 @@ const FISH_DEFINITIONS = [
   {
     id: ENEMY_TYPE_HAMMERHEAD_SHARK,
     className: FISH_CLASS_HAMMERHEAD_SHARK,
+    domId: 'hammerhead_shark_sprite',
+    displayH: 348,  displayW: 600,
+    frameH: 463,    frameW: 798,
+    maxFrameX: 10,  maxFrameY: 1,
+    dieFrameX: 0,   dieFrameY: 1,
     rarity: FISH_RARITY_LEGENDARY,
     lanes: [FISH_LANE_BOTTOM],
     score: 700,
@@ -541,27 +567,14 @@ if (typeof module !== 'undefined' && module.exports) {
     HOOK_PIVOT_X_OFFSET, HOOK_PIVOT_Y_FACTOR, HOOK_CAST_PIVOT_X_OFFSET, HOOK_CAST_PIVOT_Y_FACTOR,
     HOOK_REST_LENGTH, HOOK_MAX_SWING_ANGLE, HOOK_SWING_SPEED, HOOK_CAST_SPEED,
     HOOK_REEL_SPEED, HOOK_CATCH_REEL_SPEED, HOOK_MAX_DEPTH_FACTOR,
-    WATER_SURFACE_Y, FISH_FRAME_WIDTH, FISH_FRAME_HEIGHT, FISH_MAX_FRAME_X,
-    CRAB_FRAME_WIDTH, CRAB_FRAME_HEIGHT, CRAB_MAX_FRAME_X, CRAB_MAX_FRAME_Y,
-    CRAB_DIE_FRAME_Y, CRAB_DRIFT_SPEED, CRAB_SEABED_FACTOR, OCTOPUS_SPAWN_Y_FACTOR,
+    WATER_SURFACE_Y,
+    CRAB_DRIFT_SPEED, CRAB_SEABED_FACTOR, OCTOPUS_SPAWN_Y_FACTOR,
     CRAB_REWARD_GLOW_COLOR,
     CRAB_REWARD_GLOW_SHADOW_BLUR_MIN, CRAB_REWARD_GLOW_SHADOW_BLUR_MAX,
     CRAB_REWARD_GLOW_PULSE_SPEED, CRAB_REWARD_GLOW_ALPHA_MIN, CRAB_REWARD_GLOW_ALPHA_MAX,
-    LION_FISH_FRAME_WIDTH, LION_FISH_FRAME_HEIGHT, LION_FISH_MAX_FRAME_X,
-    LION_FISH_DIE_FRAME_Y, LION_FISH_DRIFT_SPEED,
-    HAMMERHEAD_SHARK_FRAME_WIDTH, HAMMERHEAD_SHARK_FRAME_HEIGHT, HAMMERHEAD_SHARK_MAX_FRAME_X,
-    HAMMERHEAD_SHARK_DIE_FRAME_Y, HAMMERHEAD_SHARK_DRIFT_SPEED,
-    SHARK_FRAME_WIDTH, SHARK_FRAME_HEIGHT, SHARK_MAX_FRAME_X, SHARK_DIE_FRAME_Y, SHARK_DRIFT_SPEED,
-    SWORDFISH_FRAME_WIDTH, SWORDFISH_FRAME_HEIGHT, SWORDFISH_MAX_FRAME_X,
-    SWORDFISH_DIE_FRAME_Y, SWORDFISH_DRIFT_SPEED,
-    TUNA_FRAME_WIDTH, TUNA_FRAME_HEIGHT, TUNA_MAX_FRAME_X,
-    TUNA_DIE_FRAME_Y, TUNA_DRIFT_SPEED,
-    CLOWN_FISH_FRAME_WIDTH, CLOWN_FISH_FRAME_HEIGHT, CLOWN_FISH_MAX_FRAME_X,
-    CLOWN_FISH_DIE_FRAME_Y, CLOWN_FISH_DRIFT_SPEED,
-    JELLY_FISH_FRAME_WIDTH, JELLY_FISH_FRAME_HEIGHT, JELLY_FISH_MAX_FRAME_X,
-    JELLY_FISH_DIE_FRAME_Y, JELLY_FISH_DRIFT_SPEED,
-    PUFFER_FISH_FRAME_WIDTH, PUFFER_FISH_FRAME_HEIGHT, PUFFER_FISH_MAX_FRAME_X,
-    PUFFER_FISH_DIE_FRAME_Y, PUFFER_FISH_DRIFT_SPEED,
+    LION_FISH_DRIFT_SPEED, HAMMERHEAD_SHARK_DRIFT_SPEED, SHARK_DRIFT_SPEED,
+    SWORDFISH_DRIFT_SPEED, TUNA_DRIFT_SPEED, CLOWN_FISH_DRIFT_SPEED,
+    JELLY_FISH_DRIFT_SPEED, PUFFER_FISH_DRIFT_SPEED,
     PLAYER_ANIM_STAGGER, PLAYER_CATCH_MAX_FRAME_X, PLAYER_CATCH_MAX_FRAME_Y,
     PARALLAX_GAME_SPEED,
     CAPTURE_PHASE_RISING, CAPTURE_PHASE_THROWING,

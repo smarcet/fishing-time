@@ -9,7 +9,6 @@ const {
   ENEMY_TYPE_SHARK,
   ENEMY_TYPE_HAMMERHEAD_SHARK,
   GAMEPLAY_PROFILE_MOBILE,
-  HAMMERHEAD_SHARK_FRAME_WIDTH,
 } = require('../src/constants');
 
 const UNHANDLED_FACTORY_ID = 'unhandled_configured_id';
@@ -51,8 +50,9 @@ describe('EnemyFactory configured roster', () => {
 
     expect(mobileShark.getSize().getWidth()).toBeCloseTo(desktopShark.getSize().getWidth() * GAMEPLAY_PROFILE_MOBILE.spriteScale, 3);
     expect(mobileShark.getSize().getHeight()).toBeCloseTo(desktopShark.getSize().getHeight() * GAMEPLAY_PROFILE_MOBILE.spriteScale, 3);
+    const hammerheadDef = FISH_DEFINITIONS.find(d => d.id === ENEMY_TYPE_HAMMERHEAD_SHARK);
     expect(mobileButterfly._sw).toBe(100);
     expect(mobileButterfly._sh).toBe(82);
-    expect(mobileHammerhead._sw).toBe(HAMMERHEAD_SHARK_FRAME_WIDTH);
+    expect(mobileHammerhead._sw).toBe(hammerheadDef.frameW);
   });
 });
