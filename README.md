@@ -28,6 +28,110 @@ A vanilla-JS browser fishing arcade game. Steer your boat, cast the hook, and re
 
 Fish that get hooked will struggle — tap Space (or reel button) rapidly to fight them in before they escape.
 
+## Math and Design Principles
+
+Fishing Time uses arcade-style math rather than strict physical simulation. The goal is predictable game feel, readable code, and tunable difficulty.
+
+### Hook Pendulum and Casting
+
+The hook is modeled as a simplified pendulum hanging from the rod tip. Its endpoint is computed from a pivot point, rope length, and angle:
+
+```js
+endpointX = pivotX + ropeLength * Math.sin(angle)
+endpointY = pivotY + ropeLength * Math.cos(angle)
+```
+
+The angle is measured from straight down. Because canvas Y coordinates increase downward, `Math.cos(0)` places the hook directly below the pivot.
+
+While idle, the hook swings with a sine wave:
+
+```js
+angle = HOOK_MAX_SWING_ANGLE * Math.sin(swingPhase)
+```
+
+This is a harmonic approximation, not a gravity-accurate pendulum. On cast, the current angle is frozen into `_castAngle`, then the rope length grows along that fixed line until the hook reaches the depth limit (`95%` of canvas height) or catches something. This makes casting a timing mechanic: the player must fire when the pendulum points toward the intended target.
+
+### Collision Model
+
+Collisions use axis-aligned bounding boxes (AABB). The hook and each enemy are treated as rectangles, and a catch happens when those rectangles overlap while the hook is in the casting state. This is less precise than pixel-perfect collision, but it is fast, deterministic, and good enough for an arcade fishing game.
+
+### Fish Struggle Model
+
+Catchable fish have a fight specification derived from `FISH_DEFINITIONS`: `strength` and `escapeRate`. During a fight, the hook tracks escape pressure:
+
+```js
+escapeProgress += strength * escapeRate * deltaSeconds
+```
+
+If `escapeProgress` reaches `HOOK_STRUGGLE_MAX_ESCAPE` (`100`), the fish breaks free. Each reel tap lowers escape progress and shortens the rope:
+
+```js
+escapeProgress -= HOOK_STRUGGLE_REEL_POWER
+ropeLength -= HOOK_REEL_DISTANCE_PER_PRESS
+```
+
+The reel power bar displays a normalized value:
+
+```js
+power = 1 - escapeProgress / HOOK_STRUGGLE_MAX_ESCAPE
+```
+
+`power = 1` means the fish is safely under control; `power = 0` means it is about to escape.
+
+### Capture Animation
+
+Capture progress is normalized from the rope length:
+
+```js
+progress = (catchStartRopeLength - ropeLength) /
+           (catchStartRopeLength - HOOK_REST_LENGTH)
+```
+
+The animation has two phases:
+
+- **Rising:** the caught enemy rides the hook upward.
+- **Throwing:** after `78%` progress, the enemy arcs into the boat, shrinks, and fades.
+
+The throw arc is a linear interpolation toward the boat plus a sine bump:
+
+```js
+x = hookX + (targetX - hookX) * t
+y = hookY + (targetY - hookY) * t - Math.sin(t * Math.PI) * arcHeight
+```
+
+`Math.sin(t * Math.PI)` is `0` at both endpoints and `1` halfway through, which creates a smooth arcade-style arc without extra special cases.
+
+### Fish Traffic and Probability
+
+Fish do not patrol forever. They spawn offscreen, cross the playfield, leave the visible area, and despawn. `FishSpawner` controls this traffic model with:
+
+- horizontal lanes with canvas-relative Y ranges;
+- alternating lane directions;
+- per-species speed ranges;
+- weighted random selection through `spawnWeight`;
+- per-species cooldowns through `spawnFrequency`;
+- active-count caps for rare or large fish;
+- mobile-specific density and sprite scaling through gameplay profiles.
+
+For weighted spawning, each eligible species contributes its `spawnWeight` to the total. A species with weight `10` is roughly twice as likely as a species with weight `5`, assuming both are eligible and off cooldown.
+
+Depth is part of the risk/reward design. Surface and upper lanes contain common fish and trash. Deep and bottom lanes contain stronger, rarer, or more valuable species such as tuna, swordfish, shark, hammerhead shark, crab, and octopus.
+
+### Scoring and Win Condition
+
+Scores also come from `FISH_DEFINITIONS` and are mapped by enemy class. Positive catches increase score and can update the high score. Trash and hazards apply negative score. Escaped positive fish apply a partial penalty, and previously hooked fish that later leave the screen can apply a smaller evade penalty.
+
+The game is won by reaching `500` points before the `120` second timer expires. When time runs out, the final score determines whether the result is `YOU WIN!` or `GAME OVER`.
+
+### Architectural Principles
+
+- **Arcade feel over realism:** sine waves, constant speeds, rectangles, and simple normalized values keep the game responsive and easy to tune.
+- **Finite state machines:** hook and player behavior are driven by explicit states such as `IDLE`, `CAST`, `HOOKED`, `RETRIEVING_EMPTY`, and `REEL`.
+- **Configuration as source of truth:** species score, rarity, strength, escape rate, lanes, speed, cooldown, and spawn weight live in `FISH_DEFINITIONS`.
+- **Separation of responsibilities:** `Game` coordinates; `Hook` handles casting and fights; `FishSpawner` handles population; `ScoreSystem` handles scoring; `EnemyWithAnimation` owns capture rendering.
+- **Event-driven decoupling:** input, scoring, audio, reel tension, timer expiration, captures, and escapes communicate through custom events instead of direct object coupling.
+- **Responsive profiles:** desktop and mobile use different gameplay profiles for density, scaling, HUD size, waterline, and active traffic caps.
+
 ## Development
 
 **Prerequisites:** Python 3, Node.js, Yarn
