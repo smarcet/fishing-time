@@ -15,7 +15,8 @@ class Layer {
   }
 
   draw(ctx) {
+    const tileOverlap = 1;
     ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
-    ctx.drawImage(this.image, this.x + this.width, this.y, this.width, this.height);
+    ctx.drawImage(this.image, this.x + this.width - tileOverlap, this.y, this.width, this.height);
   }
 }
