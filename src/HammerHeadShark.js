@@ -17,6 +17,17 @@ class HammerHeadShark extends CatchableFish {
     return minY + rng() * (maxY - minY);
   }
 
+  static create(game, ctx, spec) {
+    return new HammerHeadShark(
+      game, ctx, spec.size,
+      new Point(
+        HammerHeadShark.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
+        HammerHeadShark.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
+      ),
+      spec.image, spec.maxFrameX, spec.maxFrameY, spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
+    );
+  }
+
   update() {
     if (this._direction === null) {
       this._direction = this._position.getX() < this._game.getSize().getWidth() / 2 ? 1 : -1;

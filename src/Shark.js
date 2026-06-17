@@ -17,6 +17,17 @@ class Shark extends CatchableFish {
     return minY + rng() * (maxY - minY);
   }
 
+  static create(game, ctx, spec) {
+    return new Shark(
+      game, ctx, spec.size,
+      new Point(
+        Shark.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
+        Shark.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
+      ),
+      spec.image, spec.maxFrameX, spec.maxFrameY, spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
+    );
+  }
+
   update() {
     if (this._direction === null) {
       this._direction = this._position.getX() < this._game.getSize().getWidth() / 2 ? 1 : -1;

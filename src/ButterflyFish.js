@@ -16,6 +16,17 @@ class ButterflyFish extends CatchableFish {
     return minY + rng() * (maxY - minY);
   }
 
+  static create(game, ctx, spec) {
+    return new ButterflyFish(
+      game, ctx, spec.size,
+      new Point(
+        ButterflyFish.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
+        ButterflyFish.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
+      ),
+      spec.image, spec.maxFrameX, spec.maxFrameY, spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
+    );
+  }
+
   update() {
     if (this._direction === null) {
       this._direction = this._position.getX() < this._game.getSize().getWidth() / 2 ? 1 : -1;

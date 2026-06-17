@@ -11,6 +11,14 @@ class Crab extends CatchableFish {
     this._escapeRate = FISH_SPECS['crab'].escape_rate;
   }
 
+  static create(game, ctx, spec) {
+    return new Crab(
+      game, ctx, spec.size,
+      new Point(0, game.getSize().getHeight() * CRAB_SEABED_FACTOR),
+      spec.image, spec.maxFrameX, spec.maxFrameY, spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
+    );
+  }
+
   _drawCapturedSprite(dx, dy, w, h) {
     const sw = this._sw;
     const sh = this._sh;

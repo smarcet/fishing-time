@@ -59,8 +59,6 @@ const OCTOPUS_MAX_FRAME_X    = 4;
 const OCTOPUS_MAX_FRAME_Y    = 4;
 const OCTOPUS_DIE_FRAME_X    = 1;
 const OCTOPUS_DIE_FRAME_Y    = 1;
-const OCTOPUS_SPAWN_Y_FACTOR = 0.65;  // vertical spawn position as a fraction of canvas height
-
 // Display sizes - only used by EnemyFactory when constructing enemy instances.
 // Sprite frame dimensions for these enemies live in constants.js (LION_FISH_FRAME_*, etc.)
 const CRAB_DISPLAY_H             = 98;
@@ -211,6 +209,24 @@ class EnemyFactory {
       dieFrameX: SPRITE_DIE_FRAME_X,
       dieFrameY: PUFFER_FISH_DIE_FRAME_Y,
     };
+    this._registry = {
+      [ENEMY_TYPE_BUTTERFLY_FISH]:   ButterflyFish,
+      [ENEMY_TYPE_CLOWN_FISH]:       ClownFish,
+      [ENEMY_TYPE_JELLY_FISH]:       JellyFish,
+      [ENEMY_TYPE_PUFFER_FISH]:      PufferFish,
+      [ENEMY_TYPE_LION_FISH]:        LionFish,
+      [ENEMY_TYPE_CRAB]:             Crab,
+      [ENEMY_TYPE_OCTOPUS]:          Octopus,
+      [ENEMY_TYPE_SHARK]:            Shark,
+      [ENEMY_TYPE_HAMMERHEAD_SHARK]: HammerHeadShark,
+      [ENEMY_TYPE_SWORDFISH]:        SwordFish,
+      [ENEMY_TYPE_TUNA]:             Tuna,
+      [ENEMY_TYPE_DISCARDED_BOTTLE]: DiscardedBottle,
+      [ENEMY_TYPE_RED_APPLE]:        RedApple,
+      [ENEMY_TYPE_WHEEL]:            Wheel,
+      [ENEMY_TYPE_SHOE]:             Shoe,
+      [ENEMY_TYPE_FISH_BONE]:        FishBone,
+    };
     this._applyProfileScale();
   }
 
@@ -234,173 +250,9 @@ class EnemyFactory {
 
   createEnemy(name, game, ctx) {
     const spec = this.specs[name];
-    if (!spec) return null;
-    if (name === ENEMY_TYPE_BUTTERFLY_FISH) {
-      return new ButterflyFish(
-        game, ctx, spec.size,
-        new Point(
-          ButterflyFish.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
-          ButterflyFish.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
-        ),
-        spec.image, spec.maxFrameX, spec.maxFrameY, spec.dieFrameX, spec.dieFrameY
-        , spec.spriteFrameSize
-      );
-    }
-    if (name === ENEMY_TYPE_DISCARDED_BOTTLE) {
-      return new DiscardedBottle(
-        game, ctx, spec.size,
-          new Point(
-              Enemy.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
-              WATER_SURFACE_Y
-          ),
-        spec.image, spec.maxFrames
-      );
-    }
-    if (name === ENEMY_TYPE_RED_APPLE) {
-      return new RedApple(
-        game, ctx, spec.size,
-          new Point(
-              Enemy.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
-              WATER_SURFACE_Y
-          ),
-        spec.image, spec.maxFrames
-      );
-    }
-    if (name === ENEMY_TYPE_WHEEL) {
-      return new Wheel(
-        game, ctx, spec.size,
-        new Point(
-            Enemy.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
-            WATER_SURFACE_Y
-        ),
-        spec.image, spec.maxFrames
-      );
-    }
-    if (name === ENEMY_TYPE_SHOE) {
-      return new Shoe(
-        game, ctx, spec.size,
-        new Point(
-            Enemy.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
-            WATER_SURFACE_Y
-        ),
-        spec.image, spec.maxFrames
-      );
-    }
-    if (name === ENEMY_TYPE_FISH_BONE) {
-      return new FishBone(
-        game, ctx, spec.size,
-        new Point(
-            Enemy.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
-            WATER_SURFACE_Y
-        ),
-        spec.image, spec.maxFrames
-      );
-    }
-    if (name === ENEMY_TYPE_CRAB) {
-      return new Crab(
-        game, ctx, spec.size,
-        new Point(0, game.getSize().getHeight() * CRAB_SEABED_FACTOR),
-        spec.image, spec.maxFrameX, spec.maxFrameY,
-        spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
-      );
-    }
-    if (name === ENEMY_TYPE_LION_FISH) {
-      return new LionFish(
-        game, ctx, spec.size,
-        new Point(
-          LionFish.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
-          LionFish.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
-        ),
-        spec.image, spec.maxFrameX, spec.maxFrameY,
-        spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
-      );
-    }
-    if (name === ENEMY_TYPE_HAMMERHEAD_SHARK) {
-      return new HammerHeadShark(
-        game, ctx, spec.size,
-        new Point(
-          HammerHeadShark.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
-          HammerHeadShark.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
-        ),
-        spec.image, spec.maxFrameX, spec.maxFrameY,
-        spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
-      );
-    }
-    if (name === ENEMY_TYPE_SWORDFISH) {
-      return new SwordFish(
-        game, ctx, spec.size,
-        new Point(
-          SwordFish.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
-          SwordFish.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
-        ),
-        spec.image, spec.maxFrameX, spec.maxFrameY,
-        spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
-      );
-    }
-    if (name === ENEMY_TYPE_TUNA) {
-      return new Tuna(
-        game, ctx, spec.size,
-        new Point(
-          Tuna.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
-          Tuna.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
-        ),
-        spec.image, spec.maxFrameX, spec.maxFrameY,
-        spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
-      );
-    }
-    if (name === ENEMY_TYPE_CLOWN_FISH) {
-      return new ClownFish(
-        game, ctx, spec.size,
-        new Point(
-          ClownFish.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
-          ClownFish.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
-        ),
-        spec.image, spec.maxFrameX, spec.maxFrameY,
-        spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
-      );
-    }
-    if (name === ENEMY_TYPE_JELLY_FISH) {
-      return new JellyFish(
-        game, ctx, spec.size,
-        new Point(
-          JellyFish.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
-          JellyFish.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
-        ),
-        spec.image, spec.maxFrameX, spec.maxFrameY,
-        spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
-      );
-    }
-    if (name === ENEMY_TYPE_SHARK) {
-      return new Shark(
-        game, ctx, spec.size,
-        new Point(
-          Shark.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
-          Shark.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
-        ),
-        spec.image, spec.maxFrameX, spec.maxFrameY,
-        spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
-      );
-    }
-    if (name === ENEMY_TYPE_PUFFER_FISH) {
-      return new PufferFish(
-        game, ctx, spec.size,
-        new Point(
-          PufferFish.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()),
-          PufferFish.randomSpawnY(game.getSize().getHeight(), spec.size.getHeight())
-        ),
-        spec.image, spec.maxFrameX, spec.maxFrameY,
-        spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
-      );
-    }
-    if (name === ENEMY_TYPE_OCTOPUS) {
-      return new Octopus(
-        game, ctx, spec.size,
-        new Point(0, game.getSize().getHeight() * OCTOPUS_SPAWN_Y_FACTOR),
-        spec.image, spec.maxFrameX, spec.maxFrameY,
-        spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
-      );
-    }
-    return null;
+    const Cls  = this._registry[name];
+    if (!spec || !Cls) return null;
+    return Cls.create(game, ctx, spec);
   }
 }
 

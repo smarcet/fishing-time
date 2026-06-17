@@ -35,7 +35,8 @@ const CRAB_MAX_FRAME_X   = 10;    // columns in spritesheet (move row)
 const CRAB_MAX_FRAME_Y   = 1;     // only cycle move row; die row accessed directly via dieFrameY
 const CRAB_DIE_FRAME_Y   = 1;     // row index for captured/die animation
 const CRAB_DRIFT_SPEED   = 4.0;   // px/tick - 2.5x fish speed, hardest enemy to catch
-const CRAB_SEABED_FACTOR = 0.85;  // canvas-height fraction for spawn Y (seabed)
+const CRAB_SEABED_FACTOR     = 0.85;  // canvas-height fraction for spawn Y (seabed)
+const OCTOPUS_SPAWN_Y_FACTOR = 0.65;  // canvas-height fraction for spawn Y (mid-deep)
 const CRAB_REWARD_GLOW_COLOR = 'rgba(255, 215, 0, 0.95)';
 const CRAB_REWARD_GLOW_SHADOW_BLUR_MIN = 32;
 const CRAB_REWARD_GLOW_SHADOW_BLUR_MAX = 90;
@@ -542,7 +543,7 @@ if (typeof module !== 'undefined' && module.exports) {
     HOOK_REEL_SPEED, HOOK_CATCH_REEL_SPEED, HOOK_MAX_DEPTH_FACTOR,
     WATER_SURFACE_Y, FISH_FRAME_WIDTH, FISH_FRAME_HEIGHT, FISH_MAX_FRAME_X,
     CRAB_FRAME_WIDTH, CRAB_FRAME_HEIGHT, CRAB_MAX_FRAME_X, CRAB_MAX_FRAME_Y,
-    CRAB_DIE_FRAME_Y, CRAB_DRIFT_SPEED, CRAB_SEABED_FACTOR,
+    CRAB_DIE_FRAME_Y, CRAB_DRIFT_SPEED, CRAB_SEABED_FACTOR, OCTOPUS_SPAWN_Y_FACTOR,
     CRAB_REWARD_GLOW_COLOR,
     CRAB_REWARD_GLOW_SHADOW_BLUR_MIN, CRAB_REWARD_GLOW_SHADOW_BLUR_MAX,
     CRAB_REWARD_GLOW_PULSE_SPEED, CRAB_REWARD_GLOW_ALPHA_MIN, CRAB_REWARD_GLOW_ALPHA_MAX,

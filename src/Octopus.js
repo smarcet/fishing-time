@@ -18,6 +18,14 @@ class Octopus extends CatchableFish {
     this._angle = 0;
   }
 
+  static create(game, ctx, spec) {
+    return new Octopus(
+      game, ctx, spec.size,
+      new Point(0, game.getSize().getHeight() * OCTOPUS_SPAWN_Y_FACTOR),
+      spec.image, spec.maxFrameX, spec.maxFrameY, spec.dieFrameX, spec.dieFrameY, spec.spriteFrameSize
+    );
+  }
+
   update() {
     super.update();
     this._bobPhase += this._bobSpeed;

@@ -13,6 +13,14 @@ class RedApple extends InertObject {
     this._angle = 0;
   }
 
+  static create(game, ctx, spec) {
+    return new RedApple(
+      game, ctx, spec.size,
+      new Point(Enemy.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()), WATER_SURFACE_Y),
+      spec.image, spec.maxFrames
+    );
+  }
+
   update() {
     super.update();
     this._bobPhase += this._bobSpeed;
