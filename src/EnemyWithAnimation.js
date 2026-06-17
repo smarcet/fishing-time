@@ -40,7 +40,8 @@ class EnemyWithAnimation extends Enemy {
   updateCaptured() {
     super.updateCaptured();
     if (this._staggerFrame <= 0) return;
-    if (++this._tick % this._staggerFrame === 0) {
+    this._tick = (this._tick + 1) % this._staggerFrame;
+    if (this._tick === 0) {
       if (this._frameX < this._maxFrameX - 1) {
         ++this._frameX;
       } else {
@@ -55,16 +56,15 @@ class EnemyWithAnimation extends Enemy {
   }
 
   update() {
-
     super.update();
-    // frames
-    if (++this._tick % this._staggerFrame === 0) {
-      if (this._frameX < this._maxFrameX -1 ) {
+    this._tick = (this._tick + 1) % this._staggerFrame;
+    if (this._tick === 0) {
+      if (this._frameX < this._maxFrameX - 1) {
         ++this._frameX;
       } else {
         this._frameX = 0;
-        if (this._frameY < this._maxFrameY -1 ) {
-          ++this._frameY
+        if (this._frameY < this._maxFrameY - 1) {
+          ++this._frameY;
         } else {
           this._frameY = 0;
         }
