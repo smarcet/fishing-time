@@ -14,6 +14,7 @@ if (typeof module !== 'undefined' && module.exports) {
   const { RedApple }           = require('./src/RedApple');           global.RedApple           = RedApple;
   const { Wheel }              = require('./src/Wheel');              global.Wheel              = Wheel;
   const { Shoe }               = require('./src/Shoe');               global.Shoe               = Shoe;
+  const { FishBone }           = require('./src/FishBone');           global.FishBone           = FishBone;
   const { Octopus }            = require('./src/Octopus');            global.Octopus            = Octopus;
   const { Crab }               = require('./src/Crab');               global.Crab               = Crab;
   const { ButterflyFish }      = require('./src/ButterflyFish');      global.ButterflyFish      = ButterflyFish;
@@ -32,5 +33,5 @@ if (typeof module !== 'undefined' && module.exports) {
   const { Hook }               = require('./src/Hook');               global.Hook               = Hook;
   const { Player }             = require('./src/Player');             global.Player             = Player;
   const { Bubble }             = require('./src/Bubble');             global.Bubble             = Bubble;
-  module.exports = { Size, Point, GameObject, Enemy, EnemyWithAnimation, CatchableFish, InertObject, DiscardedBottle, RedApple, Wheel, Shoe, Octopus, Crab, ButterflyFish, LionFish, HammerHeadShark, SwordFish, Tuna, ClownFish, JellyFish, PufferFish, Shark, ScoreSystem, SCORE_MAP, ReelPowerBar, TimerSystem, AudioSystem, Hook, Player, Bubble };
+  module.exports = { Size, Point, GameObject, Enemy, EnemyWithAnimation, CatchableFish, InertObject, DiscardedBottle, RedApple, Wheel, Shoe, FishBone, Octopus, Crab, ButterflyFish, LionFish, HammerHeadShark, SwordFish, Tuna, ClownFish, JellyFish, PufferFish, Shark, ScoreSystem, SCORE_MAP, ReelPowerBar, TimerSystem, AudioSystem, Hook, Player, Bubble };
 }
