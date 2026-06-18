@@ -727,6 +727,39 @@ describe('Hook capture poof (starburst)', () => {
     expect(hook._poofActive).toBe(false);
   });
 
+  test('_getPlayerFrontDirection returns Math.PI (left) for default player state (regression: sprite faces left)', () => {
+    const hook = makeHook(false);
+    // Default state is IDLE -- natural sprite faces left, front = left = Math.PI
+    hook._player._state = PLAYER_STATE_IDLE;
+    expect(hook._getPlayerFrontDirection()).toBeCloseTo(Math.PI, 5);
+  });
+
+  test('_getPlayerFrontDirection returns 0 (right) when player is MOVING_L (sprite mirrored to face right)', () => {
+    const hook = makeHook(false);
+    hook._player._state = PLAYER_STATE_MOVING_L;
+    expect(hook._getPlayerFrontDirection()).toBe(0);
+  });
+
+  test('_buildCaptureRewardPoof sets _poofDirAngle from player facing direction', () => {
+    const hook = makeHook(false);
+    hook._player._state = PLAYER_STATE_IDLE;
+    const target = new Point(200, 100);
+    hook._buildCaptureRewardPoof(target);
+    expect(hook._poofX).toBe(200);
+    expect(hook._poofY).toBe(100);
+    expect(hook._poofDirAngle).toBeCloseTo(Math.PI, 5);
+    expect(hook._poofActive).toBe(true);
+  });
+
+  test('_spawnCapturePoofParticles creates 35 particles', () => {
+    const hook = makeHook(false);
+    hook._poofX = 100;
+    hook._poofY = 100;
+    hook._poofDirAngle = 0;
+    hook._spawnCapturePoofParticles();
+    expect(hook._capturePoofParticles.length).toBe(35);
+  });
+
   test('entity shrinks and fades linearly across arc (regression against ADR-0030 grow+full-alpha)', () => {
     const hook = makeHook(false);
     driveToLaunch(hook);
