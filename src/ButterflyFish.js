@@ -6,8 +6,6 @@ class ButterflyFish extends CatchableFish {
     this._sw = this._spriteFrameSize.getWidth();
     this._sh = this._spriteFrameSize.getHeight();
     this._staggerFrame = ANIM_STAGGER_SLOW;
-    this._strength   = FISH_SPECS['butterfly_fish'].strength;
-    this._escapeRate = FISH_SPECS['butterfly_fish'].escape_rate;
   }
 
   static randomSpawnY(canvasHeight, fishHeight, rng = Math.random) {

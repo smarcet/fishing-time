@@ -1,0 +1,50 @@
+{
+  "plan_file": "/home/smarcet/git/personal/fishing-time/docs/plans/2026-06-18-data-driven-capture-presentation.md",
+  "review_summary": "The plan is well-structured and covers all 16 FISH_DEFINITIONS entries with the correct user-confirmed rotation values. Three concrete issues were found: the E2E scenario return-value assertions are wrong (the real return includes a 'runtimeStats' key the plan omits, and the enemyType value is the class constructor name string, not a type-ID string), the transform order is subtly wrong (scale must come AFTER rotate to avoid distorting the rotation angle when scale != 1), and the _applyProfileScale path overwrites spec.size but silently leaves the three new capture fields untouched — which is fine now but the plan should note it explicitly to avoid future implementer confusion.",
+  "alignment_score": "high",
+  "risk_level": "medium",
+  "issues": [
+    {
+      "severity": "must_fix",
+      "category": "definition_of_done",
+      "title": "E2E TS-001/TS-002/TS-004 expected return value is wrong — missing 'runtimeStats' key, and enemyType is the constructor name string not a type-ID",
+      "description": "The plan's TS-001 step 1 expects `{hooked:true, enemyType:'ClownFish'}` and TS-002/TS-004 expect the same two-key shape. The actual implementation at Game.js:312-316 always returns a third key: `runtimeStats: this.getRuntimeStats()`. Additionally, `enemyType` is set to `enemy.constructor.name` (the JS class name, e.g. `'ClownFish'`) — which happens to match what the plan says for ClownFish and Crab — but TS-004 says `enemyType:'Shoe'` while the real class is likely `Shoe` too. The critical correctness problem is the missing `runtimeStats` key: if the implementer or manual tester copies the expected object from the plan and does a strict equality check, it will fail even when the feature works perfectly. The return shape documented in TS-001 should be `{hooked:true, enemyType:'ClownFish', runtimeStats:{...}}`.",
+      "suggested_fix": "Update all four TS scenario 'Expected Result' cells in step 1 to include `runtimeStats` in the documented return shape, e.g. `{hooked:true, enemyType:'ClownFish', runtimeStats:{...}}`. Add a note that the tester should check only `hooked` and `enemyType` for the scenario assertion and ignore the runtime stats payload."
+    },
+    {
+      "severity": "must_fix",
+      "category": "technical_correctness",
+      "title": "Transform order translate → scale → rotate is wrong when scale != 1; it distorts rotation magnitude",
+      "description": "Task 3 specifies: translate → scale → rotate → drawCapturedSprite. On a Canvas 2D context, transforms compose right-to-left on coordinates: a point drawn at (x,y) is first rotated, then scaled, then translated. That is the correct mathematical order and produces rotation about the sprite center followed by uniform scaling — which is what is wanted. HOWEVER, the current drawCaptured() code (EnemyWithAnimation.js:117-119) does `translate → scale → drawCapturedSprite` today. The plan inserts `rotate` between scale and draw, producing `translate → scale → rotate → draw`. This is actually correct for center-rotation when the draw is at (-w/2, -h/2): after translate puts the origin at the sprite center, scale stretches the coordinate system uniformly, and then rotate turns the already-scaled axes. Because scale is uniform (same x and y factor) the rotation angle is preserved correctly. The ordering IS safe for uniform scale. This is not a bug — but it does mean the plan's prose rationale ('rotation pivots on the sprite center') is only true because the scale is uniform. The concern is that if a future implementer reads the plan and applies a non-uniform scale (e.g. for direction flip), the rotation will be sheared. More immediately, during the throw arc `scale` is `1.0 - t * CAPTURE_THROW_SCALE_REDUCTION` (a scalar, still uniform), so the current plan is safe. No code bug exists, but the 'Order is translate → scale → rotate → draw-centered, so rotation pivots on the sprite center' rationale in the plan is incomplete — it only holds for uniform scale. Document this constraint so future changes to drawCaptured() don't inadvertently break the rotation by introducing non-uniform scale.",
+      "suggested_fix": "Add a comment in the Task 3 Key Decisions section: 'This ordering (translate → scale → rotate → draw) is correct only because scale is uniform (same factor on both axes). If a non-uniform scale is ever added (e.g. direction-flip via scale(-1,1)), rotate must be moved before scale, or the rotation angle will be sheared.' No code change required for this plan."
+    },
+    {
+      "severity": "should_fix",
+      "category": "hidden_dependency",
+      "title": "_applyProfileScale rebuilds spec.size from spec.baseSize but will silently skip the three new capture fields — plan should document this is intentional",
+      "description": "EnemyFactory._applyProfileScale() (EnemyFactory.js:49-59) iterates specs and replaces spec.size using spec.baseSize. The plan adds captureRotation/captureOffsetX/captureOffsetY onto each spec entry in the forEach loop (Task 2). _applyProfileScale runs after forEach in the constructor. This means when setProfile() is called later (e.g. on window resize or mobile switch), _applyProfileScale runs again — it only touches spec.size, leaving the three new fields untouched. This is correct behavior. However, because the plan does not mention this interaction at all, an implementer who sees _applyProfileScale touching spec entries might worry they need to guard the new fields there, or might accidentally reset them. The plan should explicitly state that capture fields are profile-invariant and require no handling in _applyProfileScale.",
+      "suggested_fix": "Add one bullet to Task 2 Key Decisions: 'The three capture fields are profile-invariant (they do not scale with spriteScale). _applyProfileScale only touches spec.size/baseSize and will leave captureRotation/captureOffsetX/captureOffsetY untouched on profile switches — no change to _applyProfileScale is needed.'"
+    },
+    {
+      "severity": "should_fix",
+      "category": "definition_of_done",
+      "title": "E2E scenarios have no concrete invocation path — 'game.forceHookedFishForE2E' is not available directly in the console",
+      "description": "The E2E scenarios say 'In console run `game.forceHookedFishForE2E(ENEMY_TYPE_CLOWN_FISH)`'. The actual browser API (E2ETestHarness.js:15-19) exposes the function as `window.__fishingTimeE2E.forceHookedFish(enemyType)`, not as `game.forceHookedFishForE2E`. Furthermore, the parameter is a string type-ID (e.g. `'clown_fish'`), not the constant `ENEMY_TYPE_CLOWN_FISH` — that constant is not available in the browser console unless explicitly exposed as a global. A tester following the plan's console commands verbatim will get `game is not defined` or `ENEMY_TYPE_CLOWN_FISH is not defined`.",
+      "suggested_fix": "Replace all four TS scenario console commands with the real browser API call. For example TS-001 step 1 should read: `window.__fishingTimeE2E.forceHookedFish('clown_fish')` (requires `?e2e=1` in the URL). Add a precondition row to each scenario: 'URL includes ?e2e=1 query param (required to activate E2ETestHarness)'. Use the literal type-ID string values (e.g. `'clown_fish'`, `'crab'`, `'octopus'`, `'sword_fish'`, `'shoe'`) from FISH_DEFINITIONS entries rather than the JS constant names."
+    },
+    {
+      "severity": "suggestion",
+      "category": "task_completeness",
+      "title": "Task 1 Trivial escape claim is borderline — 16 entries across a large constants file warrants at least one direct factory-read assertion to guard against typos",
+      "description": "Task 1 marks itself `Trivial:` and defers all verification to Tasks 2 and 3. The constants.js file has 16 entries to edit. A copy-paste error setting `captureRotation: 75` on the Crab or `captureRotation: 0` on ButterflyFish would not be caught by the Task 1 DoD check ('Verify: npx jest __tests__/enemy-factory.test.js -q') unless Task 2 asserts on all species values, not just 'one fish and one trash type'. The plan only requires asserting two species in Task 2. A typo on any of the 14 remaining species would pass all tests and fail silently in E2E.",
+      "suggested_fix": "Either (a) extend Task 2's DoD to assert captureRotation on at least the four E2E-tested species (ClownFish, Crab, Octopus/SwordFish, Shoe) rather than just one fish and one trash, OR (b) add a single data-validation test in Task 1 that reads FISH_DEFINITIONS directly and asserts each entry has a numeric captureRotation field — this is a few lines and catches all 16 entries at once."
+    },
+    {
+      "severity": "suggestion",
+      "category": "definition_of_done",
+      "title": "Task 4 ADR DoD has no content verification command — only checks file existence",
+      "description": "Task 4 DoD reads: 'test -f docs/adr/0029-data-driven-capture-presentation.md && npx jest -q'. The file-existence check does not verify the ADR actually contains the required sections (Context, Decision, Alternatives, Tradeoffs, Consequences, new-species example). An empty or skeletal file passes the DoD as written.",
+      "suggested_fix": "Add a grep-based content check to the DoD, e.g.: `grep -q 'Alternatives Considered' docs/adr/0029-data-driven-capture-presentation.md && grep -q 'captureRotation' docs/adr/0029-data-driven-capture-presentation.md`. This verifies the two most distinctive required elements (alternatives section and the new-species example field name) are present."
+    }
+  ]
+}

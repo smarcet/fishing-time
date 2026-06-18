@@ -84,7 +84,7 @@ describe('EnemyFactory capture presentation fields', () => {
     expect(shoe._captureOffsetY).toBe(0);
   });
 
-  test('sets struggle properties from FISH_DEFINITIONS on created entities', () => {
+  test('sets struggle and fight properties from FISH_DEFINITIONS on created entities', () => {
     const factory = new EnemyFactory();
     const game = makeGame();
 
@@ -92,5 +92,7 @@ describe('EnemyFactory capture presentation fields', () => {
     expect(clown._struggleSpeed).toBe(0.15);
     expect(clown._struggleRotationAmplitude).toBe(8);
     expect(clown._struggleOffsetAmplitude).toBe(3);
+    expect(clown._strength).toBe(5);
+    expect(clown._escapeRate).toBe(1.2);
   });
 });

@@ -7,8 +7,6 @@ class PufferFish extends CatchableFish {
     this._sh = this._spriteFrameSize.getHeight();
     this._staggerFrame = ANIM_STAGGER_SLOW;
     this._driftSpeed   = PUFFER_FISH_DRIFT_SPEED;
-    this._strength     = FISH_SPECS['puffer_fish'].strength;
-    this._escapeRate   = FISH_SPECS['puffer_fish'].escape_rate;
   }
 
   static randomSpawnY(canvasHeight, fishHeight, rng = Math.random) {

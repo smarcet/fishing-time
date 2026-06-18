@@ -7,8 +7,6 @@ class Crab extends CatchableFish {
     this._sh = this._spriteFrameSize.getHeight();
     this._staggerFrame = ANIM_STAGGER_SLOW;
     this._driftSpeed = CRAB_DRIFT_SPEED;
-    this._strength   = FISH_SPECS['crab'].strength;
-    this._escapeRate = FISH_SPECS['crab'].escape_rate;
   }
 
   static create(game, ctx, spec) {

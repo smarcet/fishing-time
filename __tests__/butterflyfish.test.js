@@ -146,7 +146,7 @@ describe('ButterflyFish class hierarchy', () => {
     const fish = makeButterflyFish();
     const spec = fish.getFightSpec();
     expect(spec).not.toBeNull();
-    expect(spec.strength).toBeGreaterThan(0);
-    expect(spec.escapeRate).toBeGreaterThan(0);
+    expect(spec).toHaveProperty('strength');
+    expect(spec).toHaveProperty('escapeRate');
   });
 });

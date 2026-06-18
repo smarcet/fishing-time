@@ -36,6 +36,8 @@ class EnemyFactory {
         entry.maxFrameY = def.maxFrameY;
         entry.dieFrameX = def.dieFrameX;
         entry.dieFrameY = def.dieFrameY;
+        entry.strength   = def.strength;
+        entry.escapeRate = def.escapeRate;
       }
       entry.captureRotation           = def.captureRotation;
       entry.captureOffsetX            = def.captureOffsetX;
@@ -78,6 +80,10 @@ class EnemyFactory {
       enemy._struggleSpeed             = spec.struggleSpeed ?? 0;
       enemy._struggleRotationAmplitude = spec.struggleRotationAmplitude ?? 0;
       enemy._struggleOffsetAmplitude   = spec.struggleOffsetAmplitude ?? 0;
+      if (enemy instanceof CatchableFish) {
+        enemy._strength   = spec.strength;
+        enemy._escapeRate = spec.escapeRate;
+      }
     }
     return enemy;
   }

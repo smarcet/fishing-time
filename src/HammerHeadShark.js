@@ -7,8 +7,6 @@ class HammerHeadShark extends CatchableFish {
     this._sh = this._spriteFrameSize.getHeight();  // 463
     this._staggerFrame = ANIM_STAGGER_SLOW;
     this._driftSpeed   = HAMMERHEAD_SHARK_DRIFT_SPEED;
-    this._strength     = FISH_SPECS['hammerhead_shark'].strength;
-    this._escapeRate   = FISH_SPECS['hammerhead_shark'].escape_rate;
   }
 
   static randomSpawnY(canvasHeight, fishHeight, rng = Math.random) {

@@ -64,9 +64,6 @@ const HOOK_REEL_DISTANCE_PER_PRESS  = 15;    // rope shrink (px) per Space press
 const STRUGGLE_DANGER_FACTOR        = 2.0;   // amplitude multiplier per unit escape danger - TUNE
 const STRUGGLE_DANGER_SPEED_FACTOR  = 2.0;   // frequency multiplier per unit escape danger - TUNE
 
-// Fish species lookup: strength * escape_rate * dt_sec = progress per second.
-let FISH_SPECS = {};
-
 // Game event names
 const EVENT_ENEMY_CAPTURED   = 'enemyCaptured';
 const EVENT_ENEMY_ESCAPED    = 'enemyEscaped';
@@ -557,17 +554,6 @@ const FISH_DEFINITIONS = [
   },
 ];
 
-FISH_SPECS = Object.freeze(
-  FISH_DEFINITIONS
-    .filter(def => 'frameH' in def)
-    .reduce((specs, def) => {
-      specs[def.id] = {
-        strength: def.strength,
-        escape_rate: def.escapeRate,
-      };
-      return specs;
-    }, {})
-);
 
 const FISH_SCORE_MAP = Object.freeze(
   FISH_DEFINITIONS.reduce((scores, def) => {
@@ -676,7 +662,6 @@ if (typeof module !== 'undefined' && module.exports) {
     PARALLAX_GAME_SPEED,
     CAPTURE_GLOW_SPEED, CAPTURE_ESCAPE_PARTICLES,
     HOOK_STRUGGLE_REEL_POWER, HOOK_STRUGGLE_MAX_ESCAPE, HOOK_REEL_DISTANCE_PER_PRESS, STRUGGLE_DANGER_FACTOR, STRUGGLE_DANGER_SPEED_FACTOR,
-    FISH_SPECS,
     HOOK_STATUS_IDLE, HOOK_STATUS_CAST, HOOK_STATUS_HOOKED, HOOK_STATUS_RETRIEVING_EMPTY, HOOK_STATUS_CAPTURE_LAUNCH,
     CAPTURE_LAUNCH_DURATION_MS, CAPTURE_SPARKLE_COLORS, CAPTURE_LAUNCH_GLOW_COLOR,
     ENEMY_TYPE_BUTTERFLY_FISH, ENEMY_TYPE_LION_FISH, ENEMY_TYPE_HAMMERHEAD_SHARK, ENEMY_TYPE_SWORDFISH, ENEMY_TYPE_TUNA, ENEMY_TYPE_CLOWN_FISH, ENEMY_TYPE_DISCARDED_BOTTLE, ENEMY_TYPE_OCTOPUS, ENEMY_TYPE_CRAB, ENEMY_TYPE_SHARK, ENEMY_TYPE_RED_APPLE, ENEMY_TYPE_JELLY_FISH, ENEMY_TYPE_WHEEL, ENEMY_TYPE_PUFFER_FISH, ENEMY_TYPE_SHOE, ENEMY_TYPE_FISH_BONE, ENEMY_TYPE_CLOCK,

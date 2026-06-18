@@ -7,8 +7,6 @@ class SwordFish extends CatchableFish {
     this._sh = this._spriteFrameSize.getHeight();  // 416
     this._staggerFrame = ANIM_STAGGER_SLOW;
     this._driftSpeed   = SWORDFISH_DRIFT_SPEED;
-    this._strength     = FISH_SPECS['sword_fish'].strength;
-    this._escapeRate   = FISH_SPECS['sword_fish'].escape_rate;
   }
 
   static randomSpawnY(canvasHeight, fishHeight, rng = Math.random) {

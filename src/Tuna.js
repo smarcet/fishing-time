@@ -7,8 +7,6 @@ class Tuna extends CatchableFish {
     this._sh = this._spriteFrameSize.getHeight();  // TUNA_FRAME_HEIGHT = 300
     this._staggerFrame = ANIM_STAGGER_SLOW;
     this._driftSpeed   = TUNA_DRIFT_SPEED;
-    this._strength     = FISH_SPECS['tuna'].strength;
-    this._escapeRate   = FISH_SPECS['tuna'].escape_rate;
   }
 
   static randomSpawnY(canvasHeight, fishHeight, rng = Math.random) {

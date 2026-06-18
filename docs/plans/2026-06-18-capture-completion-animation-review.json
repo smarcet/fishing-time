@@ -1,0 +1,50 @@
+{
+  "plan_file": "/home/smarcet/git/personal/fishing-time/docs/plans/2026-06-18-capture-completion-animation.md",
+  "review_summary": "The plan faithfully implements the 6-step capture sequence and reflects all three user-confirmed design choices. Six issues were found: two must-fix gaps in the draw() wiring and alpha-fade logic that would cause rendering defects, two should-fix gaps in test coverage and the `_finishCaptureLaunch` reset that would leave ghost state, and two suggestions for minor spec clarity.",
+  "alignment_score": "high",
+  "risk_level": "medium",
+  "issues": [
+    {
+      "severity": "must_fix",
+      "category": "hidden_dependency",
+      "title": "`this._catch.draw()` call at Hook.js:272 still fires during CAPTURE_LAUNCH — double-draw / ghost entity",
+      "description": "The plan correctly adds `_drawCaptureLaunch()` to the draw() method, but the existing draw() block at line 271-273 is `if (this._catch) this._catch.draw()`. During CAPTURE_LAUNCH, `_catch` is null (cleared in `_beginCaptureLaunch`), so this check is safe. HOWEVER, if there is ANY code path that reads `this._catch` between `_beginCaptureLaunch()` being called and `draw()` executing (e.g., `isCatchableFishHooked()` at Hook.js:316 which does `this._catch instanceof CatchableFish`), it will silently return false during the launch. More critically, the plan says `_drawCaptureLaunch()` should be added after the existing `_drawEscapeHookExplosion()` call (line 275), but does NOT specify removing or guarding the `if (this._catch) this._catch.draw()` block. If `_launchEntity` is still accessible through `_catch` at any point, a double-draw occurs. The plan must explicitly state that the `if (this._catch)` draw block at line 272 is fine as-is (because `_catch = null` after `_beginCaptureLaunch`) and that `isCatchableFishHooked()` will return false during CAPTURE_LAUNCH — or the plan must acknowledge the behavioral change to `isCatchableFishHooked()` during the launch phase.",
+      "suggested_fix": "Add an explicit note in Task 2's 'draw() wiring' section: 'The existing `if (this._catch) this._catch.draw()` block at line 272 is already safe during CAPTURE_LAUNCH because `_beginCaptureLaunch` nulls `_catch`. No change needed there. However, note that `isCatchableFishHooked()` returns false during CAPTURE_LAUNCH (because `_catch` is null) — verify this does not affect Player animation logic that reads `isCatchableFishHooked()`.' Add a grep check: `grep -n 'isCatchableFishHooked' src/` to confirm callers are not affected."
+    },
+    {
+      "severity": "must_fix",
+      "category": "task_completeness",
+      "title": "Alpha-fade formula `max(0, 1 - t*t)` makes the entity fully transparent at t=1, but it also starts to fade noticeably before arrival — conflicts with the 'arcade-like / rewarding' visual goal",
+      "description": "Task 2 specifies `globalAlpha = max(0, 1 - t*t)` for the launch entity. At t=0.7 this gives alpha=0.51; at t=0.9 it gives alpha=0.19. The entity will be nearly invisible for the last ~80ms of a 400ms arc — the user sees the fish visibly fade out before it \"enters the boat\", which contradicts both the 6-step requirement (step 6: entity removed from world at end) and the visual goal (\"clearly see that the fish has been successfully collected\"). A bounce at the landing point is only visible if the entity is still opaque when it arrives. The plan calls this out as a tunable constant but does not flag the visual implication of the quadratic fade.",
+      "suggested_fix": "Change the alpha formula in Task 2 to fade only in the final segment, e.g. `globalAlpha = t < 0.75 ? 1.0 : max(0, 1 - (t - 0.75) / 0.25)` (full opacity for 75% of the arc, then quick fade in the last 25%~100ms). Alternatively use `globalAlpha = 1.0` throughout and rely on the landing-point scale increase for the 'absorbed into boat' feel. Add a note that the formula should keep the entity visible until very near the landing target to honor step 3/4 of the sequence."
+    },
+    {
+      "severity": "should_fix",
+      "category": "task_completeness",
+      "title": "`_finishCaptureLaunch` resets `_hookedEventFired = false` — but `_hookedEventFired` is an undocumented field whose initialization site is not confirmed in the plan",
+      "description": "Task 1 specifies that `_finishCaptureLaunch()` must reset `_hookedEventFired = false`. A search of Hook.js confirms this field exists (it guards the HOOK_HOOKED event dispatch inside the HOOKED branch). However, `_beginCaptureLaunch()` transitions status to CAPTURE_LAUNCH immediately, which means the HOOKED branch never runs again — so `_hookedEventFired` is already stale-true when the launch finishes. Resetting it in `_finishCaptureLaunch()` is correct, but the plan does not state WHERE in the constructor this field is initialized. If a future refactor of the constructor is done without reading the plan, this guard-reset may be missed.",
+      "suggested_fix": "Add to Task 1 constructor-fields list: also init `_hookedEventFired = false` (it already exists — confirm its line in Hook.js constructor and note that `_finishCaptureLaunch` must reset it alongside the other HOOKED-phase fields). Also confirm grep: `grep -n '_hookedEventFired' src/Hook.js` and document the line in Context for Implementer."
+    },
+    {
+      "severity": "should_fix",
+      "category": "definition_of_done",
+      "title": "Task 3 DoD grep pattern does not include `CAPTURE_THROW_SCALE_REDUCTION` — verified present at EnemyWithAnimation.js:21",
+      "description": "Task 2 says to remove `CAPTURE_THROW_SCALE_REDUCTION` from EnemyWithAnimation.js:21. Task 3's DoD grep command is `grep -rn 'CAPTURE_PHASE\\|CAPTURE_THROW\\|getCapturePhase\\|getCaptureRawProgress\\|clearCaptured' src/ __tests__/`. The pattern `CAPTURE_THROW` would match `CAPTURE_THROW_SCALE_REDUCTION` — so this is actually covered. HOWEVER, Task 3's DoD does NOT list `CAPTURE_THROW_SCALE_REDUCTION` explicitly in the 'No references remain' bullet, which could cause an implementer to remove the constant from constants.js but leave the dead const declaration at EnemyWithAnimation.js:21. The constant is local to that file (not in constants.js), so it is not covered by the constants.js cleanup task.",
+      "suggested_fix": "In Task 3's DoD bullet, add explicit mention: 'No references to `CAPTURE_THROW_SCALE_REDUCTION` remain in `src/EnemyWithAnimation.js` (the local module const at line 21 is deleted in Task 2).' This makes it unambiguous that the local const declaration itself must be removed, not just its usages."
+    },
+    {
+      "severity": "should_fix",
+      "category": "definition_of_done",
+      "title": "No test for `_captureTrail` being cleared / drained after launch completes — unbounded growth risk across multiple catches",
+      "description": "The plan correctly says 'do NOT force-clear on finish' so sparkles fade naturally. But across multiple catch cycles (catch → launch → idle → cast → catch → launch), `_captureTrail` is only drained by the natural splice-on-life-expire loop. If CAPTURE_SPARKLE_LIFE is long relative to the inter-catch interval (e.g., player casts again quickly), trailing particles from the previous catch can overlap the new cast visually. More importantly, there is NO test asserting that after a completed launch with sufficient ticks, `_captureTrail.length === 0`. Without this, a regression that forgets to splice particles would never fail the test suite.",
+      "suggested_fix": "Add a test to Task 2 (or Task 4): after `_finishCaptureLaunch()`, advance enough ticks for all particles (CAPTURE_SPARKLE_LIFE ticks with dt) to expire, then assert `hook._captureTrail.length === 0`. Also add a DoD check: 'After CAPTURE_SPARKLE_LIFE additional update ticks post-launch, `_captureTrail` drains to 0.'"
+    },
+    {
+      "severity": "suggestion",
+      "category": "risk_quality",
+      "title": "TS-001 uses `forceHookedFish('shoe')` but `forceHookedFishForE2E` signature accepts `enemyType` matching `ENEMY_TYPE_*` constants — verify 'shoe' is the correct enemy type ID",
+      "description": "The E2E scenario TS-001 calls `window.__fishingTimeE2E.forceHookedFish('shoe')`. `forceHookedFishForE2E` at Game.js:304 passes `enemyType` directly to `this._enemyFactory.createEnemy(enemyType, ...)`. If the correct `ENEMY_TYPE_*` constant for the shoe is not the string `'shoe'` (e.g., it might be `'old_shoe'` or similar), `createEnemy` returns null and the scenario silently does nothing. The plan notes the Risks section was grep-verified for callers, but does not verify the specific string `'shoe'` is a valid FISH_DEFINITIONS id.",
+      "suggested_fix": "Before finalizing the E2E scenarios, run `grep -n 'shoe\\|ENEMY_TYPE_SHOE' src/constants.js` and confirm the exact string value used as the `id` field in FISH_DEFINITIONS. Replace `'shoe'` in TS-001 with the verified constant string. Add a note in the E2E scenarios section: 'Enemy type strings must match the `id` field in FISH_DEFINITIONS exactly.'"
+    }
+  ]
+}

@@ -7,8 +7,6 @@ class Shark extends CatchableFish {
     this._sh = this._spriteFrameSize.getHeight();  // 512
     this._staggerFrame = ANIM_STAGGER_SLOW;
     this._driftSpeed   = SHARK_DRIFT_SPEED;
-    this._strength     = FISH_SPECS['shark'].strength;
-    this._escapeRate   = FISH_SPECS['shark'].escape_rate;
   }
 
   static randomSpawnY(canvasHeight, fishHeight, rng = Math.random) {
