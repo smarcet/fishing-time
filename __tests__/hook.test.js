@@ -50,6 +50,9 @@ function makeMockCtx() {
     restore: () => {},
     translate: () => {},
     rotate: () => {},
+    scale: () => {},
+    arc: () => {},
+    fill: () => {},
     setLineDash: () => {},
   };
 }
@@ -108,13 +111,6 @@ function castHook(hook) {
 
 function reelTap(hook) {
   hook._handleReelTap();
-}
-
-function makeHookWithCatch(extraRope = 100) {
-  const hook = makeHook(false);
-  hook._ropeLength = HOOK_REST_LENGTH + extraRope;
-  hook.setCatch(makeMockInertEntity());
-  return hook;
 }
 
 function makeCustomEvent(type, init = {}) {
@@ -539,7 +535,7 @@ describe('Hook HOOKED - fish escape', () => {
 
 // ---------------------------------------------------------------------------
 describe('Hook HOOKED - fish capture', () => {
-  test('rope reaching REST while HOOKED dispatches enemyCaptured and returns to IDLE', () => {
+  test('rope reaching REST while HOOKED enters CAPTURE_LAUNCH, does NOT dispatch enemyCaptured yet', () => {
     const hook = makeHook(false);
     hook._ropeLength = HOOK_REST_LENGTH + HOOK_REEL_DISTANCE_PER_PRESS;
     const fish = makeMockFishEntity(1, 0.0);
@@ -557,8 +553,47 @@ describe('Hook HOOKED - fish capture', () => {
     global.document = savedDoc;
 
     const types = dispatchMock.mock.calls.map(c => c[0].type);
+    expect(types).not.toContain('enemyCaptured');
+    expect(hook._status).toBe(HOOK_STATUS_CAPTURE_LAUNCH);
+    expect(hook._catch).toBeNull();
+    expect(hook._launchEntity).not.toBeNull();
+  });
+
+  test('after CAPTURE_LAUNCH_DURATION_MS elapses, enemyCaptured fires at landing target and status is IDLE', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + HOOK_REEL_DISTANCE_PER_PRESS;
+    const fish = makeMockFishEntity(1, 0.0);
+    hook.setCatch(fish);
+    hook._escapeProgress = 0;
+    reelTap(hook);
+
+    // Advance to rest -> enters CAPTURE_LAUNCH
+    const doc1 = { dispatchEvent: jest.fn() };
+    const savedDoc = global.document;
+    global.document = doc1;
+    hook.update(0);
+
+    expect(hook._status).toBe(HOOK_STATUS_CAPTURE_LAUNCH);
+    const landingX = hook._launchTarget.getX();
+    const landingY = hook._launchTarget.getY();
+
+    // Advance past duration -> _finishCaptureLaunch fires
+    const dispatchMock = jest.fn();
+    global.document = { dispatchEvent: dispatchMock };
+    hook.update(CAPTURE_LAUNCH_DURATION_MS);
+    global.document = savedDoc;
+
+    const types = dispatchMock.mock.calls.map(c => c[0].type);
     expect(types).toContain('enemyCaptured');
+    expect(types).toContain('hookIdle');
+
+    const capturedCall = dispatchMock.mock.calls.find(c => c[0].type === 'enemyCaptured');
+    expect(capturedCall[0].detail.x).toBeCloseTo(landingX, 1);
+    expect(capturedCall[0].detail.y).toBeCloseTo(landingY, 1);
+
     expect(hook._status).toBe(HOOK_STATUS_IDLE);
+    expect(hook._ropeLength).toBe(HOOK_REST_LENGTH);
+    expect(hook._launchEntity).toBeNull();
   });
 });
 
@@ -631,6 +666,12 @@ describe('Hook hadCatch() and isHooked()', () => {
     expect(hook.hadCatch()).toBe(false);
   });
 
+  test('hadCatch() is true during CAPTURE_LAUNCH', () => {
+    const hook = makeHook(false);
+    hook._status = HOOK_STATUS_CAPTURE_LAUNCH;
+    expect(hook.hadCatch()).toBe(true);
+  });
+
   test('isHooked() returns true when HOOKED', () => {
     const hook = makeHook(false);
     hook._ropeLength = HOOK_REST_LENGTH + 100;
@@ -645,55 +686,30 @@ describe('Hook hadCatch() and isHooked()', () => {
 });
 
 // ---------------------------------------------------------------------------
-describe('Hook getCapturePhase()', () => {
-  test('returns CAPTURE_PHASE_RISING immediately after setCatch', () => {
-    const hook = makeHookWithCatch();
-    expect(hook.getCapturePhase()).toBe(CAPTURE_PHASE_RISING);
-  });
-
-  test('returns CAPTURE_PHASE_THROWING when rope reeled past threshold', () => {
-    const extraRope = 100;
-    const hook = makeHookWithCatch(extraRope);
-    const retractNeeded = Math.ceil(CAPTURE_THROW_THRESHOLD * extraRope) + 1;
-    hook._ropeLength = HOOK_REST_LENGTH + extraRope - retractNeeded;
-    expect(hook.getCapturePhase()).toBe(CAPTURE_PHASE_THROWING);
-  });
-
-  test('getCaptureRawProgress returns 1 (no NaN) when rope equals REST at catch time', () => {
-    const hook = makeHook(false);
+describe('Hook capture trail (_captureTrail)', () => {
+  function driveToLaunch(hook) {
     hook.setCatch(makeMockInertEntity());
-    const raw = hook.getCaptureRawProgress();
-    expect(raw).toBe(1);
-    expect(isNaN(raw)).toBe(false);
-    expect(hook.getCapturePhase()).toBe(CAPTURE_PHASE_THROWING);
-  });
-});
+    hook._beginCaptureLaunch();
+    return hook;
+  }
 
-// ---------------------------------------------------------------------------
-describe('Hook clearCaptured() dispatches enemyCaptured event', () => {
-  test('dispatchEvent called with enemyCaptured and correct detail', () => {
-    const hook = makeHookWithCatch();
-    const dispatchMock = jest.fn();
-    const savedDoc = global.document;
-    global.document = { dispatchEvent: dispatchMock };
-
-    hook.clearCaptured();
-
-    global.document = savedDoc;
-
-    const capturedCalls = dispatchMock.mock.calls.filter(c => c[0].type === 'enemyCaptured');
-    expect(capturedCalls).toHaveLength(1);
-    expect(capturedCalls[0][0].detail).toHaveProperty('enemyType');
-  });
-
-  test('dispatchEvent not called when no catch is active', () => {
+  test('_captureTrail accumulates particles during CAPTURE_LAUNCH update', () => {
     const hook = makeHook(false);
-    const dispatchMock = jest.fn();
-    const savedDoc = global.document;
-    global.document = { dispatchEvent: dispatchMock };
-    hook.clearCaptured();
-    global.document = savedDoc;
-    expect(dispatchMock).not.toHaveBeenCalled();
+    driveToLaunch(hook);
+    expect(hook._status).toBe(HOOK_STATUS_CAPTURE_LAUNCH);
+    hook.update(16);
+    expect(hook._captureTrail.length).toBeGreaterThan(0);
+  });
+
+  test('_captureTrail drains to zero after enough _drawCaptureTrail() calls', () => {
+    const hook = makeHook(false);
+    driveToLaunch(hook);
+    hook.update(16); // spawn some sparkles
+    expect(hook._captureTrail.length).toBeGreaterThan(0);
+
+    // Drain: call _drawCaptureTrail many times (more than CAPTURE_SPARKLE_LIFE ticks)
+    for (let i = 0; i < 30; i++) hook._drawCaptureTrail();
+    expect(hook._captureTrail.length).toBe(0);
   });
 });
 

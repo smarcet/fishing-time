@@ -13,6 +13,19 @@ const HOOK_DEBUG_TEXT_Y       = 50;      // px - y of debug text readout
 const HOOK_DEBUG_COLOR_HOOKED = 'green'; // bounding-box fill when hooked
 const HOOK_DEBUG_COLOR_IDLE   = 'red';   // bounding-box fill otherwise
 
+// Capture launch render tunables - search "TUNE" to find all knobs
+const CAPTURE_LAUNCH_ARC_Y          = 70;   // px - arc height at midpoint - TUNE
+const CAPTURE_LAUNCH_SCALE_START    = 1.0;  // sprite scale at launch origin - TUNE
+const CAPTURE_LAUNCH_SCALE_END      = 1.25; // sprite scale at boat landing - TUNE
+const CAPTURE_LAUNCH_GLOW_BLUR      = 20;   // px shadow spread for entity glow - TUNE
+const CAPTURE_SPARKLES_PER_TICK     = 3;    // particles spawned each update tick - TUNE
+const CAPTURE_SPARKLE_SPREAD        = 14;   // px random positional jitter - TUNE
+const CAPTURE_SPARKLE_DRIFT         = 1.2;  // px/tick max random velocity - TUNE
+const CAPTURE_SPARKLE_LIFE          = 18;   // ticks a sparkle lives - TUNE
+const CAPTURE_SPARKLE_SIZE_MIN      = 2;    // px minimum radius - TUNE
+const CAPTURE_SPARKLE_SIZE_RANGE    = 3;    // random extra radius above min - TUNE
+const CAPTURE_SPARKLE_SHADOW_BLUR   = 8;    // px glow on each sparkle - TUNE
+
 // Escape particle tunables - search "TUNE" to find all knobs
 const HOOK_PARTICLE_GRAVITY      = 0.2;                    // px/tick² downward acceleration - TUNE
 const HOOK_PARTICLE_SHADOW_COLOR = 'rgba(255,80,0,0.9)';  // glow colour
@@ -42,6 +55,11 @@ class Hook extends GameObject {
     this._drawTick = 0;
     this._escapeParticles = [];
     this._hookedEventFired = false;
+    this._launchEntity = null;
+    this._launchOrigin = null;
+    this._launchTarget = null;
+    this._launchElapsedMs = 0;
+    this._captureTrail = [];
     this._castRequested = false;
     this._reelTapCount = 0;
     this._reelForce = 0;
@@ -114,34 +132,6 @@ class Hook extends GameObject {
     const pos = this._player.getPosition();
     const w   = this._player.getSize().getWidth();
     return new Point(pos.getX() + w / 2, this._pivot().getY());
-  }
-
-  clearCaptured() {
-    if (typeof document !== 'undefined' && this._catch) {
-      const pos = this.getPosition();
-      document.dispatchEvent(new CustomEvent(EVENT_ENEMY_CAPTURED, {
-        detail: { enemyType: this._catch.constructor.name, x: pos.getX(), y: pos.getY() }
-      }));
-      document.dispatchEvent(new CustomEvent(EVENT_HOOK_IDLE));
-    }
-    this._catch = null;
-    this._catchRopeStart = null;
-    this._escapeProgress = 0;
-    this._hookedEventFired = false;
-    this._status = HOOK_STATUS_IDLE;
-    this._ropeLength = HOOK_REST_LENGTH;
-  }
-
-  getCaptureRawProgress() {
-    const denom = this._catchRopeStart - HOOK_REST_LENGTH;
-    if (denom <= 0) return 1;
-    return Math.min(1, (this._catchRopeStart - this._ropeLength) / denom);
-  }
-
-  getCapturePhase() {
-    if (!this._catch) return CAPTURE_PHASE_RISING;
-    return this.getCaptureRawProgress() >= CAPTURE_THROW_THRESHOLD
-      ? CAPTURE_PHASE_THROWING : CAPTURE_PHASE_RISING;
   }
 
   update(dt = 0) {
@@ -225,7 +215,15 @@ class Hook extends GameObject {
         this._ropeLength -= HOOK_CATCH_REEL_SPEED;
       }
       if (this._ropeLength <= HOOK_REST_LENGTH) {
-        this.clearCaptured();
+        this._beginCaptureLaunch();
+      }
+    } else if (this._status === HOOK_STATUS_CAPTURE_LAUNCH) {
+      this._launchElapsedMs += dt;
+      const lt = Math.min(1, this._launchElapsedMs / CAPTURE_LAUNCH_DURATION_MS);
+      const lp = this._captureLaunchPoint(lt);
+      this._spawnCaptureSparkles(lp.getX(), lp.getY());
+      if (this._launchElapsedMs >= CAPTURE_LAUNCH_DURATION_MS) {
+        this._finishCaptureLaunch();
       }
     } else if (this._status === HOOK_STATUS_RETRIEVING_EMPTY) {
       this._ropeLength -= HOOK_REEL_SPEED;
@@ -273,6 +271,8 @@ class Hook extends GameObject {
     }
 
     this._drawEscapeHookExplosion();
+    this._drawCaptureTrail();
+    this._drawCaptureLaunch();
   }
 
   _drawEscapeHookExplosion() {
@@ -296,8 +296,102 @@ class Hook extends GameObject {
     }
   }
 
+  _beginCaptureLaunch() {
+    this._launchOrigin = this.getEndpoint();
+    this._launchTarget = this.getLandingTarget();
+    this._launchEntity = this._catch;
+    this._catch = null;
+    this._launchElapsedMs = 0;
+    this._status = HOOK_STATUS_CAPTURE_LAUNCH;
+  }
+
+  _finishCaptureLaunch() {
+    if (typeof document !== 'undefined' && this._launchEntity) {
+      document.dispatchEvent(new CustomEvent(EVENT_ENEMY_CAPTURED, {
+        detail: {
+          enemyType: this._launchEntity.constructor.name,
+          x: this._launchTarget.getX(),
+          y: this._launchTarget.getY()
+        }
+      }));
+      document.dispatchEvent(new CustomEvent(EVENT_HOOK_IDLE));
+    }
+    this._launchEntity = null;
+    this._launchOrigin = null;
+    this._launchTarget = null;
+    this._launchElapsedMs = 0;
+    this._catchRopeStart = null;
+    this._escapeProgress = 0;
+    this._hookedEventFired = false;
+    this._status = HOOK_STATUS_IDLE;
+    this._ropeLength = HOOK_REST_LENGTH;
+  }
+
+  _captureLaunchPoint(t) {
+    const ox = this._launchOrigin.getX(), oy = this._launchOrigin.getY();
+    const tx = this._launchTarget.getX(), ty = this._launchTarget.getY();
+    const x = ox + (tx - ox) * t;
+    const y = oy + (ty - oy) * t - Math.sin(t * Math.PI) * CAPTURE_LAUNCH_ARC_Y;
+    return new Point(x, y);
+  }
+
+  _spawnCaptureSparkles(x, y) {
+    for (let i = 0; i < CAPTURE_SPARKLES_PER_TICK; i++) {
+      const jx = (Math.random() - 0.5) * CAPTURE_SPARKLE_SPREAD;
+      const jy = (Math.random() - 0.5) * CAPTURE_SPARKLE_SPREAD;
+      const vx = (Math.random() - 0.5) * CAPTURE_SPARKLE_DRIFT * 2;
+      const vy = (Math.random() - 0.5) * CAPTURE_SPARKLE_DRIFT * 2;
+      this._captureTrail.push({
+        x: x + jx, y: y + jy, vx, vy,
+        life: CAPTURE_SPARKLE_LIFE, maxLife: CAPTURE_SPARKLE_LIFE,
+        size: CAPTURE_SPARKLE_SIZE_MIN + Math.random() * CAPTURE_SPARKLE_SIZE_RANGE,
+        color: CAPTURE_SPARKLE_COLORS[i % CAPTURE_SPARKLE_COLORS.length]
+      });
+    }
+  }
+
+  _drawCaptureTrail() {
+    for (let i = this._captureTrail.length - 1; i >= 0; i--) {
+      const p = this._captureTrail[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life--;
+      if (p.life <= 0) { this._captureTrail.splice(i, 1); continue; }
+      const t = p.life / p.maxLife;
+      this._ctx.save();
+      this._ctx.globalAlpha = t;
+      this._ctx.shadowColor = p.color;
+      this._ctx.shadowBlur = CAPTURE_SPARKLE_SHADOW_BLUR;
+      this._ctx.fillStyle = p.color;
+      this._ctx.beginPath();
+      this._ctx.arc(p.x, p.y, p.size * t, 0, Math.PI * 2);
+      this._ctx.fill();
+      this._ctx.restore();
+    }
+  }
+
+  _drawCaptureLaunch() {
+    if (this._status !== HOOK_STATUS_CAPTURE_LAUNCH || !this._launchEntity) return;
+    const e = this._launchEntity;
+    const w = e.getSize().getWidth();
+    const h = e.getSize().getHeight();
+    const t = Math.min(1, this._launchElapsedMs / CAPTURE_LAUNCH_DURATION_MS);
+    const p = this._captureLaunchPoint(t);
+    const scale = CAPTURE_LAUNCH_SCALE_START + (CAPTURE_LAUNCH_SCALE_END - CAPTURE_LAUNCH_SCALE_START) * t;
+    const alpha = t < 0.75 ? 1.0 : Math.max(0, 1 - (t - 0.75) / 0.25);
+    this._ctx.save();
+    this._ctx.globalAlpha = alpha;
+    this._ctx.shadowColor = CAPTURE_LAUNCH_GLOW_COLOR;
+    this._ctx.shadowBlur = CAPTURE_LAUNCH_GLOW_BLUR;
+    this._ctx.translate(p.getX() + (e._captureOffsetX || 0), p.getY() + (e._captureOffsetY || 0));
+    this._ctx.scale(scale, scale);
+    this._ctx.rotate((e._captureRotation || 0) * Math.PI / 180);
+    e._drawCapturedSprite(-w / 2, -h / 2, w, h);
+    this._ctx.restore();
+  }
+
   hadCatch() {
-    return this._status === HOOK_STATUS_HOOKED;
+    return this._status === HOOK_STATUS_HOOKED || this._status === HOOK_STATUS_CAPTURE_LAUNCH;
   }
 
   isCasting() {
@@ -314,6 +408,14 @@ class Hook extends GameObject {
 
   isCatchableFishHooked() {
     return this._catch instanceof CatchableFish;
+  }
+
+  getStatus() {
+    return this._status;
+  }
+
+  getCaptureTrailCount() {
+    return this._captureTrail.length;
   }
 
   _buildEscapeHookExplosion(pos) {

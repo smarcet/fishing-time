@@ -74,7 +74,6 @@ describe('drawCaptured() fish center positioning', () => {
       getEndpoint: () => new Point(RX, RY),
       isCatchableFishHooked: () => false,
       _escapeProgress: 0,
-      getCaptureRawProgress: () => 0,
       getLandingTarget: () => new Point(0, 0),
     };
     const fish = new CatchableFish(

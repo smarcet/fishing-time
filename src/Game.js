@@ -298,6 +298,8 @@ class Game extends GameObject{
       bubbleSizeScale: this._profile ? this._profile.bubbleSizeScale : undefined,
       bubbleDieThresholdY: this._getBubbleDieThresholdY(),
       guaranteedSpeciesIntervals: this._profile ? this._profile.guaranteedSpeciesIntervals : undefined,
+      hookStatus: this._player && this._player.getHook ? this._player.getHook().getStatus() : undefined,
+      captureTrailParticles: this._player && this._player.getHook ? this._player.getHook().getCaptureTrailCount() : undefined,
     };
   }
 

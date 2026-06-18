@@ -6,6 +6,7 @@ const { Point, Size } = require('../index.js');
 const {
   BUBBLE_SIZE_MAX, EVENT_ENEMY_EVADED, GAMEPLAY_PROFILE_MOBILE,
   ENEMY_TYPE_OCTOPUS, ENEMY_TYPE_TUNA, ENEMY_TYPE_SHARK,
+  HOOK_STATUS_IDLE,
 } = require('../src/constants');
 
 function makeEvent(type, init = {}) {
@@ -37,6 +38,8 @@ function makeGameForUpdate(enemies) {
       isCasting: () => false,
       getPosition: () => new Point(0, 0),
       getSize: () => new Size(0, 0),
+      getStatus: () => HOOK_STATUS_IDLE,
+      getCaptureTrailCount: () => 0,
     }),
   };
   return game;
@@ -205,6 +208,18 @@ describe('Game traffic exit handling', () => {
     const { activeLargeFish } = game.getRuntimeStats();
 
     expect(activeLargeFish).toBe(2); // Octopus + Shark; Tuna excluded
+  });
+
+  test('getRuntimeStats includes hookStatus and captureTrailParticles', () => {
+    const game = makeGameForUpdate([]);
+    game._profile = { name: 'desktop', maxActiveTraffic: Infinity, maxActiveLargeFish: Infinity };
+
+    const stats = game.getRuntimeStats();
+
+    expect(stats).toHaveProperty('hookStatus');
+    expect(stats).toHaveProperty('captureTrailParticles');
+    expect(typeof stats.hookStatus).toBe('string');
+    expect(typeof stats.captureTrailParticles).toBe('number');
   });
 
   test('mobile profile scales newly spawned bubble sizes', () => {

@@ -17,8 +17,6 @@ const CAPTURE_COLOR_GREEN_SAFE     = 215;  // 0-255 green channel when danger = 
 const CAPTURE_SHADOW_ALPHA_BASE    = 0.85; // shadow alpha at no danger - TUNE
 const CAPTURE_SHADOW_ALPHA_DANGER  = 0.1;  // extra alpha added at max danger - TUNE
 
-// Throw arc
-const CAPTURE_THROW_SCALE_REDUCTION = 0.7; // scale shrinks by this fraction over throw - TUNE
 
 class EnemyWithAnimation extends Enemy {
 
@@ -91,24 +89,11 @@ class EnemyWithAnimation extends Enemy {
     // Color: gold rgba(255,215,0) -> red rgba(255,30,0) as danger increases
     const shadowColor = `rgba(255,${Math.round(CAPTURE_COLOR_GREEN_SAFE * (1 - escapeDanger))},0,${(CAPTURE_SHADOW_ALPHA_BASE + escapeDanger * CAPTURE_SHADOW_ALPHA_DANGER).toFixed(2)})`;
 
-    // cx/cy = visual center of sprite in world coords
-    let cx = hookTip.getX();
-    let cy = hookTip.getY();
-    let scale = 1.0;
-    let alpha = 1.0;
-    let glow = glowSize;
-
-    const raw = this._hook.getCaptureRawProgress();
-    if (raw >= CAPTURE_THROW_THRESHOLD) {
-      const t = (raw - CAPTURE_THROW_THRESHOLD) / (1 - CAPTURE_THROW_THRESHOLD);
-      const target = this._hook.getLandingTarget();
-      cx += (target.getX() - hookTip.getX()) * t;
-      cy += (target.getY() - hookTip.getY()) * t;
-      cy -= Math.sin(t * Math.PI) * CAPTURE_THROW_ARC_Y;
-      scale = 1.0 - t * CAPTURE_THROW_SCALE_REDUCTION;
-      alpha = 1.0 - t;
-      glow = glowSize * (1.0 - t);
-    }
+    const cx = hookTip.getX();
+    const cy = hookTip.getY();
+    const scale = 1.0;
+    const alpha = 1.0;
+    const glow = glowSize;
 
     this._ctx.save();
     this._ctx.shadowColor = shadowColor;

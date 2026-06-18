@@ -308,7 +308,7 @@ describe('ScoreSystem score animations', () => {
 
   test('update() removes animations when alpha drops to 0 or below', () => {
     const ss = new ScoreSystem();
-    ss._animations = [{ text: '+100', x: 100, y: 200, alpha: 0.01, vy: -2 }];
+    ss._animations = [{ text: '+100', x: 100, y: 200, alpha: 0.001, vy: -2 }];
     ss.update();
     expect(ss._animations.length).toBe(0);
   });
