@@ -185,6 +185,7 @@ class Game extends GameObject{
       this._inputSystem.destroy();
     }
     if (this._scoreSystem && this._scoreSystem.destroy) this._scoreSystem.destroy();
+    if (this._timerSystem && this._timerSystem.destroy) this._timerSystem.destroy();
     if (this._reelPowerBar && this._reelPowerBar.destroy) this._reelPowerBar.destroy();
     if (this._audioSystem && this._audioSystem.destroy) this._audioSystem.destroy();
   }
