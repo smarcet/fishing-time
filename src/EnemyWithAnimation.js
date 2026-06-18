@@ -85,7 +85,7 @@ class EnemyWithAnimation extends Enemy {
     const dangerScale = 1 + escapeDanger * STRUGGLE_DANGER_FACTOR;
     const speedScale  = 1 + escapeDanger * STRUGGLE_DANGER_SPEED_FACTOR;
     const t = this._captureTick;
-    const struggleActive = this._hook && this._hook.isHooked() && this.getFightSpec() !== null;
+    const struggleActive = this._hook && this._hook.isHooked() && this instanceof CatchableFish;
     const sRot  = struggleActive
       ? Math.sin(t * this._struggleSpeed * speedScale) * this._struggleRotationAmplitude * dangerScale
       : 0;

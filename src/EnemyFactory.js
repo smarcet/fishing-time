@@ -2,29 +2,6 @@ class EnemyFactory {
 
   constructor(profile = GAMEPLAY_PROFILE_DESKTOP) {
     this._profile = profile || GAMEPLAY_PROFILE_DESKTOP;
-    this.specs = {};
-    FISH_DEFINITIONS.forEach(def => {
-      const entry = {
-        image: typeof document !== 'undefined' ? document.getElementById(def.domId) : null,
-        size: new Size(def.displayH, def.displayW),
-      };
-      if (!('frameH' in def)) {
-        entry.maxFrames = def.maxFrames;
-      } else {
-        entry.spriteFrameSize = new Size(def.frameH, def.frameW);
-        entry.maxFrameX = def.maxFrameX;
-        entry.maxFrameY = def.maxFrameY;
-        entry.dieFrameX = def.dieFrameX;
-        entry.dieFrameY = def.dieFrameY;
-      }
-      entry.captureRotation           = def.captureRotation;
-      entry.captureOffsetX            = def.captureOffsetX;
-      entry.captureOffsetY            = def.captureOffsetY;
-      entry.struggleSpeed             = def.struggleSpeed;
-      entry.struggleRotationAmplitude = def.struggleRotationAmplitude;
-      entry.struggleOffsetAmplitude   = def.struggleOffsetAmplitude;
-      this.specs[def.id] = entry;
-    });
     this._registry = {
       [ENEMY_TYPE_BUTTERFLY_FISH]:   ButterflyFish,
       [ENEMY_TYPE_CLOWN_FISH]:       ClownFish,
@@ -44,6 +21,30 @@ class EnemyFactory {
       [ENEMY_TYPE_FISH_BONE]:        FishBone,
       [ENEMY_TYPE_CLOCK]:            Clock,
     };
+    this.specs = {};
+    FISH_DEFINITIONS.forEach(def => {
+      const Cls = this._registry[def.id];
+      const entry = {
+        image: typeof document !== 'undefined' ? document.getElementById(def.domId) : null,
+        size: new Size(def.displayH, def.displayW),
+      };
+      if (!(Cls.prototype instanceof CatchableFish)) {
+        entry.maxFrames = def.maxFrames;
+      } else {
+        entry.spriteFrameSize = new Size(def.frameH, def.frameW);
+        entry.maxFrameX = def.maxFrameX;
+        entry.maxFrameY = def.maxFrameY;
+        entry.dieFrameX = def.dieFrameX;
+        entry.dieFrameY = def.dieFrameY;
+      }
+      entry.captureRotation           = def.captureRotation;
+      entry.captureOffsetX            = def.captureOffsetX;
+      entry.captureOffsetY            = def.captureOffsetY;
+      entry.struggleSpeed             = def.struggleSpeed;
+      entry.struggleRotationAmplitude = def.struggleRotationAmplitude;
+      entry.struggleOffsetAmplitude   = def.struggleOffsetAmplitude;
+      this.specs[def.id] = entry;
+    });
     this._applyProfileScale();
   }
 
