@@ -244,12 +244,15 @@ describe('FishSpawner traffic integration', () => {
     const hammerheadDef = FISH_DEFINITIONS.find(def => def.id === ENEMY_TYPE_HAMMERHEAD_SHARK);
     const activeShark = makeEnemy(ENEMY_TYPE_SHARK);
     const secondActiveShark = makeEnemy(ENEMY_TYPE_SHARK);
+    const thirdActiveShark = makeEnemy(ENEMY_TYPE_SHARK);
     activeShark._trafficType = ENEMY_TYPE_SHARK;
     secondActiveShark._trafficType = ENEMY_TYPE_SHARK;
+    thirdActiveShark._trafficType = ENEMY_TYPE_SHARK;
 
-    expect(GAMEPLAY_PROFILE_MOBILE.maxActiveLargeFish).toBe(2);
+    expect(GAMEPLAY_PROFILE_MOBILE.maxActiveLargeFish).toBe(3);
     expect(spawner._hasActiveCapacity(hammerheadDef, [activeShark])).toBe(true);
-    expect(spawner._hasActiveCapacity(hammerheadDef, [activeShark, secondActiveShark])).toBe(false);
+    expect(spawner._hasActiveCapacity(hammerheadDef, [activeShark, secondActiveShark])).toBe(true);
+    expect(spawner._hasActiveCapacity(hammerheadDef, [activeShark, secondActiveShark, thirdActiveShark])).toBe(false);
   });
 
   test('mobile profile maxActiveTraffic prevents extra spawns when traffic is capped', () => {

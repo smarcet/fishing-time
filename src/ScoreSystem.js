@@ -15,8 +15,9 @@ const HUD_MARGIN_RIGHT = 20;
 const HUD_SCORE_Y      = 40;
 const HUD_BEST_Y       = 85;
 
-const ANIM_COLOR_POSITIVE = '#00dd55';
-const ANIM_COLOR_NEGATIVE = '#ff2244';
+const ANIM_COLOR_POSITIVE   = '#00dd55';
+const ANIM_COLOR_NEGATIVE   = '#ff2244';
+const ANIM_COLOR_TIME_BONUS = '#ffd700';
 const ANIM_ALPHA_INITIAL  = 1.0;
 const ANIM_ALPHA_DECAY    = 1 / 90;
 const ANIM_VY             = -2;
@@ -73,10 +74,23 @@ class ScoreSystem {
       const pts = SCORE_MAP[e.detail.enemyType];
       if (pts !== undefined && pts > 0) { this._score -= Math.floor(pts / EVADE_PENALTY_DIVISOR); this._persist(); }
     };
+    this._handleTimeBonus = (e) => {
+      this._animations.push({
+        text: `+${e.detail.seconds}s`,
+        x: e.detail.x ?? 0,
+        y: e.detail.y ?? 0,
+        alpha: ANIM_ALPHA_INITIAL,
+        vy: ANIM_VY,
+        color: ANIM_COLOR_TIME_BONUS,
+        fontSize: ANIM_FONT_SIZE_START,
+        fontGrowth: ANIM_FONT_GROWTH,
+      });
+    };
     if (typeof document !== 'undefined') {
       document.addEventListener(EVENT_ENEMY_CAPTURED, this._handleCapture);
       document.addEventListener(EVENT_ENEMY_ESCAPED, this._handleEscape);
       document.addEventListener(EVENT_ENEMY_EVADED, this._handleEvade);
+      document.addEventListener(EVENT_TIME_BONUS, this._handleTimeBonus);
     }
   }
 
@@ -139,6 +153,7 @@ class ScoreSystem {
       document.removeEventListener(EVENT_ENEMY_CAPTURED, this._handleCapture);
       document.removeEventListener(EVENT_ENEMY_ESCAPED, this._handleEscape);
       document.removeEventListener(EVENT_ENEMY_EVADED, this._handleEvade);
+      document.removeEventListener(EVENT_TIME_BONUS, this._handleTimeBonus);
     }
   }
 }

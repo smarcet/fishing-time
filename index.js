@@ -20,6 +20,7 @@ if (typeof module !== 'undefined' && module.exports) {
   const { Wheel }              = require('./src/Wheel');              global.Wheel              = Wheel;
   const { Shoe }               = require('./src/Shoe');               global.Shoe               = Shoe;
   const { FishBone }           = require('./src/FishBone');           global.FishBone           = FishBone;
+  const { Clock }              = require('./src/Clock');              global.Clock              = Clock;
   const { Octopus }            = require('./src/Octopus');            global.Octopus            = Octopus;
   const { Crab }               = require('./src/Crab');               global.Crab               = Crab;
   const { ButterflyFish }      = require('./src/ButterflyFish');      global.ButterflyFish      = ButterflyFish;
@@ -39,5 +40,5 @@ if (typeof module !== 'undefined' && module.exports) {
   const { Player }             = require('./src/Player');             global.Player             = Player;
   const { Bubble }             = require('./src/Bubble');             global.Bubble             = Bubble;
   const { FishSpawner }        = require('./src/FishSpawner');        global.FishSpawner        = FishSpawner;
-  module.exports = { Size, Point, GameObject, InputSystem, KeyboardInputSystem, TouchInputSystem, InputHandler, MobileSystem, E2ETestHarness, Enemy, EnemyWithAnimation, CatchableFish, InertObject, DiscardedBottle, RedApple, Wheel, Shoe, FishBone, Octopus, Crab, ButterflyFish, LionFish, HammerHeadShark, SwordFish, Tuna, ClownFish, JellyFish, PufferFish, Shark, ScoreSystem, SCORE_MAP, ReelPowerBar, TimerSystem, AudioSystem, Hook, Player, Bubble, FishSpawner };
+  module.exports = { Size, Point, GameObject, InputSystem, KeyboardInputSystem, TouchInputSystem, InputHandler, MobileSystem, E2ETestHarness, Enemy, EnemyWithAnimation, CatchableFish, InertObject, DiscardedBottle, RedApple, Wheel, Shoe, FishBone, Clock, Octopus, Crab, ButterflyFish, LionFish, HammerHeadShark, SwordFish, Tuna, ClownFish, JellyFish, PufferFish, Shark, ScoreSystem, SCORE_MAP, ReelPowerBar, TimerSystem, AudioSystem, Hook, Player, Bubble, FishSpawner };
 }

@@ -18,6 +18,26 @@ class TimerSystem extends GameObject {
     this._initialMs = initialSeconds * 1000;
     this._fired     = false;
     this._scale     = 1;
+
+    this._handleTimeBonus = (e) => {
+      if (e.detail.enemyType !== FISH_CLASS_CLOCK) return;
+      this._timeMs = Math.min(this._initialMs, this._timeMs + CLOCK_TIME_BONUS_SECONDS * 1000);
+      if (this._fired) this._fired = false;
+      if (typeof document !== 'undefined') {
+        document.dispatchEvent(new CustomEvent(EVENT_TIME_BONUS, {
+          detail: { seconds: CLOCK_TIME_BONUS_SECONDS, x: e.detail.x ?? 0, y: e.detail.y ?? 0 },
+        }));
+      }
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener(EVENT_ENEMY_CAPTURED, this._handleTimeBonus);
+    }
+  }
+
+  destroy() {
+    if (typeof document !== 'undefined') {
+      document.removeEventListener(EVENT_ENEMY_CAPTURED, this._handleTimeBonus);
+    }
   }
 
   update(dt) {

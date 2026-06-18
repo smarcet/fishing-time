@@ -26,7 +26,7 @@ describe('SCORE_MAP values', () => {
 
   test('all configured class names exist in SCORE_MAP', () => {
     const keys = FISH_DEFINITIONS.map(def => def.className);
-    expect(keys).toHaveLength(16);
+    expect(keys).toHaveLength(17);
     keys.forEach(k => expect(SCORE_MAP).toHaveProperty(k));
   });
 
@@ -327,5 +327,54 @@ describe('ScoreSystem score animations', () => {
     ss.draw(mockCtx, 800);
     expect(mockCtx.fillText).toHaveBeenCalledWith('+50', 200, 150);
     expect(capturedAlpha).toBe(0.8);
+  });
+});
+
+describe('ScoreSystem Clock time-bonus double-popup', () => {
+  test('Clock capture produces +50 score animation (green)', () => {
+    const ss = new ScoreSystem();
+    ss._handleCapture({ detail: { enemyType: 'Clock', x: 100, y: 200 } });
+    const scoreAnim = ss._animations.find(a => a.text === '+50');
+    expect(scoreAnim).toBeDefined();
+    expect(scoreAnim.color).toBe('#00dd55');
+  });
+
+  test('EVENT_TIME_BONUS produces +10s animation (gold)', () => {
+    const ss = new ScoreSystem();
+    ss._handleTimeBonus({ detail: { seconds: 10, x: 100, y: 200 } });
+    expect(ss._animations.length).toBe(1);
+    expect(ss._animations[0].text).toBe('+10s');
+    expect(ss._animations[0].color).toBe('#ffd700');
+    expect(ss._animations[0].x).toBe(100);
+    expect(ss._animations[0].y).toBe(200);
+  });
+
+  test('double-popup: both +50 and +10s animations appear when Clock captured and time bonus fires', () => {
+    const ss = new ScoreSystem();
+    ss._handleCapture({ detail: { enemyType: 'Clock', x: 50, y: 100 } });
+    ss._handleTimeBonus({ detail: { seconds: 10, x: 50, y: 100 } });
+    expect(ss._animations).toHaveLength(2);
+    const scoreAnim = ss._animations.find(a => a.text === '+50');
+    const timeAnim  = ss._animations.find(a => a.text === '+10s');
+    expect(scoreAnim).toBeDefined();
+    expect(scoreAnim.color).toBe('#00dd55');
+    expect(timeAnim).toBeDefined();
+    expect(timeAnim.color).toBe('#ffd700');
+  });
+
+  test('destroy() removes EVENT_TIME_BONUS listener from document', () => {
+    const docListeners = {};
+    const mockDoc = {
+      addEventListener:    (evt, fn) => { docListeners[evt] = docListeners[evt] || []; docListeners[evt].push(fn); },
+      removeEventListener: (evt, fn) => { if (docListeners[evt]) docListeners[evt] = docListeners[evt].filter(f => f !== fn); },
+      dispatchEvent:       (e)       => { (docListeners[e.type] || []).forEach(fn => fn(e)); },
+    };
+    const savedDoc = global.document;
+    global.document = mockDoc;
+    const ss = new ScoreSystem();
+    ss.destroy();
+    global.document.dispatchEvent(new CustomEvent('timeBonus', { detail: { seconds: 10, x: 0, y: 0 } }));
+    expect(ss._animations).toHaveLength(0);
+    global.document = savedDoc;
   });
 });

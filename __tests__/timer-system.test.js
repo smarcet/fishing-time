@@ -179,3 +179,73 @@ describe('TimerSystem draw()', () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+describe('TimerSystem time bonus event handling', () => {
+  function makeTs(seconds = 120) {
+    return new TimerSystem(makeCtxMock(), makeSize(800, 600), seconds);
+  }
+
+  function dispatchCapture(enemyType, x = 0, y = 0) {
+    global.document.dispatchEvent(new CustomEvent('enemyCaptured', { detail: { enemyType, x, y } }));
+  }
+
+  test('Clock capture adds 10s to _timeMs', () => {
+    const ts = makeTs(120);
+    ts._timeMs = 60000;
+    dispatchCapture('Clock');
+    expect(ts._timeMs).toBe(70000);
+  });
+
+  test('Clock capture clamps _timeMs to _initialMs (no overshoot)', () => {
+    const ts = makeTs(120);
+    ts._timeMs = 115000;
+    dispatchCapture('Clock');
+    expect(ts._timeMs).toBe(120000);
+  });
+
+  test('non-Clock capture does NOT change _timeMs', () => {
+    const ts = makeTs(120);
+    ts._timeMs = 60000;
+    dispatchCapture('Tuna');
+    expect(ts._timeMs).toBe(60000);
+  });
+
+  test('Clock capture dispatches EVENT_TIME_BONUS with seconds=10', () => {
+    const ts = makeTs(120);
+    ts._timeMs = 60000;
+    const handler = jest.fn();
+    global.document.addEventListener('timeBonus', handler);
+    dispatchCapture('Clock', 50, 100);
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler.mock.calls[0][0].detail).toMatchObject({ seconds: 10, x: 50, y: 100 });
+  });
+
+  test('non-Clock capture does NOT dispatch EVENT_TIME_BONUS', () => {
+    const ts = makeTs(120);
+    ts._timeMs = 60000;
+    const handler = jest.fn();
+    global.document.addEventListener('timeBonus', handler);
+    dispatchCapture('Shark');
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  test('_fired reset: timer re-activates after Clock captured at time=0', () => {
+    const ts = makeTs(120);
+    ts._timeMs = 0;
+    ts._fired = true;
+    dispatchCapture('Clock');
+    expect(ts._fired).toBe(false);
+    expect(ts._timeMs).toBe(10000);
+    ts.update(500);
+    expect(ts._timeMs).toBe(9500);
+  });
+
+  test('destroy() removes EVENT_ENEMY_CAPTURED listener', () => {
+    const ts = makeTs(120);
+    ts._timeMs = 60000;
+    ts.destroy();
+    dispatchCapture('Clock');
+    expect(ts._timeMs).toBe(60000);
+  });
+});
