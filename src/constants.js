@@ -318,7 +318,7 @@ const FISH_DEFINITIONS = [
     id: ENEMY_TYPE_CLOCK,
     className: FISH_CLASS_CLOCK,
     domId: 'clock_sprite',
-    displayH: 77,  displayW: 100,
+    displayH: 85,  displayW: 110,
     maxFrames: 1,
     rarity: FISH_RARITY_UNCOMMON,
     lanes: [FISH_LANE_SURFACE, FISH_LANE_UPPER, FISH_LANE_MIDDLE],
