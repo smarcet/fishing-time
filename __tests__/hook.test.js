@@ -624,9 +624,9 @@ describe('Hook HOOKED - inert object auto-reel', () => {
     expect(hook._ropeLength).toBeLessThan(before);
   });
 
-  test('configured trash definitions have no resistance and auto-reel', () => {
+  test('configured InertObject definitions have no resistance and auto-reel', () => {
     const factory = new EnemyFactory();
-    const trashDefs = FISH_DEFINITIONS.filter(def => def.isTrash);
+    const trashDefs = FISH_DEFINITIONS.filter(def => !('frameH' in def));
 
     trashDefs.forEach(def => {
       const hook = makeHook(false);

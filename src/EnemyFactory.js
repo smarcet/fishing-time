@@ -8,7 +8,7 @@ class EnemyFactory {
         image: typeof document !== 'undefined' ? document.getElementById(def.domId) : null,
         size: new Size(def.displayH, def.displayW),
       };
-      if (def.isTrash) {
+      if (!('frameH' in def)) {
         entry.maxFrames = def.maxFrames;
       } else {
         entry.spriteFrameSize = new Size(def.frameH, def.frameW);

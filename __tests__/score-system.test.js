@@ -34,8 +34,8 @@ describe('SCORE_MAP values', () => {
     expect(SCORE_MAP).toEqual(FISH_SCORE_MAP);
   });
 
-  test('FISH_SPECS is derived for non-trash definitions', () => {
-    const catchableDefs = FISH_DEFINITIONS.filter(def => !def.isTrash);
+  test('FISH_SPECS is derived for CatchableFish definitions', () => {
+    const catchableDefs = FISH_DEFINITIONS.filter(def => 'frameH' in def);
     catchableDefs.forEach(def => {
       expect(FISH_SPECS[def.id]).toEqual({
         strength: def.strength,
