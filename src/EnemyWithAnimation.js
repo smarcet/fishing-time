@@ -114,8 +114,9 @@ class EnemyWithAnimation extends Enemy {
     this._ctx.shadowColor = shadowColor;
     this._ctx.shadowBlur = glow;
     this._ctx.globalAlpha = Math.max(0, alpha);
-    this._ctx.translate(cx, cy);
+    this._ctx.translate(cx + (this._captureOffsetX || 0), cy + (this._captureOffsetY || 0));
     this._ctx.scale(scale, scale);
+    this._ctx.rotate((this._captureRotation || 0) * Math.PI / 180);
     this._drawCapturedSprite(-w / 2, -h / 2, w, h);
     this._ctx.restore();
   }

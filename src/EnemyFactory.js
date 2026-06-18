@@ -17,6 +17,9 @@ class EnemyFactory {
         entry.dieFrameX = def.dieFrameX;
         entry.dieFrameY = def.dieFrameY;
       }
+      entry.captureRotation = def.captureRotation;
+      entry.captureOffsetX  = def.captureOffsetX;
+      entry.captureOffsetY  = def.captureOffsetY;
       this.specs[def.id] = entry;
     });
     this._registry = {
@@ -63,7 +66,13 @@ class EnemyFactory {
     const spec = this.specs[name];
     const Cls  = this._registry[name];
     if (!spec || !Cls) return null;
-    return Cls.create(game, ctx, spec);
+    const enemy = Cls.create(game, ctx, spec);
+    if (enemy) {
+      enemy._captureRotation = spec.captureRotation;
+      enemy._captureOffsetX  = spec.captureOffsetX;
+      enemy._captureOffsetY  = spec.captureOffsetY;
+    }
+    return enemy;
   }
 }
 

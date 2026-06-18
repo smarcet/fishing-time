@@ -190,6 +190,9 @@ const FISH_DEFINITIONS = [
     spawnWeight: 10,
     spawnFrequency: 80,
     isTrash: false,
+    captureRotation: 80,
+    captureOffsetX: 0,
+    captureOffsetY: 0,
   },
   {
     id: ENEMY_TYPE_JELLY_FISH,
@@ -209,6 +212,9 @@ const FISH_DEFINITIONS = [
     spawnWeight: 8,
     spawnFrequency: 90,
     isTrash: false,
+    captureRotation: 75,
+    captureOffsetX: 0,
+    captureOffsetY: 0,
   },
   {
     id: ENEMY_TYPE_BUTTERFLY_FISH,
@@ -228,6 +234,9 @@ const FISH_DEFINITIONS = [
     spawnWeight: 8,
     spawnFrequency: 95,
     isTrash: false,
+    captureRotation: 75,
+    captureOffsetX: 0,
+    captureOffsetY: 0,
   },
   {
     id: ENEMY_TYPE_RED_APPLE,
@@ -245,6 +254,9 @@ const FISH_DEFINITIONS = [
     spawnWeight: 6,
     spawnFrequency: 120,
     isTrash: true,
+    captureRotation: 0,
+    captureOffsetX: 0,
+    captureOffsetY: 0,
   },
   {
     id: ENEMY_TYPE_DISCARDED_BOTTLE,
@@ -262,6 +274,9 @@ const FISH_DEFINITIONS = [
     spawnWeight: 6,
     spawnFrequency: 120,
     isTrash: true,
+    captureRotation: 0,
+    captureOffsetX: 0,
+    captureOffsetY: 0,
   },
   {
     id: ENEMY_TYPE_FISH_BONE,
@@ -279,6 +294,9 @@ const FISH_DEFINITIONS = [
     spawnWeight: 5,
     spawnFrequency: 150,
     isTrash: true,
+    captureRotation: 0,
+    captureOffsetX: 0,
+    captureOffsetY: 0,
   },
   {
     id: ENEMY_TYPE_WHEEL,
@@ -296,6 +314,9 @@ const FISH_DEFINITIONS = [
     spawnWeight: 4,
     spawnFrequency: 180,
     isTrash: true,
+    captureRotation: 0,
+    captureOffsetX: 0,
+    captureOffsetY: 0,
   },
   {
     id: ENEMY_TYPE_SHOE,
@@ -313,6 +334,9 @@ const FISH_DEFINITIONS = [
     spawnWeight: 4,
     spawnFrequency: 180,
     isTrash: true,
+    captureRotation: 0,
+    captureOffsetX: 0,
+    captureOffsetY: 0,
   },
   {
     id: ENEMY_TYPE_CLOCK,
@@ -330,6 +354,9 @@ const FISH_DEFINITIONS = [
     spawnWeight: 3,
     spawnFrequency: 150,
     isTrash: true,
+    captureRotation: 0,
+    captureOffsetX: 0,
+    captureOffsetY: 0,
   },
   {
     id: ENEMY_TYPE_PUFFER_FISH,
@@ -349,6 +376,9 @@ const FISH_DEFINITIONS = [
     spawnWeight: 4,
     spawnFrequency: 190,
     isTrash: false,
+    captureRotation: 75,
+    captureOffsetX: 0,
+    captureOffsetY: 0,
   },
   {
     id: ENEMY_TYPE_CRAB,
@@ -369,6 +399,9 @@ const FISH_DEFINITIONS = [
     spawnFrequency: 600,
     maxActive: FISH_TRAFFIC_MAX_ACTIVE_ONE,
     isTrash: false,
+    captureRotation: 0,
+    captureOffsetX: 0,
+    captureOffsetY: 0,
   },
   {
     id: ENEMY_TYPE_LION_FISH,
@@ -388,6 +421,9 @@ const FISH_DEFINITIONS = [
     spawnWeight: 4,
     spawnFrequency: 220,
     isTrash: false,
+    captureRotation: 75,
+    captureOffsetX: 0,
+    captureOffsetY: 0,
   },
   {
     id: ENEMY_TYPE_TUNA,
@@ -407,6 +443,9 @@ const FISH_DEFINITIONS = [
     spawnWeight: 3,
     spawnFrequency: 260,
     isTrash: false,
+    captureRotation: -15,
+    captureOffsetX: 0,
+    captureOffsetY: 0,
   },
   {
     id: ENEMY_TYPE_OCTOPUS,
@@ -426,6 +465,9 @@ const FISH_DEFINITIONS = [
     spawnWeight: 2,
     spawnFrequency: 360,
     isTrash: false,
+    captureRotation: 0,
+    captureOffsetX: 0,
+    captureOffsetY: 0,
   },
   {
     id: ENEMY_TYPE_SWORDFISH,
@@ -445,6 +487,9 @@ const FISH_DEFINITIONS = [
     spawnWeight: 2,
     spawnFrequency: 390,
     isTrash: false,
+    captureRotation: -15,
+    captureOffsetX: 0,
+    captureOffsetY: 0,
   },
   {
     id: ENEMY_TYPE_SHARK,
@@ -464,6 +509,9 @@ const FISH_DEFINITIONS = [
     spawnWeight: 1,
     spawnFrequency: 600,
     isTrash: false,
+    captureRotation: -15,
+    captureOffsetX: 0,
+    captureOffsetY: 0,
   },
   {
     id: ENEMY_TYPE_HAMMERHEAD_SHARK,
@@ -483,6 +531,9 @@ const FISH_DEFINITIONS = [
     spawnWeight: 0.5,
     spawnFrequency: 900,
     isTrash: false,
+    captureRotation: -15,
+    captureOffsetX: 0,
+    captureOffsetY: 0,
   },
 ];
 

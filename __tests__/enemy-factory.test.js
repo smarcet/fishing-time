@@ -8,6 +8,10 @@ const {
   ENEMY_TYPE_BUTTERFLY_FISH,
   ENEMY_TYPE_SHARK,
   ENEMY_TYPE_HAMMERHEAD_SHARK,
+  ENEMY_TYPE_CLOWN_FISH,
+  ENEMY_TYPE_CRAB,
+  ENEMY_TYPE_SWORDFISH,
+  ENEMY_TYPE_SHOE,
   GAMEPLAY_PROFILE_MOBILE,
 } = require('../src/constants');
 
@@ -54,5 +58,28 @@ describe('EnemyFactory configured roster', () => {
     expect(mobileButterfly._sw).toBe(100);
     expect(mobileButterfly._sh).toBe(82);
     expect(mobileHammerhead._sw).toBe(hammerheadDef.frameW);
+  });
+});
+
+describe('EnemyFactory capture presentation fields', () => {
+  test('createEnemy attaches captureRotation/captureOffsetX/captureOffsetY from FISH_DEFINITIONS', () => {
+    const factory = new EnemyFactory();
+    const game = makeGame();
+
+    const clownFish = factory.createEnemy(ENEMY_TYPE_CLOWN_FISH, game, {});
+    expect(clownFish._captureRotation).toBe(80);
+    expect(clownFish._captureOffsetX).toBe(0);
+    expect(clownFish._captureOffsetY).toBe(0);
+
+    const crab = factory.createEnemy(ENEMY_TYPE_CRAB, game, {});
+    expect(crab._captureRotation).toBe(0);
+
+    const swordFish = factory.createEnemy(ENEMY_TYPE_SWORDFISH, game, {});
+    expect(swordFish._captureRotation).toBe(-15);
+
+    const shoe = factory.createEnemy(ENEMY_TYPE_SHOE, game, {});
+    expect(shoe._captureRotation).toBe(0);
+    expect(shoe._captureOffsetX).toBe(0);
+    expect(shoe._captureOffsetY).toBe(0);
   });
 });

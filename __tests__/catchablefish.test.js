@@ -57,11 +57,13 @@ describe('drawCaptured() fish center positioning', () => {
 
   function makeCapturingSetup() {
     const translateSpy = jest.fn();
+    const rotateSpy = jest.fn();
     const ctx = {
       drawImage: () => {},
       save: () => {},
       restore: () => {},
       translate: translateSpy,
+      rotate: rotateSpy,
       scale: () => {},
       set shadowColor(_) {},
       set shadowBlur(_) {},
@@ -82,7 +84,7 @@ describe('drawCaptured() fish center positioning', () => {
       {}, 10, 1, 0, 1
     );
     fish.captured(mockHook);
-    return { fish, translateSpy };
+    return { fish, translateSpy, rotateSpy };
   }
 
   test('test_drawCaptured_translatesTo_hookEndpoint_not_hookEndpointPlusHalfHeight', () => {
@@ -93,5 +95,12 @@ describe('drawCaptured() fish center positioning', () => {
     const [translatedX, translatedY] = calls[0];
     expect(translatedX).toBe(RX);
     expect(translatedY).toBe(RY);
+  });
+
+  test('test_drawCaptured_rotates_by_captureRotation_in_radians', () => {
+    const { fish, rotateSpy } = makeCapturingSetup();
+    fish._captureRotation = 75;
+    fish.draw();
+    expect(rotateSpy).toHaveBeenCalledWith(75 * Math.PI / 180);
   });
 });
