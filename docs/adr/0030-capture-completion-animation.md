@@ -76,3 +76,99 @@ Allow species to override launch arc height, sparkle density, or duration via `F
 - `Hook.getStatus()` and `getCaptureTrailCount()` expose the launch phase and particle count to the E2E harness via `Game.getRuntimeStats()` (`hookStatus`, `captureTrailParticles`), enabling deterministic polling in browser tests (TS-001, TS-002, TS-003 in the plan).
 - `hadCatch()` is extended to cover both `HOOK_STATUS_HOOKED` and `HOOK_STATUS_CAPTURE_LAUNCH` so the player holds the reel pose for the full 400 ms launch.
 - Adding a new capture trail color requires only changing `CAPTURE_SPARKLE_COLORS` in `src/constants.js`. Changing arc height, sparkle density, or duration requires editing the `CAPTURE_LAUNCH_*` / `CAPTURE_SPARKLE_*` module consts in `src/Hook.js` (all marked `- TUNE`).
+
+---
+
+## Addendum (2026-06-18): Directional Reward Poof + Shrink/Fade Fix
+
+### What changed
+
+The original ADR-0030 implementation contained two behavior regressions from the
+intended design:
+
+1. **Entity grew instead of shrinking.** `CAPTURE_LAUNCH_SCALE_END = 1.25` made the
+   sprite scale from 1.0 to 1.25 toward the boat (grow). The intended effect was the
+   opposite: the entity should shrink and fade as it is "absorbed" by the fisherman.
+2. **Alpha stayed at 1.0 too long.** A piecewise formula held full opacity until
+   `t = 0.75`, so the entity was fully opaque for 75% of the arc.
+
+Both are fixed with linear formulas applied continuously across the arc:
+```
+scale = CAPTURE_LAUNCH_SCALE_START * (1 - t)   // 1.0 -> 0
+alpha = 1 - t                                   // 1.0 -> 0
+```
+`CAPTURE_LAUNCH_SCALE_END` is removed. By `t = 1.0` the entity is invisible, making
+the transition seamless with the poof appearing at the same landing point.
+
+3. **Continuous flight trail replaced by a one-shot directional landing poof.**
+   `_spawnCaptureSparkles` and its per-tick call are removed. Instead,
+   `_buildCaptureRewardPoof(target)` is called once at the start of
+   `_finishCaptureLaunch()`.
+
+   **Direction source:** `_getPlayerFrontDirection()` returns `Math.PI` (left)
+   in all states except `PLAYER_STATE_MOVING_L`, and `0` (right) when moving
+   left. The player sprite's natural orientation (flipX=1) faces LEFT — the
+   fisherman faces the camera/left by default and only flips to face right when
+   actively moving left. Using `Math.PI` for the default state ensures the poof
+   erupts from the front of the fisherman's face in normal gameplay.
+   The launch-trajectory direction (`atan2` from origin to target, pointing
+   upper-left) was rejected because it pointed behind the boat.
+
+   **Particle physics:** `_spawnCapturePoofParticles()` creates 35 independent
+   particles. Each particle has a random angle within `±CAPTURE_POOF_FAN_HALF_DEG`
+   of the base direction, a random speed, a random size, and a random base green
+   channel (producing red→orange variation). Vertical velocity is scaled by
+   `CAPTURE_POOF_Y_FLATTEN` to produce a horizontally elongated fan. Particles
+   move independently each frame (`x += vx`, `y += vy`) and expire when `life`
+   reaches 0. No central flash, no geometric starburst — each particle is a
+   free-moving circle that fades (`alpha = life / maxLife`) as it travels.
+
+   The poof deactivates automatically when all particles expire (particle array
+   empties), giving a natural 367–483 ms duration at 60 fps.
+
+### Final constants (`src/Hook.js`)
+
+All marked `- TUNE` in source for easy discovery.
+
+| Constant | Value | Purpose |
+|---|---|---|
+| `CAPTURE_POOF_PARTICLE_COUNT` | 35 | Particles spawned per poof |
+| `CAPTURE_POOF_LIFE` | 22 | Base ticks per particle (~367 ms at 60 fps) |
+| `CAPTURE_POOF_LIFE_JITTER` | 8 | Random extra ticks added to base (22–30 tick range) |
+| `CAPTURE_POOF_SPEED_MIN` | 5 | px/tick minimum particle speed |
+| `CAPTURE_POOF_SPEED_RANGE` | 15 | Random extra speed above minimum (5–20 px/tick) |
+| `CAPTURE_POOF_SIZE_MIN` | 5 | px — particle circle radius minimum |
+| `CAPTURE_POOF_SIZE_RANGE` | 4 | px — random extra radius (5–9 px range) |
+| `CAPTURE_POOF_FAN_HALF_DEG` | 55 | Degrees — half-angle of directional fan (±55° spread) |
+| `CAPTURE_POOF_Y_FLATTEN` | 0.4 | Vertical squish factor — makes fan wider than tall |
+
+Each particle also carries a per-particle `shadowBlur = 10` orange glow for the
+arcade neon look.
+
+New fields on Hook: `_poofActive`, `_poofT`, `_poofX`, `_poofY`, `_poofDirAngle`,
+`_capturePoofParticles[]`.
+
+### Constants in `src/constants.js`
+
+`CAPTURE_POOF_COLOR = 'rgba(255,210,40,1)'` — warm gold (retained for potential
+future use; per-particle colour is `rgba(255,g,0,1)` with random `g` 0–179).
+`CAPTURE_LAUNCH_GLOW_COLOR = 'rgba(255,160,0,1)'` — vivid orange silhouette glow
+during flight.
+
+### Regression tests (`__tests__/hook.test.js`)
+
+`describe('Hook capture poof (starburst)')` guards the new contract:
+
+- **No poof during flight**: `update(16)` during CAPTURE_LAUNCH leaves `_poofActive === false`.
+- **Poof activates at landing**: `update(CAPTURE_LAUNCH_DURATION_MS)` → `_poofActive === true`.
+- **Poof deactivates after all particles expire**: 32 `_drawCapturePoof()` calls
+  (> max life of 29 ticks) → `_poofActive === false`, `_capturePoofParticles.length === 0`.
+- **Shrink+fade regression**: `_drawCaptureLaunch()` at t=0/0.5/1.0 yields globalAlpha
+  and scale of approximately 1.0/0.5/0 — the original grow+full-alpha pattern fails this.
+
+### See Also
+
+**ADR-0032** — Capture poof direction fix and travel distance tuning. Documents the
+discovery that the player sprite's natural orientation is LEFT-facing (correcting the
+inverted `_getPlayerFrontDirection()` logic), and the 50% speed increase applied to
+`CAPTURE_POOF_SPEED_MIN`/`CAPTURE_POOF_SPEED_RANGE`.

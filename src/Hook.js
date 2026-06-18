@@ -15,16 +15,20 @@ const HOOK_DEBUG_COLOR_IDLE   = 'red';   // bounding-box fill otherwise
 
 // Capture launch render tunables - search "TUNE" to find all knobs
 const CAPTURE_LAUNCH_ARC_Y          = 70;   // px - arc height at midpoint - TUNE
-const CAPTURE_LAUNCH_SCALE_START    = 1.0;  // sprite scale at launch origin - TUNE
-const CAPTURE_LAUNCH_SCALE_END      = 1.25; // sprite scale at boat landing - TUNE
-const CAPTURE_LAUNCH_GLOW_BLUR      = 20;   // px shadow spread for entity glow - TUNE
-const CAPTURE_SPARKLES_PER_TICK     = 3;    // particles spawned each update tick - TUNE
-const CAPTURE_SPARKLE_SPREAD        = 14;   // px random positional jitter - TUNE
-const CAPTURE_SPARKLE_DRIFT         = 1.2;  // px/tick max random velocity - TUNE
-const CAPTURE_SPARKLE_LIFE          = 18;   // ticks a sparkle lives - TUNE
-const CAPTURE_SPARKLE_SIZE_MIN      = 2;    // px minimum radius - TUNE
-const CAPTURE_SPARKLE_SIZE_RANGE    = 3;    // random extra radius above min - TUNE
-const CAPTURE_SPARKLE_SHADOW_BLUR   = 8;    // px glow on each sparkle - TUNE
+const CAPTURE_LAUNCH_SCALE_START    = 1.0;  // sprite scale at launch (shrinks to 0) - TUNE
+const CAPTURE_LAUNCH_GLOW_BLUR      = 8;    // px - silhouette glow at launch start - TUNE
+const CAPTURE_LAUNCH_GLOW_BLUR_PEAK = 22;   // px - silhouette glow blooms at boat - TUNE
+
+// Landing directional poof tunables - search "TUNE" to find all knobs
+const CAPTURE_POOF_PARTICLE_COUNT   = 35;   // particles per poof - TUNE
+const CAPTURE_POOF_LIFE             = 22;   // base ticks per particle (~367ms at 60fps) - TUNE
+const CAPTURE_POOF_LIFE_JITTER      = 8;    // random extra ticks added to base - TUNE
+const CAPTURE_POOF_SPEED_MIN        = 5;    // px/tick minimum particle speed - TUNE
+const CAPTURE_POOF_SPEED_RANGE      = 15;   // random extra speed above minimum - TUNE
+const CAPTURE_POOF_SIZE_MIN         = 5;    // px particle circle radius - TUNE
+const CAPTURE_POOF_SIZE_RANGE       = 4;    // random extra radius px - TUNE
+const CAPTURE_POOF_FAN_HALF_DEG     = 55;   // degrees - half-angle of directional fan - TUNE
+const CAPTURE_POOF_Y_FLATTEN        = 0.4;  // vertical squish factor (<1 = wider than tall) - TUNE
 
 // Escape particle tunables - search "TUNE" to find all knobs
 const HOOK_PARTICLE_GRAVITY      = 0.2;                    // px/tick² downward acceleration - TUNE
@@ -59,7 +63,12 @@ class Hook extends GameObject {
     this._launchOrigin = null;
     this._launchTarget = null;
     this._launchElapsedMs = 0;
-    this._captureTrail = [];
+    this._poofActive = false;
+    this._poofT = 0;
+    this._poofX = 0;
+    this._poofY = 0;
+    this._poofDirAngle = 0;
+    this._capturePoofParticles = [];
     this._castRequested = false;
     this._reelTapCount = 0;
     this._reelForce = 0;
@@ -219,9 +228,6 @@ class Hook extends GameObject {
       }
     } else if (this._status === HOOK_STATUS_CAPTURE_LAUNCH) {
       this._launchElapsedMs += dt;
-      const lt = Math.min(1, this._launchElapsedMs / CAPTURE_LAUNCH_DURATION_MS);
-      const lp = this._captureLaunchPoint(lt);
-      this._spawnCaptureSparkles(lp.getX(), lp.getY());
       if (this._launchElapsedMs >= CAPTURE_LAUNCH_DURATION_MS) {
         this._finishCaptureLaunch();
       }
@@ -271,7 +277,7 @@ class Hook extends GameObject {
     }
 
     this._drawEscapeHookExplosion();
-    this._drawCaptureTrail();
+    this._drawCapturePoof();
     this._drawCaptureLaunch();
   }
 
@@ -306,6 +312,7 @@ class Hook extends GameObject {
   }
 
   _finishCaptureLaunch() {
+    this._buildCaptureRewardPoof(this._launchTarget);
     if (typeof document !== 'undefined' && this._launchEntity) {
       document.dispatchEvent(new CustomEvent(EVENT_ENEMY_CAPTURED, {
         detail: {
@@ -335,39 +342,59 @@ class Hook extends GameObject {
     return new Point(x, y);
   }
 
-  _spawnCaptureSparkles(x, y) {
-    for (let i = 0; i < CAPTURE_SPARKLES_PER_TICK; i++) {
-      const jx = (Math.random() - 0.5) * CAPTURE_SPARKLE_SPREAD;
-      const jy = (Math.random() - 0.5) * CAPTURE_SPARKLE_SPREAD;
-      const vx = (Math.random() - 0.5) * CAPTURE_SPARKLE_DRIFT * 2;
-      const vy = (Math.random() - 0.5) * CAPTURE_SPARKLE_DRIFT * 2;
-      this._captureTrail.push({
-        x: x + jx, y: y + jy, vx, vy,
-        life: CAPTURE_SPARKLE_LIFE, maxLife: CAPTURE_SPARKLE_LIFE,
-        size: CAPTURE_SPARKLE_SIZE_MIN + Math.random() * CAPTURE_SPARKLE_SIZE_RANGE,
-        color: CAPTURE_SPARKLE_COLORS[i % CAPTURE_SPARKLE_COLORS.length]
+  _getPlayerFrontDirection() {
+    return (this._player && this._player._state === PLAYER_STATE_MOVING_L) ? 0 : Math.PI;
+  }
+
+  _buildCaptureRewardPoof(target) {
+    if (!target) return;
+    this._poofX = target.getX();
+    this._poofY = target.getY();
+    this._poofDirAngle = this._getPlayerFrontDirection();
+    this._spawnCapturePoofParticles();
+    this._poofActive = true;
+  }
+
+  _spawnCapturePoofParticles() {
+    this._capturePoofParticles = [];
+    const base = this._poofDirAngle;
+    const spread = CAPTURE_POOF_FAN_HALF_DEG * Math.PI / 180;
+    for (let i = 0; i < CAPTURE_POOF_PARTICLE_COUNT; i++) {
+      const angle = base + (Math.random() - 0.5) * 2 * spread;
+      const speed = CAPTURE_POOF_SPEED_MIN + Math.random() * CAPTURE_POOF_SPEED_RANGE;
+      const vx = Math.cos(angle) * speed;
+      const vy = Math.sin(angle) * speed * CAPTURE_POOF_Y_FLATTEN;
+      const life = CAPTURE_POOF_LIFE + Math.floor(Math.random() * CAPTURE_POOF_LIFE_JITTER);
+      const size = CAPTURE_POOF_SIZE_MIN + Math.random() * CAPTURE_POOF_SIZE_RANGE;
+      const g = Math.floor(Math.random() * 180);
+      this._capturePoofParticles.push({
+        x: this._poofX, y: this._poofY, vx, vy,
+        life, maxLife: life, size, g,
       });
     }
   }
 
-  _drawCaptureTrail() {
-    for (let i = this._captureTrail.length - 1; i >= 0; i--) {
-      const p = this._captureTrail[i];
+  _drawCapturePoof() {
+    if (!this._poofActive) return;
+    const particles = this._capturePoofParticles;
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
       p.x += p.vx;
       p.y += p.vy;
       p.life--;
-      if (p.life <= 0) { this._captureTrail.splice(i, 1); continue; }
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
       const t = p.life / p.maxLife;
       this._ctx.save();
       this._ctx.globalAlpha = t;
-      this._ctx.shadowColor = p.color;
-      this._ctx.shadowBlur = CAPTURE_SPARKLE_SHADOW_BLUR;
-      this._ctx.fillStyle = p.color;
+      this._ctx.shadowColor = `rgba(255,${p.g},0,1)`;
+      this._ctx.shadowBlur = 10;
+      this._ctx.fillStyle = `rgba(255,${p.g},0,1)`;
       this._ctx.beginPath();
-      this._ctx.arc(p.x, p.y, p.size * t, 0, Math.PI * 2);
+      this._ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       this._ctx.fill();
       this._ctx.restore();
     }
+    if (particles.length === 0) this._poofActive = false;
   }
 
   _drawCaptureLaunch() {
@@ -377,15 +404,18 @@ class Hook extends GameObject {
     const h = e.getSize().getHeight();
     const t = Math.min(1, this._launchElapsedMs / CAPTURE_LAUNCH_DURATION_MS);
     const p = this._captureLaunchPoint(t);
-    const scale = CAPTURE_LAUNCH_SCALE_START + (CAPTURE_LAUNCH_SCALE_END - CAPTURE_LAUNCH_SCALE_START) * t;
-    const alpha = t < 0.75 ? 1.0 : Math.max(0, 1 - (t - 0.75) / 0.25);
+    const scale = CAPTURE_LAUNCH_SCALE_START * (1 - t);
+    const alpha = 1 - t;
+    const glowBlur = CAPTURE_LAUNCH_GLOW_BLUR + (CAPTURE_LAUNCH_GLOW_BLUR_PEAK - CAPTURE_LAUNCH_GLOW_BLUR) * t;
     this._ctx.save();
     this._ctx.globalAlpha = alpha;
-    this._ctx.shadowColor = CAPTURE_LAUNCH_GLOW_COLOR;
-    this._ctx.shadowBlur = CAPTURE_LAUNCH_GLOW_BLUR;
     this._ctx.translate(p.getX() + (e._captureOffsetX || 0), p.getY() + (e._captureOffsetY || 0));
     this._ctx.scale(scale, scale);
     this._ctx.rotate((e._captureRotation || 0) * Math.PI / 180);
+    this._ctx.shadowColor = CAPTURE_LAUNCH_GLOW_COLOR;
+    this._ctx.shadowBlur = glowBlur;
+    e._drawCapturedSprite(-w / 2, -h / 2, w, h);
+    this._ctx.shadowBlur = 0;
     e._drawCapturedSprite(-w / 2, -h / 2, w, h);
     this._ctx.restore();
   }
@@ -415,7 +445,7 @@ class Hook extends GameObject {
   }
 
   getCaptureTrailCount() {
-    return this._captureTrail.length;
+    return this._poofActive ? 1 : 0;
   }
 
   _buildEscapeHookExplosion(pos) {

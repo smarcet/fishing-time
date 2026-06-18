@@ -52,6 +52,7 @@ function makeMockCtx() {
     rotate: () => {},
     scale: () => {},
     arc: () => {},
+    ellipse: () => {},
     fill: () => {},
     setLineDash: () => {},
   };
@@ -686,30 +687,69 @@ describe('Hook hadCatch() and isHooked()', () => {
 });
 
 // ---------------------------------------------------------------------------
-describe('Hook capture trail (_captureTrail)', () => {
+describe('Hook capture poof (starburst)', () => {
+  let savedDocument;
+  beforeEach(() => { savedDocument = global.document; });
+  afterEach(() => { global.document = savedDocument; });
+
   function driveToLaunch(hook) {
     hook.setCatch(makeMockInertEntity());
     hook._beginCaptureLaunch();
     return hook;
   }
 
-  test('_captureTrail accumulates particles during CAPTURE_LAUNCH update', () => {
+  test('no poof active during flight update', () => {
     const hook = makeHook(false);
     driveToLaunch(hook);
     expect(hook._status).toBe(HOOK_STATUS_CAPTURE_LAUNCH);
     hook.update(16);
-    expect(hook._captureTrail.length).toBeGreaterThan(0);
+    expect(hook._poofActive).toBe(false);
   });
 
-  test('_captureTrail drains to zero after enough _drawCaptureTrail() calls', () => {
+  test('starburst activates at landing', () => {
     const hook = makeHook(false);
     driveToLaunch(hook);
-    hook.update(16); // spawn some sparkles
-    expect(hook._captureTrail.length).toBeGreaterThan(0);
+    hook._launchOrigin = new Point(200, 400);
+    global.document = { dispatchEvent: jest.fn() };
+    hook.update(CAPTURE_LAUNCH_DURATION_MS);
+    expect(hook._poofActive).toBe(true);
+  });
 
-    // Drain: call _drawCaptureTrail many times (more than CAPTURE_SPARKLE_LIFE ticks)
-    for (let i = 0; i < 30; i++) hook._drawCaptureTrail();
-    expect(hook._captureTrail.length).toBe(0);
+  test('poof deactivates once all particles expire', () => {
+    const hook = makeHook(false);
+    hook._poofX = 100;
+    hook._poofY = 100;
+    hook._poofDirAngle = 0;
+    hook._spawnCapturePoofParticles();
+    hook._poofActive = true;
+    // max particle life = CAPTURE_POOF_LIFE (22) + CAPTURE_POOF_LIFE_JITTER (8) - 1 = 29 ticks
+    for (let i = 0; i < 32; i++) hook._drawCapturePoof();
+    expect(hook._poofActive).toBe(false);
+  });
+
+  test('entity shrinks and fades linearly across arc (regression against ADR-0030 grow+full-alpha)', () => {
+    const hook = makeHook(false);
+    driveToLaunch(hook);
+    hook._ctx.scale = jest.fn();
+    hook._launchEntity._drawCapturedSprite = jest.fn();
+
+    // t = 0: alpha = 1.0, scale = 1.0
+    hook._launchElapsedMs = 0;
+    hook._drawCaptureLaunch();
+    expect(hook._ctx.globalAlpha).toBeCloseTo(1.0, 2);
+    expect(hook._ctx.scale.mock.calls[0][0]).toBeCloseTo(1.0, 2);
+
+    // t = 0.5: alpha = 0.5, scale = 0.5 (ADR-0030 bug: alpha = 1.0, scale = 1.125)
+    hook._launchElapsedMs = CAPTURE_LAUNCH_DURATION_MS * 0.5;
+    hook._drawCaptureLaunch();
+    expect(hook._ctx.globalAlpha).toBeCloseTo(0.5, 2);
+    expect(hook._ctx.scale.mock.calls[1][0]).toBeCloseTo(0.5, 2);
+
+    // t = 1.0: alpha = 0, scale = 0
+    hook._launchElapsedMs = CAPTURE_LAUNCH_DURATION_MS;
+    hook._drawCaptureLaunch();
+    expect(hook._ctx.globalAlpha).toBeCloseTo(0, 2);
+    expect(hook._ctx.scale.mock.calls[2][0]).toBeCloseTo(0, 2);
   });
 });
 
