@@ -54,7 +54,7 @@ Add the oscillation deltas (`sRot`, `sOffX`) to the `ctx.translate` and `ctx.rot
 
 **Pros:**
 - Zero risk of interfering with the gameplay escape/resistance mechanic (`_escapeProgress`, `HOOK_STRUGGLE_*`)
-- `drawCaptured()` is the single rendering path for ALL hooked entities — adding the animation here guarantees every species gets it automatically once its `FISH_DEFINITIONS` entry has `struggleEnabled: true`
+- `drawCaptured()` is the single rendering path for ALL hooked entities — adding the animation here guarantees every species gets it automatically once it extends `CatchableFish`
 - Perfectly isolated from `_drawCaptureLaunch` in `Hook.js`, which draws the fly-to-boat arc using raw `_captureRotation` — the launch arc is always smooth
 - Aligns with the existing ADR-0029 pattern: presentation data (rotation, offset) lives in `FISH_DEFINITIONS`, consumed by the rendering path
 
@@ -116,12 +116,12 @@ All three rationales still apply:
 The struggle guard combines a **state check** and a **type check**:
 
 ```js
-const struggleActive = this._hook && this._hook.isHooked() && this.getFightSpec() !== null;
+const struggleActive = this._hook && this._hook.isHooked() && this instanceof CatchableFish;
 ```
 
 **`isHooked()` vs `isCatchableFishHooked()` (state gate):** `isCatchableFishHooked()` (Hook.js line 409) tests `this._catch instanceof CatchableFish` — during `HOOK_STATUS_CAPTURE_LAUNCH` the `_catch` reference may still point to a `CatchableFish`, so this method returns `true` even while the fish is flying to the boat. `isHooked()` (Hook.js line 405) tests the actual state machine (`this._status === HOOK_STATUS_HOOKED`). Using `isCatchableFishHooked()` for the state gate would have caused the struggle animation to fire during the launch arc.
 
-**`getFightSpec() !== null` (type gate):** Replaces the retired `struggleEnabled` boolean flag. `CatchableFish.getFightSpec()` returns `{strength, escapeRate}`; `InertObject.getFightSpec()` returns `null`. The class hierarchy already encodes this distinction — a separate per-entry flag was redundant state. This change removed `struggleEnabled` from all 17 `FISH_DEFINITIONS` entries and its propagation in `EnemyFactory`.
+**`instanceof CatchableFish` (type gate):** Replaces the retired `struggleEnabled` boolean flag. `CatchableFish` and `InertObject` are already distinct branches of the class hierarchy — a separate per-entry flag was redundant state. This check is performed inside `drawCaptured()` which is defined on `EnemyWithAnimation`, a base class shared by both branches; `this instanceof CatchableFish` is the canonical way to distinguish them at that level. This change removed `struggleEnabled` from all 17 `FISH_DEFINITIONS` entries and its propagation in `EnemyFactory`. An earlier iteration used `getFightSpec() !== null` (duck-typing) before the refactor settled on the direct class check.
 
 ---
 
@@ -131,7 +131,7 @@ const struggleActive = this._hook && this._hook.isHooked() && this.getFightSpec(
 |------|--------|
 | `src/constants.js` | Added `STRUGGLE_DANGER_FACTOR` (2.0) and `STRUGGLE_DANGER_SPEED_FACTOR` (2.0); added 3 struggle fields to 11 catchable-fish `FISH_DEFINITIONS` entries (no fields on 6 trash entries); exported both constants |
 | `src/EnemyFactory.js` | Propagated 3 struggle fields (speed, rotAmp, offAmp) in constructor forEach and `createEnemy()` — no `struggleEnabled` |
-| `src/EnemyWithAnimation.js` | Added struggle oscillation with `dangerScale`+`speedScale`; guard uses `getFightSpec() !== null` (class hierarchy) instead of `_struggleEnabled` flag |
+| `src/EnemyWithAnimation.js` | Added struggle oscillation with `dangerScale`+`speedScale`; guard uses `instanceof CatchableFish` instead of `_struggleEnabled` flag |
 | `__tests__/enemy-with-animation.test.js` | New: 3 tests — struggle-active (CatchableFish), InertObject no-struggle, non-HOOKED guard |
 | `__tests__/enemy-factory.test.js` | Added: 1 test verifying struggle fields propagated for ClownFish |
 | `__tests__/catchablefish.test.js` | Added `isHooked: () => false` to hook stub (new guard now calls `isHooked()` on all CatchableFish instances) |

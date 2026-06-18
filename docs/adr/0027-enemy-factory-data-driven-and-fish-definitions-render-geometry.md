@@ -119,7 +119,6 @@ Special-case spawn Y positions (seabed for `Crab`, mid-deep for `Octopus`) are e
   speedMax:       CLOWN_FISH_DRIFT_SPEED,
   spawnWeight:    10,
   spawnFrequency: 80,
-  isTrash:        false,
 }
 ```
 
@@ -129,11 +128,12 @@ The `EnemyFactory` constructor replaces the 15 per-species `this.specs[...]` blo
 
 ```js
 FISH_DEFINITIONS.forEach(def => {
+  const Cls = this._registry[def.id];
   const entry = {
     image: typeof document !== 'undefined' ? document.getElementById(def.domId) : null,
     size: new Size(def.displayH, def.displayW),
   };
-  if (def.isTrash) {
+  if (!(Cls.prototype instanceof CatchableFish)) {
     entry.maxFrames = def.maxFrames;
   } else {
     entry.spriteFrameSize = new Size(def.frameH, def.frameW);
@@ -141,6 +141,8 @@ FISH_DEFINITIONS.forEach(def => {
     entry.maxFrameY = def.maxFrameY;
     entry.dieFrameX = def.dieFrameX;
     entry.dieFrameY = def.dieFrameY;
+    entry.strength   = def.strength;
+    entry.escapeRate = def.escapeRate;
   }
   this.specs[def.id] = entry;
 });
@@ -178,5 +180,5 @@ A `RENDER_GEOMETRY` map keyed on `ENEMY_TYPE_*` could have housed display sizes 
 - **Adding a new species now requires five places, not six.** No EnemyFactory code changes are needed; the `FISH_DEFINITIONS` entry plus the class file, `index.js` registration, `<img>` tag, and test are sufficient.
 - `EnemyFactory.js` shrinks from 262 lines to 70 lines.
 - `src/constants.js` loses ~40 frame-geometry constants; the FISH_DEFINITIONS entries grow by ~8 fields each.
-- A misconfigured entry (missing `domId`, wrong `isTrash` flag) now surfaces at factory construction time rather than silently producing a broken enemy.
+- A misconfigured entry (missing `domId`, wrong class hierarchy) now surfaces at factory construction time rather than silently producing a broken enemy.
 - The `_tick` fix prevents invisible frame-skip bugs on long play sessions and on the `update()` → `updateCaptured()` state transition.

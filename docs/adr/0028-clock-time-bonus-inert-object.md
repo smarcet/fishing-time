@@ -21,7 +21,7 @@ Five design questions arose:
 
 `InertObject` overrides `getFightSpec()` → `null`, making capture trivial (no power-bar struggle). A drifting clock on the water surface is passive — the player simply reels it in; there is no fight. Using `InertObject` gives the full `EnemyWithAnimation` capture pipeline (glow, arc, shrink) for free and keeps the class consistent with the other surface objects.
 
-`isTrash: true` is set in the `FISH_DEFINITIONS` entry. Despite the confusing name, `isTrash` only controls exclusion from `FISH_SPECS` (the fight-parameters map). It does not affect `FISH_SCORE_MAP` — all definitions, including `isTrash: true` ones, are included in that map. A Clock with `isTrash: true` and `score: 50` correctly appears in `FISH_SCORE_MAP['Clock'] = 50`.
+`EnemyFactory` distinguishes `InertObject` entries from `CatchableFish` entries via `Cls.prototype instanceof CatchableFish`, so no `isTrash` flag is needed in the `FISH_DEFINITIONS` entry. `FISH_SCORE_MAP` includes all definitions regardless of hierarchy, so a `Clock` with `score: 50` correctly appears as `FISH_SCORE_MAP['Clock'] = 50`.
 
 ### 2. Time-bonus delivery via `EVENT_ENEMY_CAPTURED` → `EVENT_TIME_BONUS` custom events
 

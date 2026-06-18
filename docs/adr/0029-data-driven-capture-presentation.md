@@ -98,7 +98,6 @@ A new species defines its capture orientation by adding three fields to its `FIS
   id: ENEMY_TYPE_ANGLER_FISH,
   className: FISH_CLASS_ANGLER_FISH,
   // ... render geometry, population data ...
-  isTrash: false,
   captureRotation: 80,   // hangs vertically like other small fish
   captureOffsetX: 0,
   captureOffsetY: 0,

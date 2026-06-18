@@ -76,12 +76,11 @@ The spawner filters by lane eligibility, removes species still on cooldown, and 
   speedMax,
   spawnWeight,
   spawnFrequency,
-  isTrash,
   maxActive, // optional
 }
 ```
 
-`FISH_SPECS` and `FISH_SCORE_MAP` are derived from this table so the existing fish constructors and `ScoreSystem` keep their old read shapes while using the new configuration as the authority.
+`FISH_SCORE_MAP` is derived from this table so `ScoreSystem` keeps a single authoritative score lookup keyed by class name. `strength` and `escapeRate` are propagated into entity instances by `EnemyFactory.createEnemy()` via `instanceof CatchableFish` — no separate `FISH_SPECS` lookup table exists. `InertObject` entries omit `frameH`/`frameW`/`maxFrameX`/`maxFrameY`/`dieFrameX`/`dieFrameY` and use `maxFrames` instead; `EnemyFactory` distinguishes them by `Cls.prototype instanceof CatchableFish`.
 
 ### 6. Preserve habitat-specific species assignment
 
@@ -113,7 +112,6 @@ Once an enemy class and `EnemyFactory` branch exist, the traffic system needs on
   speedMax: 3.5,
   spawnWeight: 2,
   spawnFrequency: 420,
-  isTrash: false,
   maxActive: 1, // optional cap for rare showcase targets
 }
 ```
