@@ -17,9 +17,12 @@ class EnemyFactory {
         entry.dieFrameX = def.dieFrameX;
         entry.dieFrameY = def.dieFrameY;
       }
-      entry.captureRotation = def.captureRotation;
-      entry.captureOffsetX  = def.captureOffsetX;
-      entry.captureOffsetY  = def.captureOffsetY;
+      entry.captureRotation           = def.captureRotation;
+      entry.captureOffsetX            = def.captureOffsetX;
+      entry.captureOffsetY            = def.captureOffsetY;
+      entry.struggleSpeed             = def.struggleSpeed;
+      entry.struggleRotationAmplitude = def.struggleRotationAmplitude;
+      entry.struggleOffsetAmplitude   = def.struggleOffsetAmplitude;
       this.specs[def.id] = entry;
     });
     this._registry = {
@@ -68,9 +71,12 @@ class EnemyFactory {
     if (!spec || !Cls) return null;
     const enemy = Cls.create(game, ctx, spec);
     if (enemy) {
-      enemy._captureRotation = spec.captureRotation;
-      enemy._captureOffsetX  = spec.captureOffsetX;
-      enemy._captureOffsetY  = spec.captureOffsetY;
+      enemy._captureRotation           = spec.captureRotation;
+      enemy._captureOffsetX            = spec.captureOffsetX;
+      enemy._captureOffsetY            = spec.captureOffsetY;
+      enemy._struggleSpeed             = spec.struggleSpeed ?? 0;
+      enemy._struggleRotationAmplitude = spec.struggleRotationAmplitude ?? 0;
+      enemy._struggleOffsetAmplitude   = spec.struggleOffsetAmplitude ?? 0;
     }
     return enemy;
   }

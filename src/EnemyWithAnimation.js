@@ -81,7 +81,19 @@ class EnemyWithAnimation extends Enemy {
       ? Math.min(1, this._hook._escapeProgress / HOOK_STRUGGLE_MAX_ESCAPE)
       : 0;
 
-    // Pulse speeds up 4× as fish nears escape; glow size grows too
+    // Struggle oscillation: rotation + horizontal shake, scales with escape danger
+    const dangerScale = 1 + escapeDanger * STRUGGLE_DANGER_FACTOR;
+    const speedScale  = 1 + escapeDanger * STRUGGLE_DANGER_SPEED_FACTOR;
+    const t = this._captureTick;
+    const struggleActive = this._hook && this._hook.isHooked() && this.getFightSpec() !== null;
+    const sRot  = struggleActive
+      ? Math.sin(t * this._struggleSpeed * speedScale) * this._struggleRotationAmplitude * dangerScale
+      : 0;
+    const sOffX = struggleActive
+      ? Math.sin(t * this._struggleSpeed * 0.7 * speedScale) * this._struggleOffsetAmplitude * dangerScale
+      : 0;
+
+    // Pulse speeds up 4x as fish nears escape; glow size grows too
     const pulseSpeed = CAPTURE_GLOW_SPEED * (1 + escapeDanger * CAPTURE_PULSE_DANGER_FACTOR);
     const baseGlow = Math.max(CAPTURE_GLOW_MIN_SIZE, CAPTURE_GLOW_BASE_OFFSET + CAPTURE_GLOW_AMPLITUDE * Math.sin(this._captureTick * pulseSpeed));
     const glowSize = baseGlow * (1 + escapeDanger * CAPTURE_GLOW_DANGER_SCALE);
@@ -99,9 +111,9 @@ class EnemyWithAnimation extends Enemy {
     this._ctx.shadowColor = shadowColor;
     this._ctx.shadowBlur = glow;
     this._ctx.globalAlpha = Math.max(0, alpha);
-    this._ctx.translate(cx + (this._captureOffsetX || 0), cy + (this._captureOffsetY || 0));
+    this._ctx.translate(cx + (this._captureOffsetX || 0) + sOffX, cy + (this._captureOffsetY || 0));
     this._ctx.scale(scale, scale);
-    this._ctx.rotate((this._captureRotation || 0) * Math.PI / 180);
+    this._ctx.rotate(((this._captureRotation || 0) + sRot) * Math.PI / 180);
     this._drawCapturedSprite(-w / 2, -h / 2, w, h);
     this._ctx.restore();
   }

@@ -12,6 +12,7 @@ const {
   ENEMY_TYPE_CRAB,
   ENEMY_TYPE_SWORDFISH,
   ENEMY_TYPE_SHOE,
+  ENEMY_TYPE_DISCARDED_BOTTLE,
   GAMEPLAY_PROFILE_MOBILE,
 } = require('../src/constants');
 
@@ -81,5 +82,15 @@ describe('EnemyFactory capture presentation fields', () => {
     expect(shoe._captureRotation).toBe(0);
     expect(shoe._captureOffsetX).toBe(0);
     expect(shoe._captureOffsetY).toBe(0);
+  });
+
+  test('sets struggle properties from FISH_DEFINITIONS on created entities', () => {
+    const factory = new EnemyFactory();
+    const game = makeGame();
+
+    const clown = factory.createEnemy(ENEMY_TYPE_CLOWN_FISH, game, {});
+    expect(clown._struggleSpeed).toBe(0.15);
+    expect(clown._struggleRotationAmplitude).toBe(8);
+    expect(clown._struggleOffsetAmplitude).toBe(3);
   });
 });

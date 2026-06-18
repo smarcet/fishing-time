@@ -61,6 +61,8 @@ const CAPTURE_ESCAPE_PARTICLES = 20;   // number of red particles on escape
 const HOOK_STRUGGLE_REEL_POWER      = 20;    // escape_progress reduction per Space press - TUNE
 const HOOK_STRUGGLE_MAX_ESCAPE      = 100;   // ceiling; fish breaks free at this value - TUNE
 const HOOK_REEL_DISTANCE_PER_PRESS  = 15;    // rope shrink (px) per Space press - TUNE
+const STRUGGLE_DANGER_FACTOR        = 2.0;   // amplitude multiplier per unit escape danger - TUNE
+const STRUGGLE_DANGER_SPEED_FACTOR  = 2.0;   // frequency multiplier per unit escape danger - TUNE
 
 // Fish species lookup: strength * escape_rate * dt_sec = progress per second.
 let FISH_SPECS = {};
@@ -195,6 +197,9 @@ const FISH_DEFINITIONS = [
     captureRotation: 80,
     captureOffsetX: 0,
     captureOffsetY: 0,
+    struggleSpeed: 0.15,
+    struggleRotationAmplitude: 8,
+    struggleOffsetAmplitude: 3,
   },
   {
     id: ENEMY_TYPE_JELLY_FISH,
@@ -217,6 +222,9 @@ const FISH_DEFINITIONS = [
     captureRotation: 75,
     captureOffsetX: 0,
     captureOffsetY: 0,
+    struggleSpeed: 0.12,
+    struggleRotationAmplitude: 6,
+    struggleOffsetAmplitude: 2,
   },
   {
     id: ENEMY_TYPE_BUTTERFLY_FISH,
@@ -239,6 +247,9 @@ const FISH_DEFINITIONS = [
     captureRotation: 75,
     captureOffsetX: 0,
     captureOffsetY: 0,
+    struggleSpeed: 0.15,
+    struggleRotationAmplitude: 8,
+    struggleOffsetAmplitude: 3,
   },
   {
     id: ENEMY_TYPE_RED_APPLE,
@@ -381,6 +392,9 @@ const FISH_DEFINITIONS = [
     captureRotation: 75,
     captureOffsetX: 0,
     captureOffsetY: 0,
+    struggleSpeed: 0.10,
+    struggleRotationAmplitude: 6,
+    struggleOffsetAmplitude: 3,
   },
   {
     id: ENEMY_TYPE_CRAB,
@@ -404,6 +418,9 @@ const FISH_DEFINITIONS = [
     captureRotation: 0,
     captureOffsetX: 0,
     captureOffsetY: 0,
+    struggleSpeed: 0.05,
+    struggleRotationAmplitude: 4,
+    struggleOffsetAmplitude: 2,
   },
   {
     id: ENEMY_TYPE_LION_FISH,
@@ -426,6 +443,9 @@ const FISH_DEFINITIONS = [
     captureRotation: 75,
     captureOffsetX: 0,
     captureOffsetY: 0,
+    struggleSpeed: 0.10,
+    struggleRotationAmplitude: 10,
+    struggleOffsetAmplitude: 4,
   },
   {
     id: ENEMY_TYPE_TUNA,
@@ -448,6 +468,9 @@ const FISH_DEFINITIONS = [
     captureRotation: -15,
     captureOffsetX: 0,
     captureOffsetY: 0,
+    struggleSpeed: 0.08,
+    struggleRotationAmplitude: 12,
+    struggleOffsetAmplitude: 5,
   },
   {
     id: ENEMY_TYPE_OCTOPUS,
@@ -470,6 +493,9 @@ const FISH_DEFINITIONS = [
     captureRotation: 0,
     captureOffsetX: 0,
     captureOffsetY: 0,
+    struggleSpeed: 0.06,
+    struggleRotationAmplitude: 5,
+    struggleOffsetAmplitude: 2,
   },
   {
     id: ENEMY_TYPE_SWORDFISH,
@@ -492,6 +518,9 @@ const FISH_DEFINITIONS = [
     captureRotation: -15,
     captureOffsetX: 0,
     captureOffsetY: 0,
+    struggleSpeed: 0.08,
+    struggleRotationAmplitude: 14,
+    struggleOffsetAmplitude: 6,
   },
   {
     id: ENEMY_TYPE_SHARK,
@@ -514,6 +543,9 @@ const FISH_DEFINITIONS = [
     captureRotation: -15,
     captureOffsetX: 0,
     captureOffsetY: 0,
+    struggleSpeed: 0.06,
+    struggleRotationAmplitude: 12,
+    struggleOffsetAmplitude: 5,
   },
   {
     id: ENEMY_TYPE_HAMMERHEAD_SHARK,
@@ -536,6 +568,9 @@ const FISH_DEFINITIONS = [
     captureRotation: -15,
     captureOffsetX: 0,
     captureOffsetY: 0,
+    struggleSpeed: 0.07,
+    struggleRotationAmplitude: 12,
+    struggleOffsetAmplitude: 5,
   },
 ];
 
@@ -657,7 +692,7 @@ if (typeof module !== 'undefined' && module.exports) {
     PLAYER_ANIM_STAGGER, PLAYER_CATCH_MAX_FRAME_X, PLAYER_CATCH_MAX_FRAME_Y,
     PARALLAX_GAME_SPEED,
     CAPTURE_GLOW_SPEED, CAPTURE_ESCAPE_PARTICLES,
-    HOOK_STRUGGLE_REEL_POWER, HOOK_STRUGGLE_MAX_ESCAPE, HOOK_REEL_DISTANCE_PER_PRESS,
+    HOOK_STRUGGLE_REEL_POWER, HOOK_STRUGGLE_MAX_ESCAPE, HOOK_REEL_DISTANCE_PER_PRESS, STRUGGLE_DANGER_FACTOR, STRUGGLE_DANGER_SPEED_FACTOR,
     FISH_SPECS,
     HOOK_STATUS_IDLE, HOOK_STATUS_CAST, HOOK_STATUS_HOOKED, HOOK_STATUS_RETRIEVING_EMPTY, HOOK_STATUS_CAPTURE_LAUNCH,
     CAPTURE_LAUNCH_DURATION_MS, CAPTURE_SPARKLE_COLORS, CAPTURE_LAUNCH_GLOW_COLOR,

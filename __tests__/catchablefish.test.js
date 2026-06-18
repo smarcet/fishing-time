@@ -72,6 +72,7 @@ describe('drawCaptured() fish center positioning', () => {
     const game = { getSize: () => new Size(600, 800), isDebug: () => false, hasKey: () => false };
     const mockHook = {
       getEndpoint: () => new Point(RX, RY),
+      isHooked: () => false,
       isCatchableFishHooked: () => false,
       _escapeProgress: 0,
       getLandingTarget: () => new Point(0, 0),
