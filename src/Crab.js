@@ -37,12 +37,19 @@ class Crab extends CatchableFish {
       + pulse * (CRAB_REWARD_GLOW_SHADOW_BLUR_MAX - CRAB_REWARD_GLOW_SHADOW_BLUR_MIN);
     const alpha = CRAB_REWARD_GLOW_ALPHA_MIN
       + pulse * (CRAB_REWARD_GLOW_ALPHA_MAX - CRAB_REWARD_GLOW_ALPHA_MIN);
+    const scale = CRAB_REWARD_GLOW_SCALE_MIN
+      + pulse * (CRAB_REWARD_GLOW_SCALE_MAX - CRAB_REWARD_GLOW_SCALE_MIN);
+
+    const gw  = w * scale;
+    const gh  = h * scale;
+    const gdx = dx - (gw - w) / 2;
+    const gdy = dy - (gh - h) / 2;
 
     this._ctx.save();
     this._ctx.shadowColor = CRAB_REWARD_GLOW_COLOR;
     this._ctx.shadowBlur = shadowBlur;
     this._ctx.globalAlpha = alpha;
-    this._drawTrafficSprite(dx, dy, w, h, sw, sh, flipX);
+    this._drawTrafficSprite(gdx, gdy, gw, gh, sw, sh, flipX);
     this._ctx.restore();
   }
 
