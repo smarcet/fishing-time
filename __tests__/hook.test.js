@@ -532,6 +532,23 @@ describe('Hook HOOKED - fish escape', () => {
 
     expect(hook.hadCatch()).toBe(false);
   });
+
+  test('escape spawn-frame pin: explosion advances exactly once in the same update() that triggered it', () => {
+    const hook = makeHook(false);
+    hook._ropeLength = HOOK_REST_LENGTH + 200;
+    hook.setCatch(makeMockFishEntity(10, 2.0));
+    hook._escapeProgress = HOOK_STRUGGLE_MAX_ESCAPE + 10;
+
+    const savedDoc = global.document;
+    global.document = { dispatchEvent: jest.fn() };
+    hook.update(0);
+    global.document = savedDoc;
+
+    const particles = hook._escapeExplosion._particles;
+    expect(particles.length).toBeGreaterThan(0);
+    // Each particle should have been advanced exactly once (life = maxLife - 1)
+    expect(particles[0].life).toBe(particles[0].maxLife - 1);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -703,28 +720,23 @@ describe('Hook capture poof (starburst)', () => {
     driveToLaunch(hook);
     expect(hook._status).toBe(HOOK_STATUS_CAPTURE_LAUNCH);
     hook.update(16);
-    expect(hook._poofActive).toBe(false);
+    expect(hook._capturePoof.isActive()).toBe(false);
   });
 
   test('starburst activates at landing', () => {
     const hook = makeHook(false);
     driveToLaunch(hook);
-    hook._launchOrigin = new Point(200, 400);
     global.document = { dispatchEvent: jest.fn() };
     hook.update(CAPTURE_LAUNCH_DURATION_MS);
-    expect(hook._poofActive).toBe(true);
+    expect(hook._capturePoof.isActive()).toBe(true);
   });
 
   test('poof deactivates once all particles expire', () => {
     const hook = makeHook(false);
-    hook._poofX = 100;
-    hook._poofY = 100;
-    hook._poofDirAngle = 0;
-    hook._spawnCapturePoofParticles();
-    hook._poofActive = true;
+    hook._capturePoof.start({ x: 100, y: 100, dirAngle: 0 });
     // max particle life = CAPTURE_POOF_LIFE (22) + CAPTURE_POOF_LIFE_JITTER (8) - 1 = 29 ticks
-    for (let i = 0; i < 32; i++) hook._drawCapturePoof();
-    expect(hook._poofActive).toBe(false);
+    for (let i = 0; i < 32; i++) hook._capturePoof.update(0);
+    expect(hook._capturePoof.isActive()).toBe(false);
   });
 
   test('_getPlayerFrontDirection returns Math.PI (left) for default player state (regression: sprite faces left)', () => {
@@ -740,50 +752,6 @@ describe('Hook capture poof (starburst)', () => {
     expect(hook._getPlayerFrontDirection()).toBe(0);
   });
 
-  test('_buildCaptureRewardPoof sets _poofDirAngle from player facing direction', () => {
-    const hook = makeHook(false);
-    hook._player._state = PLAYER_STATE_IDLE;
-    const target = new Point(200, 100);
-    hook._buildCaptureRewardPoof(target);
-    expect(hook._poofX).toBe(200);
-    expect(hook._poofY).toBe(100);
-    expect(hook._poofDirAngle).toBeCloseTo(Math.PI, 5);
-    expect(hook._poofActive).toBe(true);
-  });
-
-  test('_spawnCapturePoofParticles creates 35 particles', () => {
-    const hook = makeHook(false);
-    hook._poofX = 100;
-    hook._poofY = 100;
-    hook._poofDirAngle = 0;
-    hook._spawnCapturePoofParticles();
-    expect(hook._capturePoofParticles.length).toBe(35);
-  });
-
-  test('entity shrinks and fades linearly across arc (regression against ADR-0030 grow+full-alpha)', () => {
-    const hook = makeHook(false);
-    driveToLaunch(hook);
-    hook._ctx.scale = jest.fn();
-    hook._launchEntity._drawCapturedSprite = jest.fn();
-
-    // t = 0: alpha = 1.0, scale = 1.0
-    hook._launchElapsedMs = 0;
-    hook._drawCaptureLaunch();
-    expect(hook._ctx.globalAlpha).toBeCloseTo(1.0, 2);
-    expect(hook._ctx.scale.mock.calls[0][0]).toBeCloseTo(1.0, 2);
-
-    // t = 0.5: alpha = 0.5, scale = 0.5 (ADR-0030 bug: alpha = 1.0, scale = 1.125)
-    hook._launchElapsedMs = CAPTURE_LAUNCH_DURATION_MS * 0.5;
-    hook._drawCaptureLaunch();
-    expect(hook._ctx.globalAlpha).toBeCloseTo(0.5, 2);
-    expect(hook._ctx.scale.mock.calls[1][0]).toBeCloseTo(0.5, 2);
-
-    // t = 1.0: alpha = 0, scale = 0
-    hook._launchElapsedMs = CAPTURE_LAUNCH_DURATION_MS;
-    hook._drawCaptureLaunch();
-    expect(hook._ctx.globalAlpha).toBeCloseTo(0, 2);
-    expect(hook._ctx.scale.mock.calls[2][0]).toBeCloseTo(0, 2);
-  });
 });
 
 // ---------------------------------------------------------------------------

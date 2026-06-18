@@ -36,9 +36,12 @@ if (typeof module !== 'undefined' && module.exports) {
   const { ReelPowerBar }       = require('./src/ReelPowerBar');       global.ReelPowerBar       = ReelPowerBar;
   const { TimerSystem }        = require('./src/TimerSystem');        global.TimerSystem        = TimerSystem;
   const { AudioSystem }        = require('./src/AudioSystem');        global.AudioSystem        = AudioSystem;
+  const { CaptureLaunchAnimation }   = require('./src/CaptureLaunchAnimation');   global.CaptureLaunchAnimation   = CaptureLaunchAnimation;
+  const { CapturePoofAnimation }     = require('./src/CapturePoofAnimation');     global.CapturePoofAnimation     = CapturePoofAnimation;
+  const { EscapeExplosionAnimation } = require('./src/EscapeExplosionAnimation'); global.EscapeExplosionAnimation = EscapeExplosionAnimation;
   const { Hook }               = require('./src/Hook');               global.Hook               = Hook;
   const { Player }             = require('./src/Player');             global.Player             = Player;
   const { Bubble }             = require('./src/Bubble');             global.Bubble             = Bubble;
   const { FishSpawner }        = require('./src/FishSpawner');        global.FishSpawner        = FishSpawner;
-  module.exports = { Size, Point, GameObject, InputSystem, KeyboardInputSystem, TouchInputSystem, InputHandler, MobileSystem, E2ETestHarness, Enemy, EnemyWithAnimation, CatchableFish, InertObject, DiscardedBottle, RedApple, Wheel, Shoe, FishBone, Clock, Octopus, Crab, ButterflyFish, LionFish, HammerHeadShark, SwordFish, Tuna, ClownFish, JellyFish, PufferFish, Shark, ScoreSystem, SCORE_MAP, ReelPowerBar, TimerSystem, AudioSystem, Hook, Player, Bubble, FishSpawner };
+  module.exports = { Size, Point, GameObject, InputSystem, KeyboardInputSystem, TouchInputSystem, InputHandler, MobileSystem, E2ETestHarness, Enemy, EnemyWithAnimation, CatchableFish, InertObject, DiscardedBottle, RedApple, Wheel, Shoe, FishBone, Clock, Octopus, Crab, ButterflyFish, LionFish, HammerHeadShark, SwordFish, Tuna, ClownFish, JellyFish, PufferFish, Shark, ScoreSystem, SCORE_MAP, ReelPowerBar, TimerSystem, AudioSystem, CaptureLaunchAnimation, CapturePoofAnimation, EscapeExplosionAnimation, Hook, Player, Bubble, FishSpawner };
 }

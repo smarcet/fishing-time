@@ -13,35 +13,6 @@ const HOOK_DEBUG_TEXT_Y       = 50;      // px - y of debug text readout
 const HOOK_DEBUG_COLOR_HOOKED = 'green'; // bounding-box fill when hooked
 const HOOK_DEBUG_COLOR_IDLE   = 'red';   // bounding-box fill otherwise
 
-// Capture launch render tunables - search "TUNE" to find all knobs
-const CAPTURE_LAUNCH_ARC_Y          = 70;   // px - arc height at midpoint - TUNE
-const CAPTURE_LAUNCH_SCALE_START    = 1.0;  // sprite scale at launch (shrinks to 0) - TUNE
-const CAPTURE_LAUNCH_GLOW_BLUR      = 8;    // px - silhouette glow at launch start - TUNE
-const CAPTURE_LAUNCH_GLOW_BLUR_PEAK = 22;   // px - silhouette glow blooms at boat - TUNE
-
-// Landing directional poof tunables - search "TUNE" to find all knobs
-const CAPTURE_POOF_PARTICLE_COUNT   = 35;   // particles per poof - TUNE
-const CAPTURE_POOF_LIFE             = 22;   // base ticks per particle (~367ms at 60fps) - TUNE
-const CAPTURE_POOF_LIFE_JITTER      = 8;    // random extra ticks added to base - TUNE
-const CAPTURE_POOF_SPEED_MIN        = 5;    // px/tick minimum particle speed - TUNE
-const CAPTURE_POOF_SPEED_RANGE      = 15;   // random extra speed above minimum - TUNE
-const CAPTURE_POOF_SIZE_MIN         = 5;    // px particle circle radius - TUNE
-const CAPTURE_POOF_SIZE_RANGE       = 4;    // random extra radius px - TUNE
-const CAPTURE_POOF_FAN_HALF_DEG     = 55;   // degrees - half-angle of directional fan - TUNE
-const CAPTURE_POOF_Y_FLATTEN        = 0.4;  // vertical squish factor (<1 = wider than tall) - TUNE
-
-// Escape particle tunables - search "TUNE" to find all knobs
-const HOOK_PARTICLE_GRAVITY      = 0.2;                    // px/tick² downward acceleration - TUNE
-const HOOK_PARTICLE_SHADOW_COLOR = 'rgba(255,80,0,0.9)';  // glow colour
-const HOOK_PARTICLE_SHADOW_BLUR  = 12;                     // px shadow spread - TUNE
-const HOOK_PARTICLE_SPEED_MIN    = 3;                      // px/tick minimum radial speed - TUNE
-const HOOK_PARTICLE_SPEED_RANGE  = 4;                      // random extra speed above min - TUNE
-const HOOK_PARTICLE_LIFE         = 40;                     // ticks a particle lives - TUNE
-const HOOK_PARTICLE_SIZE_MIN     = 4;                      // px minimum radius - TUNE
-const HOOK_PARTICLE_SIZE_RANGE   = 4;                      // random extra radius above min - TUNE
-const HOOK_PARTICLE_VY_BIAS      = -2;                     // px/tick upward initial bias - TUNE
-const HOOK_PARTICLE_GREEN_MAX    = 80;                     // 0-255 green channel at full life - TUNE
-
 class Hook extends GameObject {
 
   constructor(player, ctx, size, position) {
@@ -57,22 +28,19 @@ class Hook extends GameObject {
     this._ropeLength = HOOK_REST_LENGTH;
     this._escapeProgress = 0;
     this._drawTick = 0;
-    this._escapeParticles = [];
     this._hookedEventFired = false;
     this._launchEntity = null;
-    this._launchOrigin = null;
     this._launchTarget = null;
-    this._launchElapsedMs = 0;
-    this._poofActive = false;
-    this._poofT = 0;
-    this._poofX = 0;
-    this._poofY = 0;
-    this._poofDirAngle = 0;
-    this._capturePoofParticles = [];
     this._castRequested = false;
     this._reelTapCount = 0;
     this._reelForce = 0;
     this._isReeling = false;
+
+    // Three dedicated animation objects own all visual-effect state. Hook triggers
+    // them but holds none of their internal particle/timing data.
+    this._escapeExplosion = new EscapeExplosionAnimation(ctx);
+    this._capturePoof     = new CapturePoofAnimation(ctx);
+    this._captureLaunch   = new CaptureLaunchAnimation(ctx);
 
     this._handleCastRequested = () => {
       if (this._status === HOOK_STATUS_IDLE) this._castRequested = true;
@@ -197,7 +165,8 @@ class Hook extends GameObject {
           this._escapeProgress = Math.max(0, this._escapeProgress - this._reelForce * dtSec);
         }
         if (this._escapeProgress >= HOOK_STRUGGLE_MAX_ESCAPE) {
-          this._buildEscapeHookExplosion(this._endpoint());
+          const ep = this._endpoint();
+          this._escapeExplosion.start({ x: ep.getX(), y: ep.getY() });
           const escapee = this._catch;
           escapee.escaped();
           this._player._game.releaseEnemy(escapee);
@@ -215,7 +184,6 @@ class Hook extends GameObject {
           if (typeof document !== 'undefined') {
             document.dispatchEvent(new CustomEvent(EVENT_HOOK_IDLE));
           }
-          return;
         } else if (typeof document !== 'undefined') {
           const power = 1 - Math.min(1, this._escapeProgress / HOOK_STRUGGLE_MAX_ESCAPE);
           document.dispatchEvent(new CustomEvent(EVENT_REEL_POWER_CHANGED, { detail: { power } }));
@@ -223,12 +191,14 @@ class Hook extends GameObject {
       } else {
         this._ropeLength -= HOOK_CATCH_REEL_SPEED;
       }
-      if (this._ropeLength <= HOOK_REST_LENGTH) {
+      // Status guard replaces the early return that previously ended the escape
+      // branch; after an escape _status is IDLE so this is correctly skipped.
+      if (this._status === HOOK_STATUS_HOOKED && this._ropeLength <= HOOK_REST_LENGTH) {
         this._beginCaptureLaunch();
       }
     } else if (this._status === HOOK_STATUS_CAPTURE_LAUNCH) {
-      this._launchElapsedMs += dt;
-      if (this._launchElapsedMs >= CAPTURE_LAUNCH_DURATION_MS) {
+      this._captureLaunch.update(dt);
+      if (this._captureLaunch.isFinished()) {
         this._finishCaptureLaunch();
       }
     } else if (this._status === HOOK_STATUS_RETRIEVING_EMPTY) {
@@ -241,6 +211,13 @@ class Hook extends GameObject {
         }
       }
     }
+
+    // Advance animations every frame. Running these after the state machine means
+    // any animation started this frame (e.g. escapeExplosion.start) is advanced
+    // exactly once before draw() renders it -- same per-frame advance count as
+    // before the refactor when advancement happened inside draw().
+    this._capturePoof.update(dt);
+    this._escapeExplosion.update(dt);
   }
 
   draw() {
@@ -276,43 +253,36 @@ class Hook extends GameObject {
       this._catch.draw();
     }
 
-    this._drawEscapeHookExplosion();
-    this._drawCapturePoof();
-    this._drawCaptureLaunch();
+    // Draw order preserved from pre-refactor: explosion at back, launch arc on top.
+    this._escapeExplosion.draw(this._ctx);
+    this._capturePoof.draw(this._ctx);
+    this._captureLaunch.draw(this._ctx);
   }
 
-  _drawEscapeHookExplosion() {
-    for (let i = this._escapeParticles.length - 1; i >= 0; i--) {
-      const p = this._escapeParticles[i];
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += HOOK_PARTICLE_GRAVITY;
-      p.life--;
-      if (p.life <= 0) { this._escapeParticles.splice(i, 1); continue; }
-      const t = p.life / p.maxLife;
-      this._ctx.save();
-      this._ctx.globalAlpha = t;
-      this._ctx.shadowColor = HOOK_PARTICLE_SHADOW_COLOR;
-      this._ctx.shadowBlur = HOOK_PARTICLE_SHADOW_BLUR;
-      this._ctx.fillStyle = `rgba(255,${Math.round(t * HOOK_PARTICLE_GREEN_MAX)},0,1)`;
-      this._ctx.beginPath();
-      this._ctx.arc(p.x, p.y, p.size * t, 0, Math.PI * 2);
-      this._ctx.fill();
-      this._ctx.restore();
-    }
-  }
-
+  // Snapshot endpoint and landing target NOW (before rope length changes further),
+  // hand them to the launch animation, and null _catch so the fish stops drawing
+  // while the arc plays. _launchEntity and _launchTarget stay on Hook because
+  // _finishCaptureLaunch needs them for the EVENT_ENEMY_CAPTURED payload.
   _beginCaptureLaunch() {
-    this._launchOrigin = this.getEndpoint();
     this._launchTarget = this.getLandingTarget();
     this._launchEntity = this._catch;
     this._catch = null;
-    this._launchElapsedMs = 0;
+    this._captureLaunch.start({
+      entity: this._launchEntity,
+      origin: this.getEndpoint(),
+      target: this._launchTarget,
+    });
     this._status = HOOK_STATUS_CAPTURE_LAUNCH;
   }
 
   _finishCaptureLaunch() {
-    this._buildCaptureRewardPoof(this._launchTarget);
+    // Read-before-null: poof position and event payload are derived from
+    // _launchTarget/_launchEntity, which must be read before they are cleared.
+    this._capturePoof.start({
+      x: this._launchTarget.getX(),
+      y: this._launchTarget.getY(),
+      dirAngle: this._getPlayerFrontDirection(),
+    });
     if (typeof document !== 'undefined' && this._launchEntity) {
       document.dispatchEvent(new CustomEvent(EVENT_ENEMY_CAPTURED, {
         detail: {
@@ -323,10 +293,9 @@ class Hook extends GameObject {
       }));
       document.dispatchEvent(new CustomEvent(EVENT_HOOK_IDLE));
     }
+    this._captureLaunch.reset();
     this._launchEntity = null;
-    this._launchOrigin = null;
     this._launchTarget = null;
-    this._launchElapsedMs = 0;
     this._catchRopeStart = null;
     this._escapeProgress = 0;
     this._hookedEventFired = false;
@@ -334,90 +303,8 @@ class Hook extends GameObject {
     this._ropeLength = HOOK_REST_LENGTH;
   }
 
-  _captureLaunchPoint(t) {
-    const ox = this._launchOrigin.getX(), oy = this._launchOrigin.getY();
-    const tx = this._launchTarget.getX(), ty = this._launchTarget.getY();
-    const x = ox + (tx - ox) * t;
-    const y = oy + (ty - oy) * t - Math.sin(t * Math.PI) * CAPTURE_LAUNCH_ARC_Y;
-    return new Point(x, y);
-  }
-
   _getPlayerFrontDirection() {
     return (this._player && this._player._state === PLAYER_STATE_MOVING_L) ? 0 : Math.PI;
-  }
-
-  _buildCaptureRewardPoof(target) {
-    if (!target) return;
-    this._poofX = target.getX();
-    this._poofY = target.getY();
-    this._poofDirAngle = this._getPlayerFrontDirection();
-    this._spawnCapturePoofParticles();
-    this._poofActive = true;
-  }
-
-  _spawnCapturePoofParticles() {
-    this._capturePoofParticles = [];
-    const base = this._poofDirAngle;
-    const spread = CAPTURE_POOF_FAN_HALF_DEG * Math.PI / 180;
-    for (let i = 0; i < CAPTURE_POOF_PARTICLE_COUNT; i++) {
-      const angle = base + (Math.random() - 0.5) * 2 * spread;
-      const speed = CAPTURE_POOF_SPEED_MIN + Math.random() * CAPTURE_POOF_SPEED_RANGE;
-      const vx = Math.cos(angle) * speed;
-      const vy = Math.sin(angle) * speed * CAPTURE_POOF_Y_FLATTEN;
-      const life = CAPTURE_POOF_LIFE + Math.floor(Math.random() * CAPTURE_POOF_LIFE_JITTER);
-      const size = CAPTURE_POOF_SIZE_MIN + Math.random() * CAPTURE_POOF_SIZE_RANGE;
-      const g = Math.floor(Math.random() * 180);
-      this._capturePoofParticles.push({
-        x: this._poofX, y: this._poofY, vx, vy,
-        life, maxLife: life, size, g,
-      });
-    }
-  }
-
-  _drawCapturePoof() {
-    if (!this._poofActive) return;
-    const particles = this._capturePoofParticles;
-    for (let i = particles.length - 1; i >= 0; i--) {
-      const p = particles[i];
-      p.x += p.vx;
-      p.y += p.vy;
-      p.life--;
-      if (p.life <= 0) { particles.splice(i, 1); continue; }
-      const t = p.life / p.maxLife;
-      this._ctx.save();
-      this._ctx.globalAlpha = t;
-      this._ctx.shadowColor = `rgba(255,${p.g},0,1)`;
-      this._ctx.shadowBlur = 10;
-      this._ctx.fillStyle = `rgba(255,${p.g},0,1)`;
-      this._ctx.beginPath();
-      this._ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      this._ctx.fill();
-      this._ctx.restore();
-    }
-    if (particles.length === 0) this._poofActive = false;
-  }
-
-  _drawCaptureLaunch() {
-    if (this._status !== HOOK_STATUS_CAPTURE_LAUNCH || !this._launchEntity) return;
-    const e = this._launchEntity;
-    const w = e.getSize().getWidth();
-    const h = e.getSize().getHeight();
-    const t = Math.min(1, this._launchElapsedMs / CAPTURE_LAUNCH_DURATION_MS);
-    const p = this._captureLaunchPoint(t);
-    const scale = CAPTURE_LAUNCH_SCALE_START * (1 - t);
-    const alpha = 1 - t;
-    const glowBlur = CAPTURE_LAUNCH_GLOW_BLUR + (CAPTURE_LAUNCH_GLOW_BLUR_PEAK - CAPTURE_LAUNCH_GLOW_BLUR) * t;
-    this._ctx.save();
-    this._ctx.globalAlpha = alpha;
-    this._ctx.translate(p.getX() + (e._captureOffsetX || 0), p.getY() + (e._captureOffsetY || 0));
-    this._ctx.scale(scale, scale);
-    this._ctx.rotate((e._captureRotation || 0) * Math.PI / 180);
-    this._ctx.shadowColor = CAPTURE_LAUNCH_GLOW_COLOR;
-    this._ctx.shadowBlur = glowBlur;
-    e._drawCapturedSprite(-w / 2, -h / 2, w, h);
-    this._ctx.shadowBlur = 0;
-    e._drawCapturedSprite(-w / 2, -h / 2, w, h);
-    this._ctx.restore();
   }
 
   hadCatch() {
@@ -445,20 +332,7 @@ class Hook extends GameObject {
   }
 
   getCaptureTrailCount() {
-    return this._poofActive ? 1 : 0;
-  }
-
-  _buildEscapeHookExplosion(pos) {
-    for (let i = 0; i < CAPTURE_ESCAPE_PARTICLES; i++) {
-      const angle = (Math.PI * 2 * i) / CAPTURE_ESCAPE_PARTICLES;
-      const speed = HOOK_PARTICLE_SPEED_MIN + Math.random() * HOOK_PARTICLE_SPEED_RANGE;
-      this._escapeParticles.push({
-        x: pos.getX(), y: pos.getY(),
-        vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed + HOOK_PARTICLE_VY_BIAS,
-        life: HOOK_PARTICLE_LIFE, maxLife: HOOK_PARTICLE_LIFE,
-        size: HOOK_PARTICLE_SIZE_MIN + Math.random() * HOOK_PARTICLE_SIZE_RANGE
-      });
-    }
+    return this._capturePoof.isActive() ? 1 : 0;
   }
 
   destroy() {
