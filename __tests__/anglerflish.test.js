@@ -21,8 +21,8 @@ const {
 const ANGLER_FLISH_FRAME_WIDTH = 264;
 const ANGLER_FLISH_FRAME_HEIGHT = 160;
 const ANGLER_FLISH_MAX_FRAME_X = 4;
-const ANGLER_FLISH_DISPLAY_W = 165;
-const ANGLER_FLISH_DISPLAY_H = 100;
+const ANGLER_FLISH_DISPLAY_W = 190;
+const ANGLER_FLISH_DISPLAY_H = 115;
 const ANGLER_FLISH_SPAWN_INTERVAL = 1800;
 
 const anglerDefinition = FISH_DEFINITIONS.find(def => def.id === ENEMY_TYPE_ANGLER_FLISH);
@@ -193,6 +193,7 @@ describe('AnglerFlish guaranteed traffic', () => {
     expect(spawned).toHaveLength(1);
     expect(spawned[0].type).toBe(ENEMY_TYPE_ANGLER_FLISH);
     expect(spawned[0]._trafficLane).toBe(FISH_LANE_BOTTOM);
-    expect(spawned[0]._position.getY()).toBeGreaterThanOrEqual(600 * FISH_LANES[FISH_LANE_BOTTOM].yMin);
+    // bottom-edge of fish must reach the bottom lane; top-edge is clamped by canvas height minus fish height
+    expect(spawned[0]._position.getY() + ANGLER_FLISH_DISPLAY_H).toBeGreaterThanOrEqual(600 * FISH_LANES[FISH_LANE_BOTTOM].yMin);
   });
 });

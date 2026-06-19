@@ -30,7 +30,7 @@ const CRAB_DRIFT_SPEED       = 4.0;   // px/tick - 2.5x fish speed, hardest enem
 const CRAB_SEABED_FACTOR     = 0.85;  // canvas-height fraction for spawn Y (seabed)
 const LOBSTER_DRIFT_SPEED           = 7.0;   // px/tick - fastest in game (swordfish=4.5, crab=4.0)
 const CHEST_WITH_JEWELS_DRIFT_SPEED = 7.0;   // px/tick - ties Lobster (muy muy rápida)
-const ANGLER_FLISH_DRIFT_SPEED      = 8.0;   // px/tick - fastest premium bottom-lane catch
+const ANGLER_FLISH_DRIFT_SPEED      = 5.6;   // px/tick - fastest premium bottom-lane catch
 const LOBSTER_TRAFFIC_OFFSET_Y = 24;  // px - keeps the small lobster close to the seabed
 const OCTOPUS_SPAWN_Y_FACTOR = 0.65;  // canvas-height fraction for spawn Y (mid-deep)
 // Premium catch highlight (PremiumCatchableFish) - rim glint + sparkles, gold/amber, no shadowBlur
@@ -469,7 +469,7 @@ const FISH_DEFINITIONS = [
     id:        ENEMY_TYPE_ANGLER_FLISH,
     className: FISH_CLASS_ANGLER_FLISH,
     domId:     'angler_fish_sprite',
-    displayH:  100,  displayW: 165,
+    displayH:  115,  displayW: 190,
     frameH:    160,  frameW:  264,
     maxFrameX: 4,    maxFrameY: 1,
     dieFrameX: 0,    dieFrameY: 0,
@@ -478,7 +478,7 @@ const FISH_DEFINITIONS = [
     score:          1000,
     strength:       40,
     escapeRate:     2.2,
-    speedMin:       7.2,
+    speedMin:       5.0,
     speedMax:       ANGLER_FLISH_DRIFT_SPEED,
     spawnWeight:    1,
     spawnFrequency: 1800,
