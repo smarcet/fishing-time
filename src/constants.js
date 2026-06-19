@@ -519,7 +519,7 @@ const FISH_DEFINITIONS = [
     id: ENEMY_TYPE_TUNA,
     className: FISH_CLASS_TUNA,
     domId: 'tuna_sprite',
-    displayH: 225,  displayW: 384,
+    displayH: 191,  displayW: 326,
     frameH: 300,    frameW: 512,
     maxFrameX: 8,   maxFrameY: 1,
     dieFrameX: 0,   dieFrameY: 1,
