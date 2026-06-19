@@ -26,7 +26,7 @@ describe('SCORE_MAP values', () => {
 
   test('all configured class names exist in SCORE_MAP', () => {
     const keys = FISH_DEFINITIONS.map(def => def.className);
-    expect(keys).toHaveLength(20);
+    expect(keys).toHaveLength(21);
     keys.forEach(k => expect(SCORE_MAP).toHaveProperty(k));
   });
 
