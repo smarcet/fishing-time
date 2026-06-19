@@ -22,6 +22,10 @@ const {
   LOBSTER_TRAFFIC_OFFSET_Y,
   GAMEPLAY_PROFILE_DESKTOP,
   GAMEPLAY_PROFILE_MOBILE,
+  FISH_SCHOOL_SIZE_MIN,
+  FISH_SCHOOL_SIZE_MAX,
+  FISH_RARITY_RARE,
+  CLOWN_FISH_DRIFT_SPEED,
 } = require('../src/constants');
 
 const CANVAS_W = 800;
@@ -453,5 +457,180 @@ describe('FishSpawner traffic integration', () => {
     expect(surfaceY).toBeLessThan(190);
     expect(middleY).toBeGreaterThan(surfaceY);
     expect(bottomY).toBeGreaterThan(middleY);
+  });
+
+  describe('school spawning', () => {
+    test('_isSchoolEligible returns true for schoolable COMMON species', () => {
+      const spawner = new FishSpawner(makeGame(), {}, makeFactory(), {
+        rng: () => 0,
+        preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+      });
+      const clownDef = FISH_DEFINITIONS.find(d => d.id === ENEMY_TYPE_CLOWN_FISH);
+      expect(spawner._isSchoolEligible(clownDef)).toBe(true);
+    });
+
+    test('_isSchoolEligible returns false for non-schoolable species', () => {
+      const spawner = new FishSpawner(makeGame(), {}, makeFactory(), {
+        rng: () => 0,
+        preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+      });
+      const sharkDef = FISH_DEFINITIONS.find(d => d.id === ENEMY_TYPE_SHARK);
+      expect(spawner._isSchoolEligible(sharkDef)).toBe(false);
+    });
+
+    test('_isSchoolEligible returns false for schoolable RARE species (rarity guard)', () => {
+      const spawner = new FishSpawner(makeGame(), {}, makeFactory(), {
+        rng: () => 0,
+        preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+      });
+      expect(spawner._isSchoolEligible({ schoolable: true, rarity: FISH_RARITY_RARE })).toBe(false);
+    });
+
+    test('_randomSchoolSize returns FISH_SCHOOL_SIZE_MIN when rng returns 0', () => {
+      const spawner = new FishSpawner(makeGame(), {}, makeFactory(), {
+        rng: () => 0,
+        preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+      });
+      expect(spawner._randomSchoolSize()).toBe(FISH_SCHOOL_SIZE_MIN);
+    });
+
+    test('_randomSchoolSize returns FISH_SCHOOL_SIZE_MAX when rng returns 0.999', () => {
+      const spawner = new FishSpawner(makeGame(), {}, makeFactory(), {
+        rng: () => 0.999,
+        preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+      });
+      expect(spawner._randomSchoolSize()).toBe(FISH_SCHOOL_SIZE_MAX);
+    });
+
+    test('_spawnSchoolFollowers returns SIZE_MIN-1 followers for schoolable leader (rng=0)', () => {
+      const factory = makeFactory();
+      const spawner = new FishSpawner(makeGame(), {}, factory, {
+        rng: () => 0,
+        preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+      });
+      const clownDef = FISH_DEFINITIONS.find(d => d.id === ENEMY_TYPE_CLOWN_FISH);
+      const leader = makeEnemy(ENEMY_TYPE_CLOWN_FISH);
+      leader._direction = FISH_TRAFFIC_DIRECTION_RIGHT;
+      leader._driftSpeed = CLOWN_FISH_DRIFT_SPEED;
+      leader._position = new Point(-ENEMY_W, 200);
+      const laneDef = FISH_LANES[FISH_LANE_SURFACE];
+
+      const followers = spawner._spawnSchoolFollowers(leader, FISH_LANE_SURFACE, laneDef, [leader]);
+
+      expect(followers).toHaveLength(FISH_SCHOOL_SIZE_MIN - 1);
+      followers.forEach(f => {
+        expect(f._trafficType).toBe(ENEMY_TYPE_CLOWN_FISH);
+        expect(f._direction).toBe(FISH_TRAFFIC_DIRECTION_RIGHT);
+        const x = f._position.getX();
+        const w = f.getSize().getWidth();
+        expect(x + w).toBeGreaterThanOrEqual(0);
+        expect(x).toBeLessThanOrEqual(CANVAS_W);
+        expect(f._driftSpeed).toBeGreaterThanOrEqual(clownDef.speedMin);
+        expect(f._driftSpeed).toBeLessThanOrEqual(clownDef.speedMax);
+      });
+    });
+
+    test('_spawnSchoolFollowers returns SIZE_MAX-1 followers when school size rolls maximum', () => {
+      const factory = makeFactory();
+      const spawner = new FishSpawner(makeGame(), {}, factory, {
+        rng: () => 0,
+        preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+      });
+      // Replace _rng after construction so constructor calls don't consume the sequence
+      // sequence: chance roll=0 (school proceeds), size roll=0.999 (SIZE_MAX), rest=0
+      const calls = [0, 0.999];
+      let ci = 0;
+      spawner._rng = () => calls[ci++] ?? 0;
+      const leader = makeEnemy(ENEMY_TYPE_CLOWN_FISH);
+      leader._direction = FISH_TRAFFIC_DIRECTION_RIGHT;
+      leader._driftSpeed = CLOWN_FISH_DRIFT_SPEED;
+      leader._position = new Point(-ENEMY_W, 200);
+      const laneDef = FISH_LANES[FISH_LANE_SURFACE];
+
+      const followers = spawner._spawnSchoolFollowers(leader, FISH_LANE_SURFACE, laneDef, [leader]);
+
+      expect(followers).toHaveLength(FISH_SCHOOL_SIZE_MAX - 1);
+      followers.forEach(f => {
+        const x = f._position.getX();
+        const w = f.getSize().getWidth();
+        expect(x + w).toBeGreaterThanOrEqual(0);
+        expect(x).toBeLessThanOrEqual(CANVAS_W);
+      });
+    });
+
+    test('_spawnSchoolFollowers returns [] for non-schoolable leader', () => {
+      const factory = makeFactory();
+      const spawner = new FishSpawner(makeGame(), {}, factory, {
+        rng: () => 0,
+        preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+      });
+      const crabLeader = makeEnemy(ENEMY_TYPE_CRAB);
+      crabLeader._direction = FISH_TRAFFIC_DIRECTION_RIGHT;
+      crabLeader._driftSpeed = 1.0;
+      crabLeader._position = new Point(-ENEMY_W, 400);
+
+      const followers = spawner._spawnSchoolFollowers(crabLeader, FISH_LANE_BOTTOM, FISH_LANES[FISH_LANE_BOTTOM], [crabLeader]);
+
+      expect(followers).toEqual([]);
+    });
+
+    test('follower Y is clamped to WATER_SURFACE_Y when jitter would push above waterline', () => {
+      const factory = makeFactory();
+      const spawner = new FishSpawner(makeGame(), {}, factory, {
+        rng: () => 0,
+        preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+      });
+      const clownDef = FISH_DEFINITIONS.find(d => d.id === ENEMY_TYPE_CLOWN_FISH);
+      const leader = makeEnemy(ENEMY_TYPE_CLOWN_FISH);
+      leader._direction = FISH_TRAFFIC_DIRECTION_RIGHT;
+      leader._driftSpeed = CLOWN_FISH_DRIFT_SPEED;
+      // Place leader exactly at waterSurface; rng=0 gives max upward jitter which would push above
+      leader._position = new Point(-ENEMY_W, WATER_SURFACE_Y);
+      const laneDef = FISH_LANES[FISH_LANE_SURFACE];
+
+      const followers = spawner._spawnSchoolFollowers(leader, FISH_LANE_SURFACE, laneDef, [leader]);
+
+      followers.forEach(f => {
+        expect(f._position.getY()).toBeGreaterThanOrEqual(WATER_SURFACE_Y);
+      });
+    });
+
+    test('update() spawns leader then same-type followers for a schoolable lane spawn', () => {
+      const factory = makeFactory();
+      const profile = Object.assign({}, GAMEPLAY_PROFILE_DESKTOP, { guaranteedSpeciesIntervals: {} });
+      const spawner = new FishSpawner(makeGame(), {}, factory, {
+        rng: () => 0,
+        profile,
+        preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+        initialLaneTimer: FISH_TRAFFIC_COOLDOWN_READY,
+      });
+
+      const spawned = spawner.update([]);
+
+      const surfaceEntries = spawned.filter(e => e._trafficLane === FISH_LANE_SURFACE);
+      expect(surfaceEntries.length).toBeGreaterThanOrEqual(2);
+      const leaderType = surfaceEntries[0]._trafficType;
+      surfaceEntries.forEach(e => expect(e._trafficType).toBe(leaderType));
+      expect(surfaceEntries[0]._position.getX()).toBe(-ENEMY_W);
+    });
+
+    test('school is truncated when maxActiveTraffic cap is nearly full', () => {
+      const factory = makeFactory();
+      const profile = Object.assign({}, GAMEPLAY_PROFILE_DESKTOP, {
+        maxActiveTraffic: 2,
+        guaranteedSpeciesIntervals: {},
+      });
+      const spawner = new FishSpawner(makeGame(), {}, factory, {
+        rng: () => 0,
+        profile,
+        preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+        initialLaneTimer: FISH_TRAFFIC_COOLDOWN_READY,
+      });
+
+      const spawned = spawner.update([makeEnemy(ENEMY_TYPE_CLOWN_FISH)]);
+
+      // active starts at 1; leader fills cap to 2; no followers can be added
+      expect(spawned).toHaveLength(1);
+    });
   });
 });

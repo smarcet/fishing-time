@@ -41,6 +41,7 @@ class FishSpawner {
         if (enemy) {
           spawned.push(enemy);
           activeTraffic.push(enemy);
+          this._spawnSchoolFollowers(enemy, laneName, laneDef, activeTraffic).forEach(f => spawned.push(f));
         }
         this._laneTimers[laneName] = this._nextLaneDelay(laneDef);
       }
@@ -261,6 +262,60 @@ class FishSpawner {
     const minY = Math.min(laneMin, absoluteMax);
     const maxY = Math.min(Math.max(minY, laneMax), absoluteMax);
     return minY + this._rng() * (maxY - minY);
+  }
+
+  _isSchoolEligible(spec) {
+    return !!spec && spec.schoolable === true &&
+      (spec.rarity === FISH_RARITY_COMMON || spec.rarity === FISH_RARITY_UNCOMMON);
+  }
+
+  _randomSchoolSize() {
+    return FISH_SCHOOL_SIZE_MIN +
+      Math.floor(this._rng() * (FISH_SCHOOL_SIZE_MAX - FISH_SCHOOL_SIZE_MIN + 1));
+  }
+
+  _applySchoolMemberState(follower, leader, spec, laneName, laneDef, index, baseSpeed) {
+    const gameHeight = this._game.getSize().getHeight();
+    const followerWidth = follower.getSize().getWidth();
+    const followerHeight = follower.getSize().getHeight();
+    const direction = laneDef.direction;
+
+    const x = leader._position.getX() + direction * followerWidth * FISH_SCHOOL_X_SPACING_FACTOR * index;
+    const rawY = leader._position.getY() + (this._rng() * 2 - 1) * followerHeight * FISH_SCHOOL_Y_JITTER_FACTOR;
+    const waterSurfaceY = this._profile.waterSurfaceFactor
+      ? gameHeight * this._profile.waterSurfaceFactor
+      : WATER_SURFACE_Y;
+    const y = Math.min(Math.max(waterSurfaceY, rawY), gameHeight - followerHeight);
+
+    const speedMin = Math.min(spec.speedMin, spec.speedMax);
+    const speedMax = Math.max(spec.speedMin, spec.speedMax);
+    const jitter = (this._rng() * 2 - 1) * FISH_SCHOOL_SPEED_JITTER;
+    const speed = Math.min(Math.max(baseSpeed * (1 + jitter), speedMin), speedMax);
+
+    follower._trafficLane = laneName;
+    follower._trafficType = spec.id;
+    follower._position = new Point(x, y);
+    follower._direction = direction;
+    follower._driftSpeed = speed;
+    follower._speedX = direction * speed;
+  }
+
+  _spawnSchoolFollowers(leader, laneName, laneDef, activeTraffic) {
+    const spec = FISH_DEFINITIONS.find(d => d.id === leader._trafficType);
+    if (!this._isSchoolEligible(spec)) return [];
+    if (this._rng() >= FISH_SCHOOL_CHANCE) return [];
+    const size = this._randomSchoolSize();
+    const followers = [];
+    for (let i = 1; i < size; i++) {
+      if (activeTraffic.length >= this._profile.maxActiveTraffic) break;
+      if (!this._hasActiveCapacity(spec, activeTraffic)) break;
+      const follower = this._enemyFactory.createEnemy(spec.id, this._game, this._ctx);
+      if (!follower) break;
+      this._applySchoolMemberState(follower, leader, spec, laneName, laneDef, i, leader._driftSpeed);
+      activeTraffic.push(follower);
+      followers.push(follower);
+    }
+    return followers;
   }
 }
 

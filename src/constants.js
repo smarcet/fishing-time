@@ -181,6 +181,13 @@ const FISH_TRAFFIC_WEIGHT_THRESHOLD = 0;
 const FISH_TRAFFIC_MAX_ACTIVE_ONE = 1;
 const MOBILE_SHORT_EDGE_MAX = 820;
 
+const FISH_SCHOOL_CHANCE          = 0.30;
+const FISH_SCHOOL_SIZE_MIN        = 3;
+const FISH_SCHOOL_SIZE_MAX        = 5;
+const FISH_SCHOOL_X_SPACING_FACTOR = 0.35;
+const FISH_SCHOOL_Y_JITTER_FACTOR  = 0.6;
+const FISH_SCHOOL_SPEED_JITTER     = 0.12;
+
 const FISH_LANES = {
   [FISH_LANE_SURFACE]: { yMin: 0.34, yMax: 0.44, direction: FISH_TRAFFIC_DIRECTION_RIGHT, spawnInterval: 90 },
   [FISH_LANE_UPPER]:   { yMin: 0.44, yMax: 0.56, direction: FISH_TRAFFIC_DIRECTION_LEFT,  spawnInterval: 120 },
@@ -210,6 +217,7 @@ const FISH_DEFINITIONS = [
     speedMax: CLOWN_FISH_DRIFT_SPEED,
     spawnWeight: 10,
     spawnFrequency: 80,
+    schoolable: true,
     captureRotation: 80,
     captureOffsetX: 0,
     captureOffsetY: 0,
@@ -234,6 +242,7 @@ const FISH_DEFINITIONS = [
     speedMax: JELLY_FISH_DRIFT_SPEED,
     spawnWeight: 3,
     spawnFrequency: 750,
+    schoolable: true,
     captureRotation: 75,
     captureOffsetX: 0,
     captureOffsetY: 0,
@@ -258,6 +267,7 @@ const FISH_DEFINITIONS = [
     speedMax: DRIFT_SPEED_DEFAULT,
     spawnWeight: 8,
     spawnFrequency: 95,
+    schoolable: true,
     captureRotation: 75,
     captureOffsetX: 0,
     captureOffsetY: 0,
@@ -396,6 +406,7 @@ const FISH_DEFINITIONS = [
     speedMax: PUFFER_FISH_DRIFT_SPEED,
     spawnWeight: 4,
     spawnFrequency: 190,
+    schoolable: true,
     captureRotation: 75,
     captureOffsetX: 0,
     captureOffsetY: 0,
@@ -496,6 +507,7 @@ const FISH_DEFINITIONS = [
     speedMax: LION_FISH_DRIFT_SPEED,
     spawnWeight: 4,
     spawnFrequency: 220,
+    schoolable: true,
     captureRotation: 75,
     captureOffsetX: 0,
     captureOffsetY: 0,
@@ -779,6 +791,8 @@ if (typeof module !== 'undefined' && module.exports) {
     FISH_TRAFFIC_COOLDOWN_READY, FISH_TRAFFIC_QUEUE_START_INDEX,
     FISH_TRAFFIC_TIMER_TICK, FISH_TRAFFIC_LAST_INDEX_OFFSET,
     FISH_TRAFFIC_WEIGHT_THRESHOLD, FISH_TRAFFIC_MAX_ACTIVE_ONE,
+    FISH_SCHOOL_CHANCE, FISH_SCHOOL_SIZE_MIN, FISH_SCHOOL_SIZE_MAX,
+    FISH_SCHOOL_X_SPACING_FACTOR, FISH_SCHOOL_Y_JITTER_FACTOR, FISH_SCHOOL_SPEED_JITTER,
     MOBILE_SHORT_EDGE_MAX, GAMEPLAY_PROFILE_DESKTOP, GAMEPLAY_PROFILE_MOBILE,
     FISH_LANES, FISH_DEFINITIONS, FISH_SCORE_MAP,
     ENEMY_ESCAPE_SPEED_MULTIPLIER, ENEMY_STATUS_CAPTURED,
