@@ -31,13 +31,13 @@ The gold rim-glint + sparkle effect from ADR-0034 communicates visually that thi
 
 ### 5. dieFrameY: 0
 
-The lobster_sprite.png has a single row of animation frames. There is no separate die/captured row. Setting `dieFrameY: 0` mirrors the ButterflyFish convention for single-row sprites. Using `dieFrameY: 1` would cause `drawImage` to read from row 1, which is outside the sprite image, rendering blank.
+The current lobster sheet uses the first animation frame as the captured frame. Setting `dieFrameY: 0` keeps captured rendering on the first row and avoids reading from a non-dedicated death row.
 
-### 6. Normalized spritesheet: 1212x80, four 303x80 cells
+### 6. Normalized spritesheet: 4848x2304, thirty-six 808x384 cells
 
-The delivered sprite sheet was 1536x1024 with four poses near rows 817-896. The poses were not aligned to the nominal 384px columns, so manual source windows could cross adjacent poses and render overlapping lobster parts.
+The delivered replacement sheet is a 6-column by 6-row PNG. Each frame is a uniform 808x384 transparent cell. `Lobster` renders those source frames at 188x89, preserving the source aspect ratio while keeping the bottom-lane hitbox compact.
 
-The asset is now normalized to four uniform 303x80 transparent cells. `Lobster` renders those source frames at 225x60, which is 25% smaller than the original 300x80 display size. The class uses the standard source formula (`frameX * frameW`, `frameY * frameH`) and only keeps its custom direction flip because the sprite faces left. This fixes the overlap at the source instead of encoding fragile per-frame offsets in code.
+The class uses the standard source formula (`frameX * frameW`, `frameY * frameH`) and the standard premium-fish direction flip because the replacement sprite faces right. This fixes overlap at the source instead of encoding fragile per-frame offsets in code.
 
 ### 7. Bottom-lane vertical offset
 

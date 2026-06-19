@@ -11,14 +11,14 @@ const {
   FISH_TRAFFIC_DIRECTION_LEFT,
 } = require('../src/constants');
 
-const LOBSTER_FRAME_WIDTH   = 303;
-const LOBSTER_FRAME_HEIGHT  = 80;
-const LOBSTER_MAX_FRAME_X   = 4;
-const LOBSTER_MAX_FRAME_Y   = 1;
+const LOBSTER_FRAME_WIDTH   = 808;
+const LOBSTER_FRAME_HEIGHT  = 384;
+const LOBSTER_MAX_FRAME_X   = 6;
+const LOBSTER_MAX_FRAME_Y   = 6;
 const LOBSTER_DIE_FRAME_X   = 0;
 const LOBSTER_DIE_FRAME_Y   = 0;
-const LOBSTER_DISPLAY_W     = 225;
-const LOBSTER_DISPLAY_H     = 60;
+const LOBSTER_DISPLAY_W     = 188;
+const LOBSTER_DISPLAY_H     = 89;
 
 const lobsterDefinition = FISH_DEFINITIONS.find(def => def.id === ENEMY_TYPE_LOBSTER);
 
@@ -97,17 +97,24 @@ describe('Lobster inheritance', () => {
 });
 
 describe('Lobster species definition', () => {
-  test('renders 25 percent smaller than the original 300x80 size', () => {
+  test('display dimensions match lobster3 sprite proportions', () => {
     expect(lobsterDefinition.displayW).toBe(LOBSTER_DISPLAY_W);
     expect(lobsterDefinition.displayH).toBe(LOBSTER_DISPLAY_H);
   });
+
+  test('source geometry matches lobster3 sprite grid', () => {
+    expect(lobsterDefinition.frameW).toBe(LOBSTER_FRAME_WIDTH);
+    expect(lobsterDefinition.frameH).toBe(LOBSTER_FRAME_HEIGHT);
+    expect(lobsterDefinition.maxFrameX).toBe(LOBSTER_MAX_FRAME_X);
+    expect(lobsterDefinition.maxFrameY).toBe(LOBSTER_MAX_FRAME_Y);
+  });
 });
 
-describe('Lobster draw() normalized spritesheet', () => {
-  test('sprite asset is normalized to four uniform transparent cells', () => {
-    const png = fs.readFileSync(path.join(__dirname, '../images/fishes/lobster_sprite.png'));
+describe('Lobster draw() spritesheet', () => {
+  test('sprite asset dimensions match 6-column 6-row grid', () => {
+    const png = fs.readFileSync(path.join(__dirname, '../images/fishes/lobster3_sprite.png'));
     expect(png.readUInt32BE(16)).toBe(LOBSTER_FRAME_WIDTH * LOBSTER_MAX_FRAME_X);
-    expect(png.readUInt32BE(20)).toBe(LOBSTER_FRAME_HEIGHT);
+    expect(png.readUInt32BE(20)).toBe(LOBSTER_FRAME_HEIGHT * LOBSTER_MAX_FRAME_Y);
   });
 
   test('drawImage is called exactly once per draw()', () => {
@@ -149,6 +156,29 @@ describe('Lobster draw() normalized spritesheet', () => {
     expect(call[3]).toBe(LOBSTER_FRAME_WIDTH);
   });
 
+  test('update advances from the last column into the next spritesheet row', () => {
+    const { lobster, mockCtx } = makeLobster();
+    lobster._frameX = LOBSTER_MAX_FRAME_X - 1;
+    lobster._frameY = 0;
+
+    for (let i = 0; i < lobster._staggerFrame; i++) lobster.update();
+    lobster.draw();
+
+    const call = mockCtx.drawImageCalls[0];
+    expect(lobster._frameX).toBe(0);
+    expect(lobster._frameY).toBe(1);
+    expect(call[1]).toBe(0);
+    expect(call[2]).toBe(LOBSTER_FRAME_HEIGHT);
+  });
+
+  test('drawImage sourceY can use the final spritesheet row', () => {
+    const { lobster, mockCtx } = makeLobster();
+    lobster._frameY = LOBSTER_MAX_FRAME_Y - 1;
+    lobster.draw();
+    const call = mockCtx.drawImageCalls[0];
+    expect(call[2]).toBe(LOBSTER_FRAME_HEIGHT * (LOBSTER_MAX_FRAME_Y - 1));
+  });
+
   test('no shadowBlur is set (no glow halo)', () => {
     const { lobster, mockCtx } = makeLobster();
     lobster.draw();
@@ -165,17 +195,17 @@ describe('Lobster draw() normalized spritesheet', () => {
 });
 
 describe('Lobster draw() direction flip', () => {
-  // Sprite faces LEFT -- flipX is negated vs other fish.
-  test('draw() calls ctx.scale(1, 1) when direction is -1 (going left, no flip needed)', () => {
+  // lobster3_sprite.png faces RIGHT, matching PremiumCatchableFish's default flipX.
+  test('draw() calls ctx.scale(-1, 1) when direction is -1 (going left, flip right-facing sprite)', () => {
     const { lobster, mockCtx } = makeLobster(100, 500, FISH_TRAFFIC_DIRECTION_LEFT);
     lobster.draw();
-    expect(mockCtx.scaleCalls.some(c => c[0] === 1 && c[1] === 1)).toBe(true);
+    expect(mockCtx.scaleCalls.some(c => c[0] === -1 && c[1] === 1)).toBe(true);
   });
 
-  test('draw() calls ctx.scale(-1, 1) when direction is 1 (going right, flip to face right)', () => {
+  test('draw() calls ctx.scale(1, 1) when direction is 1 (going right, no flip needed)', () => {
     const { lobster, mockCtx } = makeLobster(100, 500, FISH_TRAFFIC_DIRECTION_RIGHT);
     lobster.draw();
-    expect(mockCtx.scaleCalls.some(c => c[0] === -1 && c[1] === 1)).toBe(true);
+    expect(mockCtx.scaleCalls.some(c => c[0] === 1 && c[1] === 1)).toBe(true);
   });
 });
 
@@ -188,7 +218,7 @@ describe('Lobster movement', () => {
   });
 
   test('isOffScreen() returns true when fully past the left edge', () => {
-    // displayW=300 so x < -300 => off-screen left
+    // displayW=150 so x < -150 => off-screen left
     const { lobster } = makeLobster(-400, 500, FISH_TRAFFIC_DIRECTION_LEFT);
     expect(lobster.isOffScreen()).toBe(true);
   });

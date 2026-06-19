@@ -21,10 +21,9 @@ class Lobster extends PremiumCatchableFish {
     );
   }
 
-  // Sprite faces LEFT, so flipX is negated vs standard fish.
   _drawTrafficSprite(dx, dy, w, h, sw, sh, flipX) {
     this._ctx.translate(dx + w / 2, dy + h / 2);
-    this._ctx.scale(-flipX, 1);
+    this._ctx.scale(flipX, 1);
     this._ctx.drawImage(this._image,
       this._frameX * sw, this._frameY * sh, sw, sh,
       -w / 2, -h / 2, w, h);

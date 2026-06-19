@@ -28,7 +28,7 @@ const WATER_SURFACE_Y = 300;  // px - y of the water surface; entities spawn at 
 
 const CRAB_DRIFT_SPEED       = 4.0;   // px/tick - 2.5x fish speed, hardest enemy to catch
 const CRAB_SEABED_FACTOR     = 0.85;  // canvas-height fraction for spawn Y (seabed)
-const LOBSTER_DRIFT_SPEED           = 7.0;   // px/tick - fastest in game (swordfish=4.5, crab=4.0)
+const LOBSTER_DRIFT_SPEED           = 5.0;   // px/tick - fastest in game (swordfish=4.5, crab=4.0)
 const CHEST_WITH_JEWELS_DRIFT_SPEED = 5.25;   // px/tick - ties Lobster (muy muy rápida)
 const ANGLER_FLISH_DRIFT_SPEED      = 5.6;   // px/tick - fastest premium bottom-lane catch
 const LOBSTER_TRAFFIC_OFFSET_Y = 24;  // px - keeps the small lobster close to the seabed
@@ -446,16 +446,16 @@ const FISH_DEFINITIONS = [
     id:        ENEMY_TYPE_LOBSTER,
     className: FISH_CLASS_LOBSTER,
     domId:     'lobster_sprite',
-    displayH:  60,   displayW: 225,
-    frameH:    80,   frameW:  303,
-    maxFrameX: 4,    maxFrameY: 1,
-    dieFrameX: 0,    dieFrameY: 0,   // die frame on swim row (no separate die row)
+    displayH:   89,  displayW: 188,
+    frameH:    384,  frameW:  808,
+    maxFrameX: 6,    maxFrameY: 6,
+    dieFrameX: 0,    dieFrameY: 0,
     rarity:         FISH_RARITY_EPIC,
     lanes:          [FISH_LANE_BOTTOM],
     score:          25000,
     strength:       50,
     escapeRate:     2.8,
-    speedMin:       5.0,
+    speedMin:       3.0,
     speedMax:       LOBSTER_DRIFT_SPEED,
     trafficOffsetY: LOBSTER_TRAFFIC_OFFSET_Y,
     spawnWeight:    1,

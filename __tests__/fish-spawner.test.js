@@ -61,6 +61,15 @@ function makeFactory(size = new Size(ENEMY_H, ENEMY_W)) {
   };
 }
 
+function getLobsterDefinition() {
+  return FISH_DEFINITIONS.find(def => def.id === ENEMY_TYPE_LOBSTER);
+}
+
+function getLobsterSize() {
+  const lobsterDef = getLobsterDefinition();
+  return new Size(lobsterDef.displayH, lobsterDef.displayW);
+}
+
 describe('FishSpawner traffic integration', () => {
   test('preseeds two enemies per lane on first update', () => {
     const factory = makeFactory();
@@ -169,12 +178,12 @@ describe('FishSpawner traffic integration', () => {
   });
 
   test('lobster traffic is offset lower in the bottom lane', () => {
-    const factory = makeFactory(new Size(60, 225));
+    const lobsterDef = getLobsterDefinition();
+    const factory = makeFactory(getLobsterSize());
     const spawner = new FishSpawner(makeGame(), {}, factory, {
       rng: () => 0,
       preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
     });
-    const lobsterDef = FISH_DEFINITIONS.find(def => def.id === ENEMY_TYPE_LOBSTER);
 
     const enemy = spawner._createTrafficEnemy(
       lobsterDef,
@@ -183,18 +192,18 @@ describe('FishSpawner traffic integration', () => {
       false
     );
 
-    expect(enemy._position.getY()).toBe((CANVAS_H * FISH_LANES[FISH_LANE_BOTTOM].yMin) + LOBSTER_TRAFFIC_OFFSET_Y);
+    const offsetY = (CANVAS_H * FISH_LANES[FISH_LANE_BOTTOM].yMin) + LOBSTER_TRAFFIC_OFFSET_Y;
+    expect(enemy._position.getY()).toBe(Math.min(CANVAS_H - lobsterDef.displayH, offsetY));
   });
 
   test('lobster traffic offset clamps to the bottom of short canvases', () => {
-    const lobsterHeight = 60;
+    const lobsterDef = getLobsterDefinition();
     const shortSeabedCanvasH = 400;
-    const factory = makeFactory(new Size(lobsterHeight, 225));
+    const factory = makeFactory(getLobsterSize());
     const spawner = new FishSpawner(makeGame(CANVAS_W, shortSeabedCanvasH), {}, factory, {
       rng: () => 1,
       preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
     });
-    const lobsterDef = FISH_DEFINITIONS.find(def => def.id === ENEMY_TYPE_LOBSTER);
 
     const enemy = spawner._createTrafficEnemy(
       lobsterDef,
@@ -203,7 +212,7 @@ describe('FishSpawner traffic integration', () => {
       false
     );
 
-    expect(enemy._position.getY()).toBe(shortSeabedCanvasH - lobsterHeight);
+    expect(enemy._position.getY()).toBe(shortSeabedCanvasH - lobsterDef.displayH);
   });
 
   test('does not spawn another crab while one is already active', () => {
