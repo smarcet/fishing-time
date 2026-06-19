@@ -4,7 +4,7 @@
   "description": "Steer your boat, cast the hook, and reel in enough fish to win before the timer runs out.",
   "start_url": "./",
   "scope": "./",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "landscape",
   "background_color": "#0075C4",
   "theme_color": "#003d7a",

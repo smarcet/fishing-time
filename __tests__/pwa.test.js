@@ -15,7 +15,7 @@ describe('PWA manifest and service worker', () => {
     expect(manifest.short_name).toBeDefined();
     expect(manifest.start_url).toBeDefined();
     expect(manifest.scope).toBeDefined();
-    expect(manifest.display).toBe('standalone');
+    expect(manifest.display).toBe('fullscreen');
     expect(manifest.orientation).toBe('landscape');
     expect(manifest.theme_color).toBeDefined();
     expect(manifest.background_color).toBeDefined();
