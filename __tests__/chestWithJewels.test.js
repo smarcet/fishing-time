@@ -7,8 +7,8 @@ global.ChestWithJewels = ChestWithJewels;
 
 const CANVAS_W = 800;
 const CANVAS_H = 600;
-const CHEST_W  = 206;
-const CHEST_H  = 138;
+const CHEST_W  = 258;
+const CHEST_H  = 173;
 
 function makeChest(startX = 0, startY = 300) {
   const mockGame = {
@@ -58,10 +58,10 @@ describe('ChestWithJewels bob animation', () => {
 });
 
 describe('ChestWithJewels fast drift', () => {
-  test('drifts at 7.0 px/tick (constructor fallback)', () => {
+  test('drifts at 5.25 px/tick (constructor fallback)', () => {
     const chest = makeChest(0);
     chest.update();
-    expect(chest.getPosition().getX()).toBeCloseTo(7.0, 5);
+    expect(chest.getPosition().getX()).toBeCloseTo(5.25, 5);
   });
 });
 
