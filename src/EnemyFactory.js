@@ -10,6 +10,7 @@ class EnemyFactory {
       [ENEMY_TYPE_LION_FISH]:        LionFish,
       [ENEMY_TYPE_CRAB]:             Crab,
       [ENEMY_TYPE_LOBSTER]:          Lobster,
+      [ENEMY_TYPE_ANGLER_FLISH]:     AnglerFlish,
       [ENEMY_TYPE_OCTOPUS]:          Octopus,
       [ENEMY_TYPE_SHARK]:            Shark,
       [ENEMY_TYPE_HAMMERHEAD_SHARK]: HammerHeadShark,
