@@ -339,7 +339,7 @@ const FISH_DEFINITIONS = [
     displayH: 76,  displayW: 84,
     maxFrames: 1,
     rarity: FISH_RARITY_COMMON,
-    lanes: [FISH_LANE_SURFACE, FISH_LANE_BOTTOM],
+    lanes: [FISH_LANE_SURFACE],
     score: -5,
     strength: 0,
     escapeRate: 0,
