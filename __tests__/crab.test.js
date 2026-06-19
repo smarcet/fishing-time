@@ -1,11 +1,8 @@
 'use strict';
 
-const { Size, Point, EnemyWithAnimation, Crab } = require('../index.js');
+const { Size, Point, EnemyWithAnimation, PremiumCatchableFish, Crab } = require('../index.js');
 const {
   FISH_TRAFFIC_DIRECTION_RIGHT,
-  CRAB_REWARD_GLOW_COLOR,
-  CRAB_REWARD_GLOW_ALPHA_MIN,
-  CRAB_REWARD_GLOW_ALPHA_MAX,
 } = require('../src/constants');
 
 const CRAB_FRAME_WIDTH   = 408;
@@ -27,16 +24,24 @@ function makeMocks() {
   const mockCtx = {
     drawImage: jest.fn(() => { operations.push('drawImage'); }),
     strokeRect: jest.fn(() => { operations.push('strokeRect'); }),
-    beginPath: () => {},
+    beginPath: jest.fn(() => { operations.push('beginPath'); }),
+    arc: jest.fn(() => { operations.push('arc'); }),
+    moveTo: jest.fn(() => { operations.push('moveTo'); }),
+    lineTo: jest.fn(() => { operations.push('lineTo'); }),
+    closePath: jest.fn(() => { operations.push('closePath'); }),
+    fill: jest.fn(() => { operations.push('fill'); }),
     stroke: () => {},
     fillRect: () => {},
     fillText: () => {},
-    save: () => {},
-    restore: () => {},
-    translate: () => {},
+    save: jest.fn(() => { operations.push('save'); }),
+    restore: jest.fn(() => { operations.push('restore'); }),
+    translate: jest.fn(() => { operations.push('translate'); }),
     rotate: () => {},
-    scale: jest.fn(),
+    scale: jest.fn(() => { operations.push('scale'); }),
     setLineDash: () => {},
+    createRadialGradient: jest.fn(() => { operations.push('createRadialGradient'); return { addColorStop() {} }; }),
+    set fillStyle(v) { this._fillStyle = v; operations.push('fillStyle'); },
+    get fillStyle() { return this._fillStyle; },
     set strokeStyle(v) { this._strokeStyle = v; operations.push(`strokeStyle:${v}`); },
     get strokeStyle() { return this._strokeStyle; },
     set lineWidth(v) { this._lineWidth = v; operations.push(`lineWidth:${v}`); },
@@ -71,6 +76,11 @@ describe('Crab inheritance', () => {
   test('Crab is an instance of EnemyWithAnimation', () => {
     const crab = makeCrab();
     expect(crab).toBeInstanceOf(EnemyWithAnimation);
+  });
+
+  test('Crab is an instance of PremiumCatchableFish', () => {
+    const crab = makeCrab();
+    expect(crab).toBeInstanceOf(PremiumCatchableFish);
   });
 });
 
@@ -121,7 +131,7 @@ describe('Crab draw() direction flip', () => {
     expect(mockCtx.scale).toHaveBeenCalledWith(-1, 1);
   });
 
-  test('draw() renders pulsing golden reward glow around crab body shape', () => {
+  test('draw() renders rim glint + sparkles (1 drawImage; glint before sprite; sprite in own save/restore)', () => {
     const { mockGame, mockCtx, mockImage } = makeMocks();
     const crab = new Crab(
       mockGame, mockCtx,
@@ -133,18 +143,18 @@ describe('Crab draw() direction flip', () => {
 
     crab.draw();
 
-    expect(mockCtx.shadowColor).toBe(CRAB_REWARD_GLOW_COLOR);
-    expect(mockCtx.shadowBlurHistory[0]).toBeGreaterThan(0);
-    expect(mockCtx.globalAlphaHistory[0]).toBeGreaterThanOrEqual(CRAB_REWARD_GLOW_ALPHA_MIN);
-    expect(mockCtx.globalAlphaHistory[0]).toBeLessThanOrEqual(CRAB_REWARD_GLOW_ALPHA_MAX);
+    expect(mockCtx.drawImage).toHaveBeenCalledTimes(1);
+    expect(mockCtx.createRadialGradient).toHaveBeenCalledTimes(1);
+    expect(mockCtx.shadowBlurHistory).toHaveLength(0);
     expect(mockCtx.strokeRect).not.toHaveBeenCalled();
-    expect(mockCtx.drawImage).toHaveBeenCalledTimes(2);
-
-    const firstDraw = mockCtx.operations.indexOf('drawImage');
-    expect(mockCtx.operations.indexOf(`shadowColor:${CRAB_REWARD_GLOW_COLOR}`)).toBeLessThan(firstDraw);
-    expect(mockCtx.operations.indexOf('shadowBlur')).toBeLessThan(firstDraw);
-    expect(mockCtx.drawImage.mock.invocationCallOrder[0]).toBeLessThan(
-      mockCtx.drawImage.mock.invocationCallOrder[1]
-    );
+    // sub-sequence: glint fill -> glint restore -> sprite save -> translate -> scale -> drawImage -> sprite restore
+    const ops = mockCtx.operations;
+    const pattern = ['fill', 'restore', 'save', 'translate', 'scale', 'drawImage', 'restore'];
+    let pi = 0;
+    for (const op of ops) {
+      if (op === pattern[pi]) pi++;
+      if (pi === pattern.length) break;
+    }
+    expect(pi).toBe(pattern.length);
   });
 });

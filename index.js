@@ -13,8 +13,9 @@ if (typeof module !== 'undefined' && module.exports) {
   const { E2ETestHarness }     = require('./src/E2ETestHarness');     global.E2ETestHarness     = E2ETestHarness;
   const { Enemy }              = require('./src/Enemy');              global.Enemy              = Enemy;
   const { EnemyWithAnimation } = require('./src/EnemyWithAnimation'); global.EnemyWithAnimation = EnemyWithAnimation;
-  const { CatchableFish }      = require('./src/CatchableFish');      global.CatchableFish      = CatchableFish;
-  const { InertObject }        = require('./src/InertObject');        global.InertObject        = InertObject;
+  const { CatchableFish }         = require('./src/CatchableFish');         global.CatchableFish         = CatchableFish;
+  const { PremiumCatchableFish }  = require('./src/PremiumCatchableFish');  global.PremiumCatchableFish  = PremiumCatchableFish;
+  const { InertObject }           = require('./src/InertObject');           global.InertObject           = InertObject;
   const { DiscardedBottle }    = require('./src/DiscardedBottle');    global.DiscardedBottle    = DiscardedBottle;
   const { RedApple }           = require('./src/RedApple');           global.RedApple           = RedApple;
   const { Wheel }              = require('./src/Wheel');              global.Wheel              = Wheel;
@@ -43,5 +44,5 @@ if (typeof module !== 'undefined' && module.exports) {
   const { Player }             = require('./src/Player');             global.Player             = Player;
   const { Bubble }             = require('./src/Bubble');             global.Bubble             = Bubble;
   const { FishSpawner }        = require('./src/FishSpawner');        global.FishSpawner        = FishSpawner;
-  module.exports = { Size, Point, GameObject, InputSystem, KeyboardInputSystem, TouchInputSystem, InputHandler, MobileSystem, E2ETestHarness, Enemy, EnemyWithAnimation, CatchableFish, InertObject, DiscardedBottle, RedApple, Wheel, Shoe, FishBone, Clock, Octopus, Crab, ButterflyFish, LionFish, HammerHeadShark, SwordFish, Tuna, ClownFish, JellyFish, PufferFish, Shark, ScoreSystem, SCORE_MAP, ReelPowerBar, TimerSystem, AudioSystem, CaptureLaunchAnimation, CapturePoofAnimation, EscapeExplosionAnimation, Hook, Player, Bubble, FishSpawner };
+  module.exports = { Size, Point, GameObject, InputSystem, KeyboardInputSystem, TouchInputSystem, InputHandler, MobileSystem, E2ETestHarness, Enemy, EnemyWithAnimation, CatchableFish, PremiumCatchableFish, InertObject, DiscardedBottle, RedApple, Wheel, Shoe, FishBone, Clock, Octopus, Crab, ButterflyFish, LionFish, HammerHeadShark, SwordFish, Tuna, ClownFish, JellyFish, PufferFish, Shark, ScoreSystem, SCORE_MAP, ReelPowerBar, TimerSystem, AudioSystem, CaptureLaunchAnimation, CapturePoofAnimation, EscapeExplosionAnimation, Hook, Player, Bubble, FishSpawner };
 }

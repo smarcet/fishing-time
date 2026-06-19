@@ -29,14 +29,25 @@ const WATER_SURFACE_Y = 300;  // px - y of the water surface; entities spawn at 
 const CRAB_DRIFT_SPEED       = 4.0;   // px/tick - 2.5x fish speed, hardest enemy to catch
 const CRAB_SEABED_FACTOR     = 0.85;  // canvas-height fraction for spawn Y (seabed)
 const OCTOPUS_SPAWN_Y_FACTOR = 0.65;  // canvas-height fraction for spawn Y (mid-deep)
-const CRAB_REWARD_GLOW_COLOR = 'rgba(255, 215, 0, 0.95)';
-const CRAB_REWARD_GLOW_SHADOW_BLUR_MIN = 20;
-const CRAB_REWARD_GLOW_SHADOW_BLUR_MAX = 120;
-const CRAB_REWARD_GLOW_PULSE_SPEED = 0.06;
-const CRAB_REWARD_GLOW_ALPHA_MIN = 0.65;
-const CRAB_REWARD_GLOW_ALPHA_MAX = 1.0;
-const CRAB_REWARD_GLOW_SCALE_MIN = 1.08;
-const CRAB_REWARD_GLOW_SCALE_MAX = 1.22;
+// Premium catch highlight (PremiumCatchableFish) - rim glint + sparkles, gold/amber, no shadowBlur
+const PREMIUM_PULSE_SPEED         = 0.105;                     // rad/frame ~= 1.0s cycle @60fps
+const PREMIUM_GLINT_COLOR_CORE    = 'rgba(255, 200, 90, 1)';   // gold/amber core (opaque)
+const PREMIUM_GLINT_COLOR_EDGE    = 'rgba(255, 200, 90, 0)';   // fully transparent edge
+const PREMIUM_GLINT_RADIUS_FACTOR = 0.62;                      // x max(w,h); <1 hugs sprite
+const PREMIUM_GLINT_ALPHA_MIN     = 0.30;
+const PREMIUM_GLINT_ALPHA_MAX     = 0.65;
+const PREMIUM_SPARKLE_COLOR       = 'rgba(255, 246, 208, 1)';  // #FFF6D0 white-gold
+const PREMIUM_SPARKLE_SIZE_FACTOR = 0.16;                      // x max(w,h) = peak outer radius
+const PREMIUM_SPARKLE_PERIOD      = 96;                        // frames/cycle (~1.6s @60fps)
+const PREMIUM_SPARKLE_DUTY        = 0.40;                      // visible fraction; spacing<window -> ~2 overlap
+// 5 anchors, phase spacing 19, active window ceil(96*0.40)=39 -- ~2 sparkles visible simultaneously
+const PREMIUM_SPARKLE_ANCHORS     = [
+  { ox:  0.42, oy: -0.34, phase: 0  },
+  { ox: -0.38, oy: -0.20, phase: 19 },
+  { ox: -0.40, oy:  0.30, phase: 38 },
+  { ox:  0.18, oy:  0.40, phase: 57 },
+  { ox:  0.38, oy:  0.12, phase: 76 },
+];
 
 const LION_FISH_DRIFT_SPEED      = 2.0;  // px/tick
 const HAMMERHEAD_SHARK_DRIFT_SPEED = 3.5;  // px/tick
@@ -650,10 +661,11 @@ if (typeof module !== 'undefined' && module.exports) {
     HOOK_REEL_SPEED, HOOK_CATCH_REEL_SPEED, HOOK_MAX_DEPTH_FACTOR,
     WATER_SURFACE_Y,
     CRAB_DRIFT_SPEED, CRAB_SEABED_FACTOR, OCTOPUS_SPAWN_Y_FACTOR,
-    CRAB_REWARD_GLOW_COLOR,
-    CRAB_REWARD_GLOW_SHADOW_BLUR_MIN, CRAB_REWARD_GLOW_SHADOW_BLUR_MAX,
-    CRAB_REWARD_GLOW_PULSE_SPEED, CRAB_REWARD_GLOW_ALPHA_MIN, CRAB_REWARD_GLOW_ALPHA_MAX,
-    CRAB_REWARD_GLOW_SCALE_MIN, CRAB_REWARD_GLOW_SCALE_MAX,
+    PREMIUM_PULSE_SPEED,
+    PREMIUM_GLINT_COLOR_CORE, PREMIUM_GLINT_COLOR_EDGE,
+    PREMIUM_GLINT_RADIUS_FACTOR, PREMIUM_GLINT_ALPHA_MIN, PREMIUM_GLINT_ALPHA_MAX,
+    PREMIUM_SPARKLE_COLOR, PREMIUM_SPARKLE_SIZE_FACTOR,
+    PREMIUM_SPARKLE_PERIOD, PREMIUM_SPARKLE_DUTY, PREMIUM_SPARKLE_ANCHORS,
     LION_FISH_DRIFT_SPEED, HAMMERHEAD_SHARK_DRIFT_SPEED, SHARK_DRIFT_SPEED,
     SWORDFISH_DRIFT_SPEED, TUNA_DRIFT_SPEED, CLOWN_FISH_DRIFT_SPEED,
     JELLY_FISH_DRIFT_SPEED, PUFFER_FISH_DRIFT_SPEED,

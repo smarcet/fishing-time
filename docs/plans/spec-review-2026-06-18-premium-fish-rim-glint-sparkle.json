@@ -1,0 +1,50 @@
+{
+  "plan_file": "/home/smarcet/git/personal/fishing-time/docs/plans/2026-06-18-premium-fish-rim-glint-sparkle.md",
+  "review_summary": "The plan correctly addresses every user acceptance criterion (no shadowBlur, 1 drawImage, gold/amber palette, tight glint, twinkling sparkles) and the task sequence is logically ordered. Six issues were found ranging from a test-assertion gap that would miss a render-order regression, to a sparkle-determinism edge case, to a missing crab-test mock primitive.",
+  "alignment_score": "high",
+  "risk_level": "medium",
+  "issues": [
+    {
+      "severity": "must_fix",
+      "category": "definition_of_done",
+      "title": "Task 3 Crab mock missing createRadialGradient -- draw() will throw, not just fail assertions",
+      "description": "The plan says 'Add to the crab mock: createRadialGradient (jest.fn -> { addColorStop(){} }, recorded in operations), no-op arc/moveTo/lineTo/closePath/fill, and a fillStyle setter.' The existing crab.test.js makeMocks() does NOT have createRadialGradient, arc, moveTo, lineTo, closePath, or fill. After Task 2 rewrites PremiumCatchableFish.js to call these primitives, calling crab.draw() without them will throw a TypeError at runtime before any assertion is even reached. The plan identifies this correctly but its DoD ('crab tests pass; no assertion references shadowColor/3-drawImage') does not explicitly list the primitives to add -- a developer could add only the assertion changes and still have a crashing test. The Task 3 description buries the mock additions in the body but the DoD only checks assertion text.",
+      "suggested_fix": "Expand Task 3's DoD checklist to explicitly list each mock primitive that must be present: 'makeMocks() in crab.test.js exports createRadialGradient, arc, moveTo, lineTo, closePath, fill, and a fillStyle setter -- verified by running npx jest __tests__/crab.test.js before rewriting any assertion (should crash with TypeError before this step, proving the mock was incomplete).' Add a RED verification sub-step: run crab tests after Task 2 is done and before Task 3 to confirm the crash occurs."
+    },
+    {
+      "severity": "must_fix",
+      "category": "definition_of_done",
+      "title": "Operations-order assertion proves gradient fill before drawImage but NOT that the fish sprite was drawn AFTER the glint restore",
+      "description": "Task 2's behavior assertion states: 'createRadialGradient called once; its glint fill happens before the drawImage (glint behind).' The test records operations as strings and checks that the fill for the gradient precedes drawImage in the operations array. However, the design wraps the sprite in its own inner save/restore: the render order is [save, glint-fill, restore, save, translate, scale, drawImage, restore, sparkles]. A bug where the sprite save/restore is omitted and the sparkles use the lingering translate+scale transform would NOT be caught by the 'fill before drawImage' check alone -- the relative order of fill vs drawImage would be correct either way. The plan's Risk table does call out 'lingering canvas transform from _drawTrafficSprite shifts/flips the sparkles' but the proposed test (save/restore balance) only catches a count mismatch, not a structural ordering mistake where the inner save/restore around the sprite is in the wrong position.",
+      "suggested_fix": "Add an operations-sequence assertion that checks the full render order, not just glint-before-drawImage: assert that the operations array contains the sub-sequence ['fill', 'restore', 'save', 'translate', 'scale', 'drawImage', 'restore'] in that order -- i.e. the glint's restore and the sprite's save bracket the translate+scale+drawImage block. This specifically catches the bug where _drawTrafficSprite runs outside its own save/restore and the sparkles inherit the sprite's transform."
+    },
+    {
+      "severity": "should_fix",
+      "category": "risk_quality",
+      "title": "Sparkle determinism gap: phase invariant (spacing > DUTY_FRAMES) is implicit and will silently break if PERIOD or DUTY is tuned",
+      "description": "The plan asserts 'sparkles twinkle in/out: stepping update() across one PREMIUM_SPARKLE_PERIOD and counting fillStyle===PREMIUM_SPARKLE_COLOR fills per frame, max(counts)>0 AND min(counts)===0.' Each sparkle is active for PERIOD * DUTY = 96 * 0.32 = 30.72 frames. The three anchors have phases 0, 32, 64. At t=30..31: anchor 0 just ended (t%96=30, not < 30), anchor 1: (30+32)%96=62 >= 30 (off), anchor 2: (30+64)%96=94 >= 30 (off) -- so a gap exists and min IS 0. The determinism is sound at the current values. However, the guarantee depends on phase spacing (32) > DUTY_FRAMES (30). If a developer later changes DUTY or PERIOD without updating the phases, the min guarantee breaks silently and the test will flip from passing to 'min is always 1'.",
+      "suggested_fix": "Add a comment in the constants block and in the test file explaining the invariant: 'Phase spacing must be > ceil(PERIOD * DUTY) for the off-gap guarantee. With PERIOD=96, DUTY=0.32, DUTY_FRAMES=31 (ceil), spacing=32 -- gap at frames 30-31.' Optionally add a guard assertion in the test: expect(PREMIUM_SPARKLE_ANCHORS[1].phase - PREMIUM_SPARKLE_ANCHORS[0].phase).toBeGreaterThan(Math.ceil(PREMIUM_SPARKLE_PERIOD * PREMIUM_SPARKLE_DUTY))."
+    },
+    {
+      "severity": "should_fix",
+      "category": "task_completeness",
+      "title": "Task 1 verify command covers only 6 of the 11 new constants -- 5 exports could be missing and the verify step would still print 'ok'",
+      "description": "The Task 1 DoD verify command checks only: PREMIUM_PULSE_SPEED, PREMIUM_GLINT_COLOR_CORE, PREMIUM_GLINT_RADIUS_FACTOR, PREMIUM_SPARKLE_COLOR, PREMIUM_SPARKLE_PERIOD, PREMIUM_SPARKLE_ANCHORS. Missing from the check: PREMIUM_GLINT_COLOR_EDGE, PREMIUM_GLINT_ALPHA_MIN, PREMIUM_GLINT_ALPHA_MAX, PREMIUM_SPARKLE_SIZE_FACTOR, PREMIUM_SPARKLE_DUTY. If any of these five are omitted from the constants.js export block, the verify command will still print 'ok', and the failure will only surface later when the class imports them at test time.",
+      "suggested_fix": "Expand the forEach array in the Task 1 verify command to include all 11 new constant names: add 'PREMIUM_GLINT_COLOR_EDGE', 'PREMIUM_GLINT_ALPHA_MIN', 'PREMIUM_GLINT_ALPHA_MAX', 'PREMIUM_SPARKLE_SIZE_FACTOR', 'PREMIUM_SPARKLE_DUTY' so a missed export is caught by the Task 1 DoD step itself."
+    },
+    {
+      "severity": "should_fix",
+      "category": "definition_of_done",
+      "title": "Glint alpha assertion is tautological -- passes even if the glint is invisible because it asserts alpha is within [MIN, MAX] using the same constants",
+      "description": "Task 2's assertion 'Glint globalAlpha within [PREMIUM_GLINT_ALPHA_MIN, PREMIUM_GLINT_ALPHA_MAX]' is trivially satisfied because it uses the same constants the implementation uses. It would pass even if both constants were accidentally set to 0 (invisible glint). The test verifies correct use of the constants but provides no protection against a future constant edit that silently disables the glint by zeroing the alpha range.",
+      "suggested_fix": "Add a concrete lower-bound assertion alongside the range check: expect(glintAlpha).toBeGreaterThan(0.1). This catches the 'glint silently disabled' regression that the range-vs-constants assertion misses, and is cheap to add."
+    },
+    {
+      "severity": "suggestion",
+      "category": "task_completeness",
+      "title": "Plan calls the effect '4-point sparkles' but _drawSparkleStar is described as an 8-vertex path -- the naming is ambiguous for a future reader",
+      "description": "The user request says '2-3 twinkling 4-point sparkles.' The plan's Design section describes _drawSparkleStar as 'an 8-point path (4 outer points at r*twinkle, 4 inner at r*0.38).' An 8-vertex alternating outer/inner star is visually a 4-pointed star (each arm is defined by one outer + two inner vertices), so the math is correct. However, the naming gap ('4-point' in the user requirement vs '8-point path' in the design) could confuse a reviewer or future maintainer into thinking the wrong number of canvas operations will occur.",
+      "suggested_fix": "Add a clarifying note in the Design section: '_drawSparkleStar produces a 4-pointed star via 8 path vertices (alternating outer r and inner r*0.38 radii).' Repeat this in ADR 0034. Optionally assert in the test that at least 8 lineTo/moveTo operations are recorded per visible sparkle draw call so the vertex count is regression-tested."
+    }
+  ]
+}
