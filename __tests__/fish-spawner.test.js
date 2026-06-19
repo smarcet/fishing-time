@@ -14,10 +14,12 @@ const {
   FISH_TRAFFIC_MAX_ACTIVE_ONE,
   ENEMY_TYPE_CLOWN_FISH,
   ENEMY_TYPE_CRAB,
+  ENEMY_TYPE_LOBSTER,
   ENEMY_TYPE_SHARK,
   ENEMY_TYPE_HAMMERHEAD_SHARK,
   ENEMY_TYPE_SWORDFISH,
   WATER_SURFACE_Y,
+  LOBSTER_TRAFFIC_OFFSET_Y,
   GAMEPLAY_PROFILE_DESKTOP,
   GAMEPLAY_PROFILE_MOBILE,
 } = require('../src/constants');
@@ -160,6 +162,44 @@ describe('FishSpawner traffic integration', () => {
 
     expect(crabDef.lanes).toEqual([FISH_LANE_BOTTOM]);
     expect(crabDef.maxActive).toBe(FISH_TRAFFIC_MAX_ACTIVE_ONE);
+  });
+
+  test('lobster traffic is offset lower in the bottom lane', () => {
+    const factory = makeFactory(new Size(60, 225));
+    const spawner = new FishSpawner(makeGame(), {}, factory, {
+      rng: () => 0,
+      preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+    });
+    const lobsterDef = FISH_DEFINITIONS.find(def => def.id === ENEMY_TYPE_LOBSTER);
+
+    const enemy = spawner._createTrafficEnemy(
+      lobsterDef,
+      FISH_LANE_BOTTOM,
+      FISH_LANES[FISH_LANE_BOTTOM],
+      false
+    );
+
+    expect(enemy._position.getY()).toBe((CANVAS_H * FISH_LANES[FISH_LANE_BOTTOM].yMin) + LOBSTER_TRAFFIC_OFFSET_Y);
+  });
+
+  test('lobster traffic offset clamps to the bottom of short canvases', () => {
+    const lobsterHeight = 60;
+    const shortSeabedCanvasH = 400;
+    const factory = makeFactory(new Size(lobsterHeight, 225));
+    const spawner = new FishSpawner(makeGame(CANVAS_W, shortSeabedCanvasH), {}, factory, {
+      rng: () => 1,
+      preseedPerLane: FISH_TRAFFIC_COOLDOWN_READY,
+    });
+    const lobsterDef = FISH_DEFINITIONS.find(def => def.id === ENEMY_TYPE_LOBSTER);
+
+    const enemy = spawner._createTrafficEnemy(
+      lobsterDef,
+      FISH_LANE_BOTTOM,
+      FISH_LANES[FISH_LANE_BOTTOM],
+      false
+    );
+
+    expect(enemy._position.getY()).toBe(shortSeabedCanvasH - lobsterHeight);
   });
 
   test('does not spawn another crab while one is already active', () => {

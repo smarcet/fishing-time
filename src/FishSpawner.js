@@ -188,15 +188,19 @@ class FishSpawner {
 
   _applyTrafficState(enemy, spec, laneName, laneDef, seeded) {
     const gameWidth = this._game.getSize().getWidth();
+    const gameHeight = this._game.getSize().getHeight();
     const enemyWidth = enemy.getSize().getWidth();
+    const enemyHeight = enemy.getSize().getHeight();
     const direction = laneDef.direction;
     const speed = this._randomSpeed(spec);
+    const offsetY = Number.isFinite(spec.trafficOffsetY) ? spec.trafficOffsetY : 0;
+    const maxY = Math.max(FISH_TRAFFIC_COOLDOWN_READY, gameHeight - enemyHeight);
 
     enemy._trafficLane = laneName;
     enemy._trafficType = spec.id;
     enemy._position = new Point(
       seeded ? this._seededX(gameWidth, enemyWidth) : this._spawnX(direction, gameWidth, enemyWidth),
-      this._laneY(laneDef, enemy)
+      Math.min(maxY, Math.max(FISH_TRAFFIC_COOLDOWN_READY, this._laneY(laneDef, enemy) + offsetY))
     );
     enemy._direction = direction;
     enemy._driftSpeed = speed;
