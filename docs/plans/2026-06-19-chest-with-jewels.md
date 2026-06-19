@@ -3,8 +3,8 @@
 Created: 2026-06-19
 Author: smarcet@gmail.com
 Agent: Claude Code
-Status: PENDING
-Approved: No
+Status: VERIFIED
+Approved: Yes
 Iterations: 0
 Worktree: No
 Type: Feature
@@ -88,12 +88,39 @@ entries):
 },
 ```
 
-Add the guaranteed-spawn cadence to **BOTH** profiles (mirror the Lobster keys
-already present in `GAMEPLAY_PROFILE_DESKTOP` and `GAMEPLAY_PROFILE_MOBILE`):
+Add the guaranteed-spawn cadence to **BOTH** profiles. Use the complete
+replacement literals (the `Object.freeze({…})` is replaced wholesale):
+
+**GAMEPLAY_PROFILE_DESKTOP** (currently only has Lobster, add chest):
 ```js
-guaranteedSpeciesIntervals:      { ..., [ENEMY_TYPE_CHEST_WITH_JEWELS]: 1800 },  // 30s
-guaranteedSpeciesInitialOffsets: { ..., [ENEMY_TYPE_CHEST_WITH_JEWELS]: 900  },  // first appears ~15s in
+guaranteedSpeciesIntervals: Object.freeze({ [ENEMY_TYPE_LOBSTER]: 3600, [ENEMY_TYPE_CHEST_WITH_JEWELS]: 1800 }),
+guaranteedSpeciesInitialOffsets: Object.freeze({ [ENEMY_TYPE_LOBSTER]: 1800, [ENEMY_TYPE_CHEST_WITH_JEWELS]: 900 }),
 ```
+
+**GAMEPLAY_PROFILE_MOBILE** (currently has Crab/HammerheadShark/Shark/Lobster, add chest):
+```js
+guaranteedSpeciesIntervals: Object.freeze({
+  [ENEMY_TYPE_CRAB]: 600,
+  [ENEMY_TYPE_HAMMERHEAD_SHARK]: 1200,
+  [ENEMY_TYPE_SHARK]: 1200,
+  [ENEMY_TYPE_LOBSTER]: 3600,
+  [ENEMY_TYPE_CHEST_WITH_JEWELS]: 1800,
+}),
+guaranteedSpeciesInitialOffsets: Object.freeze({
+  [ENEMY_TYPE_CRAB]: 600,
+  [ENEMY_TYPE_HAMMERHEAD_SHARK]: 300,
+  [ENEMY_TYPE_SHARK]: 900,
+  [ENEMY_TYPE_LOBSTER]: 1800,
+  [ENEMY_TYPE_CHEST_WITH_JEWELS]: 900,
+}),
+```
+
+**Note on dual-1800:** `spawnFrequency: 1800` is a per-species cooldown floor
+(the weighted spawner won't spawn the chest more often than every 30s). The
+`guaranteedSpeciesIntervals: 1800` is a *separate* profile-level forcing function
+that guarantees at least one spawn every 30s regardless of random weighting. At
+`spawnWeight: 1` among many species, the random spawner alone would rarely
+schedule the chest; the guaranteed path is the practical delivery mechanism.
 
 Add the three new constants to the `module.exports` block at the bottom of the file.
 
@@ -116,6 +143,10 @@ class ChestWithJewels extends InertObject {
     // bob fields as in Clock
   }
   static create(game, ctx, spec) {
+    // WATER_SURFACE_Y is a test-only fallback — FishSpawner overrides Y from
+    // the lane range at runtime, so the chest appears at the bottom lane in
+    // production. This mirrors the pattern used by Clock/Wheel; all InertObjects
+    // share the same create() Y fallback.
     return new ChestWithJewels(
       game, ctx, spec.size,
       new Point(Enemy.randomSpawnX(game.getSize().getWidth(), spec.size.getWidth()), WATER_SURFACE_Y),
@@ -135,7 +166,7 @@ Register in two places:
 
 ### Task 3 — Asset rename + HTML wiring + CSS hide
 
-- **Rename sprite (git-tracked):** `git mv images/items/chest._with_jewels.png images/items/chest_with_jewels.png` (requires user git permission at implementation time).
+- **Rename sprite (git-tracked):** `git mv images/items/chest._with_jewels.png images/items/chest_with_jewels.png`. This is a git write command and requires permission. Implementation will request it; if denied, the user should run it manually before the browser step so the `<img src>` resolves. The HTML tag and CSS hide rule use the post-rename name `chest_with_jewels.png` / `chest_with_jewels_sprite` regardless.
 - **`index.html`** (the real entry point — `main.html` does not exist):
   - Add `<img src="images/items/chest_with_jewels.png" id="chest_with_jewels_sprite" class="sprite-image" alt=""/>` next to the other item img tags (lines ~76-80).
   - Add `<script src="src/ChestWithJewels.js"></script>` **before** `src/EnemyFactory.js` (script tag ~line 52), next to the other InertObject subclass scripts (~lines 29-33).
@@ -147,7 +178,8 @@ Register in two places:
   - `getFightSpec() === null` (it's an InertObject — instant grab, no fight).
   - `instanceof InertObject`.
   - `update()` advances x-position by the drift each tick (constructor fallback 7.0; assert direction + magnitude as Clock's test does with `toBeCloseTo`).
-  - `EnemyFactory.createEnemy('chest_with_jewels', ...)` returns a `ChestWithJewels` instance.
+  - `EnemyFactory.createEnemy('chest_with_jewels', ...)` returns a `ChestWithJewels` instance (verifies registry entry — a missing registry key causes `createEnemy` to silently return `null`).
+  - `FISH_SCORE_MAP['ChestWithJewels'] === 10000` — verifies the automatic score wiring chain: FISH_DEFINITIONS className → FISH_SCORE_MAP key → capture event `constructor.name`. A className typo silently produces score 0 with no error.
   - `isOffScreen()` true when fully outside canvas bounds.
 - **`docs/adr/0036-chest-with-jewels-treasure.md`** — document: InertObject (no fight) vs CatchableFish choice; score 10000; epic rarity; bottom lane; speed 7.0 (ties Lobster, "muy muy rápida"); 30s guaranteed interval in both profiles with 900-tick initial offset; sprite hidden in `main.css`; asset rename. Follow the ADR-0035 section format (Date, Status, Context, Decisions, Alternatives Considered). Confirm 0036 is the next free number before writing.
 
@@ -160,16 +192,17 @@ Register in two places:
 ## Verification
 
 1. **Unit tests:** `npx jest __tests__/chestWithJewels.test.js` then full `npm test` (0 failures — fix any regression, per zero-tolerance rule).
-2. **Module load smoke:** `node -e "require('./index.js'); console.log(typeof ChestWithJewels)"` → `function` (proves index.js registration + every source file's CommonJS export).
-3. **Factory smoke:** confirm `EnemyFactory.createEnemy('chest_with_jewels', …)` returns a non-null `ChestWithJewels` (covered by the test; also exercise via node REPL if needed).
-4. **Browser E2E** (mandatory for UI per project rules): `python3 -m http.server 8081` → open `http://localhost:8081/index.html`, play until a chest spawns in the bottom lane (guaranteed ≤30s, first ~15s), hook it, and confirm score jumps by +10000. Verify the standalone `#chest_with_jewels_sprite` `<img>` is hidden (CSS rule), while the in-canvas chest renders. Use a browser-automation tier (Chrome MCP / DevTools MCP / playwright-cli) for the snapshot→interact→re-snapshot evidence.
-5. **Asset check:** confirm `images/items/chest_with_jewels.png` exists post-rename and the old dotted name is gone; the `<img src>` resolves (no 404 in the network panel).
+2. **Registry grep:** `grep -n 'chest_with_jewels' src/EnemyFactory.js` must return a line inside `_registry`. A missing registry entry causes `createEnemy` to return `null` silently; this grep is the zero-cost sanity check before running tests.
+3. **Module load smoke:** `node -e "require('./index.js'); console.log(typeof ChestWithJewels)"` → `function` (proves index.js registration + every source file's CommonJS export).
+4. **Factory smoke:** confirm `EnemyFactory.createEnemy('chest_with_jewels', …)` returns a non-null `ChestWithJewels` (covered by the test; also exercise via node REPL if needed).
+5. **Browser E2E** (mandatory for UI per project rules): `python3 -m http.server 8081` → open `http://localhost:8081/index.html`, play until a chest spawns in the bottom lane (guaranteed ≤30s, first ~15s), hook it, and confirm score jumps by +10000. Verify the standalone `#chest_with_jewels_sprite` `<img>` is hidden (CSS rule), while the in-canvas chest renders. Use a browser-automation tier (Chrome MCP / DevTools MCP / playwright-cli) for the snapshot→interact→re-snapshot evidence.
+6. **Asset check:** confirm `images/items/chest_with_jewels.png` exists post-rename and the old dotted name is gone; the `<img src>` resolves (no 404 in the network panel).
 
 ## Progress Tracking
 
-Total: 4 | Done: 0 | Left: 4
+Total: 4 | Done: 4 | Left: 0
 
-- [ ] Task 1 — constants.js: constants + InertObject FISH_DEFINITIONS entry + guaranteed cadence in both profiles + exports
-- [ ] Task 2 — ChestWithJewels.js class + index.js + EnemyFactory._registry registration
-- [ ] Task 3 — git mv sprite rename + index.html img/script + main.css hide rule
-- [ ] Task 4 — chestWithJewels.test.js + ADR 0036
+- [x] Task 1 — constants.js: constants + InertObject FISH_DEFINITIONS entry + guaranteed cadence in both profiles + exports
+- [x] Task 2 — ChestWithJewels.js class + index.js + EnemyFactory._registry registration
+- [x] Task 3 — git mv sprite rename + index.html img/script + main.css hide rule
+- [x] Task 4 — chestWithJewels.test.js + ADR 0036

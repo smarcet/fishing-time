@@ -28,7 +28,8 @@ const WATER_SURFACE_Y = 300;  // px - y of the water surface; entities spawn at 
 
 const CRAB_DRIFT_SPEED       = 4.0;   // px/tick - 2.5x fish speed, hardest enemy to catch
 const CRAB_SEABED_FACTOR     = 0.85;  // canvas-height fraction for spawn Y (seabed)
-const LOBSTER_DRIFT_SPEED    = 7.0;   // px/tick - fastest in game (swordfish=4.5, crab=4.0)
+const LOBSTER_DRIFT_SPEED           = 7.0;   // px/tick - fastest in game (swordfish=4.5, crab=4.0)
+const CHEST_WITH_JEWELS_DRIFT_SPEED = 7.0;   // px/tick - ties Lobster (muy muy rápida)
 const LOBSTER_TRAFFIC_OFFSET_Y = 24;  // px - keeps the small lobster close to the seabed
 const OCTOPUS_SPAWN_Y_FACTOR = 0.65;  // canvas-height fraction for spawn Y (mid-deep)
 // Premium catch highlight (PremiumCatchableFish) - rim glint + sparkles, gold/amber, no shadowBlur
@@ -126,6 +127,7 @@ const ENEMY_TYPE_WHEEL             = 'wheel';
 const ENEMY_TYPE_PUFFER_FISH       = 'puffer_fish';
 const ENEMY_TYPE_SHOE              = 'shoe';
 const ENEMY_TYPE_FISH_BONE         = 'fish_bone';
+const ENEMY_TYPE_CHEST_WITH_JEWELS = 'chest_with_jewels';
 const ENEMY_TYPE_CLOCK             = 'clock';
 const ENEMY_TYPE_LOBSTER           = 'lobster';
 
@@ -157,6 +159,7 @@ const FISH_CLASS_WHEEL            = 'Wheel';
 const FISH_CLASS_PUFFER_FISH      = 'PufferFish';
 const FISH_CLASS_SHOE             = 'Shoe';
 const FISH_CLASS_FISH_BONE        = 'FishBone';
+const FISH_CLASS_CHEST_WITH_JEWELS = 'ChestWithJewels';
 const FISH_CLASS_CLOCK            = 'Clock';
 const FISH_CLASS_LOBSTER          = 'Lobster';
 const CLOCK_TIME_BONUS_SECONDS    = 10;
@@ -226,8 +229,8 @@ const FISH_DEFINITIONS = [
     escapeRate: 1.0,
     speedMin: 0.5,
     speedMax: JELLY_FISH_DRIFT_SPEED,
-    spawnWeight: 8,
-    spawnFrequency: 90,
+    spawnWeight: 3,
+    spawnFrequency: 750,
     captureRotation: 75,
     captureOffsetX: 0,
     captureOffsetY: 0,
@@ -272,8 +275,8 @@ const FISH_DEFINITIONS = [
     escapeRate: 0,
     speedMin: 0.4,
     speedMax: DRIFT_SPEED_SLOW,
-    spawnWeight: 6,
-    spawnFrequency: 120,
+    spawnWeight: 2,
+    spawnFrequency: 900,
     captureRotation: 0,
     captureOffsetX: 0,
     captureOffsetY: 0,
@@ -291,8 +294,8 @@ const FISH_DEFINITIONS = [
     escapeRate: 0,
     speedMin: 0.4,
     speedMax: DRIFT_SPEED_SLOW,
-    spawnWeight: 6,
-    spawnFrequency: 120,
+    spawnWeight: 2,
+    spawnFrequency: 1200,
     captureRotation: 0,
     captureOffsetX: 0,
     captureOffsetY: 0,
@@ -310,8 +313,8 @@ const FISH_DEFINITIONS = [
     escapeRate: 0,
     speedMin: 0.4,
     speedMax: DRIFT_SPEED_SLOW,
-    spawnWeight: 5,
-    spawnFrequency: 150,
+    spawnWeight: 2,
+    spawnFrequency: 800,
     captureRotation: 0,
     captureOffsetX: 0,
     captureOffsetY: 0,
@@ -329,8 +332,8 @@ const FISH_DEFINITIONS = [
     escapeRate: 0,
     speedMin: 0.4,
     speedMax: DRIFT_SPEED_SLOW,
-    spawnWeight: 4,
-    spawnFrequency: 180,
+    spawnWeight: 2,
+    spawnFrequency: 800,
     captureRotation: 0,
     captureOffsetX: 0,
     captureOffsetY: 0,
@@ -348,8 +351,8 @@ const FISH_DEFINITIONS = [
     escapeRate: 0,
     speedMin: 0.4,
     speedMax: DRIFT_SPEED_SLOW,
-    spawnWeight: 4,
-    spawnFrequency: 180,
+    spawnWeight: 2,
+    spawnFrequency: 800,
     captureRotation: 0,
     captureOffsetX: 0,
     captureOffsetY: 0,
@@ -361,14 +364,14 @@ const FISH_DEFINITIONS = [
     displayH: 85,  displayW: 110,
     maxFrames: 1,
     rarity: FISH_RARITY_UNCOMMON,
-    lanes: [FISH_LANE_SURFACE, FISH_LANE_UPPER, FISH_LANE_MIDDLE],
+    lanes: [FISH_LANE_SURFACE],
     score: 50,
     strength: 0,
     escapeRate: 0,
     speedMin: 0.4,
     speedMax: DRIFT_SPEED_SLOW,
-    spawnWeight: 3,
-    spawnFrequency: 150,
+    spawnWeight: 2,
+    spawnFrequency: 1200,
     captureRotation: 0,
     captureOffsetX: 0,
     captureOffsetY: 0,
@@ -592,6 +595,26 @@ const FISH_DEFINITIONS = [
     struggleRotationAmplitude: 12,
     struggleOffsetAmplitude: 5,
   },
+  {
+    id:        ENEMY_TYPE_CHEST_WITH_JEWELS,
+    className: FISH_CLASS_CHEST_WITH_JEWELS,
+    domId:     'chest_with_jewels_sprite',
+    displayH:  138,  displayW: 206,
+    maxFrames: 1,
+    rarity:         FISH_RARITY_EPIC,
+    lanes:          [FISH_LANE_BOTTOM],
+    score:          10000,
+    strength:       0,
+    escapeRate:     0,
+    speedMin:       5.0,
+    speedMax:       CHEST_WITH_JEWELS_DRIFT_SPEED,
+    spawnWeight:    1,
+    spawnFrequency: 1800,
+    maxActive:      FISH_TRAFFIC_MAX_ACTIVE_ONE,
+    captureRotation: 0,
+    captureOffsetX:  0,
+    captureOffsetY:  0,
+  },
 ];
 
 
@@ -634,8 +657,8 @@ const GAMEPLAY_PROFILE_DESKTOP = Object.freeze({
   maxActiveTraffic: Infinity,
   maxActiveLargeFish: Infinity,
   speciesCooldownMultipliers: Object.freeze({}),
-  guaranteedSpeciesIntervals: Object.freeze({ [ENEMY_TYPE_LOBSTER]: 3600 }),
-  guaranteedSpeciesInitialOffsets: Object.freeze({ [ENEMY_TYPE_LOBSTER]: 1800 }),
+  guaranteedSpeciesIntervals: Object.freeze({ [ENEMY_TYPE_LOBSTER]: 3600, [ENEMY_TYPE_CHEST_WITH_JEWELS]: 1800 }),
+  guaranteedSpeciesInitialOffsets: Object.freeze({ [ENEMY_TYPE_LOBSTER]: 1800, [ENEMY_TYPE_CHEST_WITH_JEWELS]: 900 }),
 });
 
 const GAMEPLAY_PROFILE_MOBILE = Object.freeze({
@@ -667,12 +690,14 @@ const GAMEPLAY_PROFILE_MOBILE = Object.freeze({
     [ENEMY_TYPE_HAMMERHEAD_SHARK]: 1200,
     [ENEMY_TYPE_SHARK]: 1200,
     [ENEMY_TYPE_LOBSTER]: 3600,
+    [ENEMY_TYPE_CHEST_WITH_JEWELS]: 1800,
   }),
   guaranteedSpeciesInitialOffsets: Object.freeze({
     [ENEMY_TYPE_CRAB]: 600,
     [ENEMY_TYPE_HAMMERHEAD_SHARK]: 300,
     [ENEMY_TYPE_SHARK]: 900,
     [ENEMY_TYPE_LOBSTER]: 1800,
+    [ENEMY_TYPE_CHEST_WITH_JEWELS]: 900,
   }),
 });
 
@@ -693,7 +718,7 @@ if (typeof module !== 'undefined' && module.exports) {
     HOOK_REEL_SPEED, HOOK_CATCH_REEL_SPEED, HOOK_MAX_DEPTH_FACTOR,
     WATER_SURFACE_Y,
     CRAB_DRIFT_SPEED, CRAB_SEABED_FACTOR, OCTOPUS_SPAWN_Y_FACTOR,
-    LOBSTER_DRIFT_SPEED, LOBSTER_TRAFFIC_OFFSET_Y,
+    LOBSTER_DRIFT_SPEED, LOBSTER_TRAFFIC_OFFSET_Y, CHEST_WITH_JEWELS_DRIFT_SPEED,
     PREMIUM_PULSE_SPEED,
     PREMIUM_GLINT_COLOR_CORE, PREMIUM_GLINT_COLOR_EDGE,
     PREMIUM_GLINT_RADIUS_FACTOR, PREMIUM_GLINT_ALPHA_MIN, PREMIUM_GLINT_ALPHA_MAX,
@@ -708,14 +733,14 @@ if (typeof module !== 'undefined' && module.exports) {
     HOOK_STRUGGLE_REEL_POWER, HOOK_STRUGGLE_MAX_ESCAPE, HOOK_REEL_DISTANCE_PER_PRESS, STRUGGLE_DANGER_FACTOR, STRUGGLE_DANGER_SPEED_FACTOR,
     HOOK_STATUS_IDLE, HOOK_STATUS_CAST, HOOK_STATUS_HOOKED, HOOK_STATUS_RETRIEVING_EMPTY, HOOK_STATUS_CAPTURE_LAUNCH,
     CAPTURE_LAUNCH_DURATION_MS, CAPTURE_POOF_COLOR, CAPTURE_LAUNCH_GLOW_COLOR,
-    ENEMY_TYPE_BUTTERFLY_FISH, ENEMY_TYPE_LION_FISH, ENEMY_TYPE_HAMMERHEAD_SHARK, ENEMY_TYPE_SWORDFISH, ENEMY_TYPE_TUNA, ENEMY_TYPE_CLOWN_FISH, ENEMY_TYPE_DISCARDED_BOTTLE, ENEMY_TYPE_OCTOPUS, ENEMY_TYPE_CRAB, ENEMY_TYPE_SHARK, ENEMY_TYPE_RED_APPLE, ENEMY_TYPE_JELLY_FISH, ENEMY_TYPE_WHEEL, ENEMY_TYPE_PUFFER_FISH, ENEMY_TYPE_SHOE, ENEMY_TYPE_FISH_BONE, ENEMY_TYPE_CLOCK, ENEMY_TYPE_LOBSTER,
+    ENEMY_TYPE_BUTTERFLY_FISH, ENEMY_TYPE_LION_FISH, ENEMY_TYPE_HAMMERHEAD_SHARK, ENEMY_TYPE_SWORDFISH, ENEMY_TYPE_TUNA, ENEMY_TYPE_CLOWN_FISH, ENEMY_TYPE_DISCARDED_BOTTLE, ENEMY_TYPE_OCTOPUS, ENEMY_TYPE_CRAB, ENEMY_TYPE_SHARK, ENEMY_TYPE_RED_APPLE, ENEMY_TYPE_JELLY_FISH, ENEMY_TYPE_WHEEL, ENEMY_TYPE_PUFFER_FISH, ENEMY_TYPE_SHOE, ENEMY_TYPE_FISH_BONE, ENEMY_TYPE_CHEST_WITH_JEWELS, ENEMY_TYPE_CLOCK, ENEMY_TYPE_LOBSTER,
     FISH_RARITY_COMMON, FISH_RARITY_UNCOMMON, FISH_RARITY_RARE, FISH_RARITY_EPIC, FISH_RARITY_LEGENDARY,
     FISH_LANE_SURFACE, FISH_LANE_UPPER, FISH_LANE_MIDDLE, FISH_LANE_DEEP, FISH_LANE_BOTTOM,
     FISH_CLASS_BUTTERFLY_FISH, FISH_CLASS_LION_FISH, FISH_CLASS_HAMMERHEAD_SHARK,
     FISH_CLASS_SWORDFISH, FISH_CLASS_TUNA, FISH_CLASS_CLOWN_FISH,
     FISH_CLASS_DISCARDED_BOTTLE, FISH_CLASS_OCTOPUS, FISH_CLASS_CRAB,
     FISH_CLASS_SHARK, FISH_CLASS_RED_APPLE, FISH_CLASS_JELLY_FISH,
-    FISH_CLASS_WHEEL, FISH_CLASS_PUFFER_FISH, FISH_CLASS_SHOE, FISH_CLASS_FISH_BONE, FISH_CLASS_CLOCK, FISH_CLASS_LOBSTER,
+    FISH_CLASS_WHEEL, FISH_CLASS_PUFFER_FISH, FISH_CLASS_SHOE, FISH_CLASS_FISH_BONE, FISH_CLASS_CHEST_WITH_JEWELS, FISH_CLASS_CLOCK, FISH_CLASS_LOBSTER,
     CLOCK_TIME_BONUS_SECONDS,
     FISH_TRAFFIC_DIRECTION_RIGHT, FISH_TRAFFIC_DIRECTION_LEFT,
     FISH_TRAFFIC_DEFAULT_PRESEED_PER_LANE, FISH_TRAFFIC_SEED_X_MIN_FACTOR,

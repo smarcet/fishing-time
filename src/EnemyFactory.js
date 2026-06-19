@@ -20,6 +20,7 @@ class EnemyFactory {
       [ENEMY_TYPE_WHEEL]:            Wheel,
       [ENEMY_TYPE_SHOE]:             Shoe,
       [ENEMY_TYPE_FISH_BONE]:        FishBone,
+      [ENEMY_TYPE_CHEST_WITH_JEWELS]: ChestWithJewels,
       [ENEMY_TYPE_CLOCK]:            Clock,
     };
     this.specs = {};
