@@ -16,6 +16,7 @@ class EnemyFactory {
       [ENEMY_TYPE_HAMMERHEAD_SHARK]: HammerHeadShark,
       [ENEMY_TYPE_SWORDFISH]:        SwordFish,
       [ENEMY_TYPE_BARRACUDA]:        Barracuda,
+      [ENEMY_TYPE_SQUID]:            Squid,
       [ENEMY_TYPE_TUNA]:             Tuna,
       [ENEMY_TYPE_DISCARDED_BOTTLE]: DiscardedBottle,
       [ENEMY_TYPE_RED_APPLE]:        RedApple,

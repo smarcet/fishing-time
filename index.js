@@ -32,6 +32,7 @@ if (typeof module !== 'undefined' && module.exports) {
   const { HammerHeadShark }   = require('./src/HammerHeadShark');   global.HammerHeadShark   = HammerHeadShark;
   const { SwordFish }         = require('./src/SwordFish');         global.SwordFish         = SwordFish;
   const { Barracuda }         = require('./src/Barracuda');         global.Barracuda         = Barracuda;
+  const { Squid }             = require('./src/Squid');             global.Squid             = Squid;
   const { Tuna }               = require('./src/Tuna');               global.Tuna               = Tuna;
   const { ClownFish }          = require('./src/ClownFish');          global.ClownFish          = ClownFish;
   const { JellyFish }         = require('./src/JellyFish');         global.JellyFish         = JellyFish;
@@ -48,5 +49,5 @@ if (typeof module !== 'undefined' && module.exports) {
   const { Player }             = require('./src/Player');             global.Player             = Player;
   const { Bubble }             = require('./src/Bubble');             global.Bubble             = Bubble;
   const { FishSpawner }        = require('./src/FishSpawner');        global.FishSpawner        = FishSpawner;
-  module.exports = { Size, Point, GameObject, InputSystem, KeyboardInputSystem, TouchInputSystem, InputHandler, MobileSystem, E2ETestHarness, Enemy, EnemyWithAnimation, CatchableFish, PremiumCatchableFish, InertObject, DiscardedBottle, RedApple, Wheel, Shoe, FishBone, Clock, ChestWithJewels, Octopus, Crab, Lobster, AnglerFlish, ButterflyFish, LionFish, HammerHeadShark, SwordFish, Barracuda, Tuna, ClownFish, JellyFish, PufferFish, Shark, ScoreSystem, SCORE_MAP, ReelPowerBar, TimerSystem, AudioSystem, CaptureLaunchAnimation, CapturePoofAnimation, EscapeExplosionAnimation, Hook, Player, Bubble, FishSpawner };
+  module.exports = { Size, Point, GameObject, InputSystem, KeyboardInputSystem, TouchInputSystem, InputHandler, MobileSystem, E2ETestHarness, Enemy, EnemyWithAnimation, CatchableFish, PremiumCatchableFish, InertObject, DiscardedBottle, RedApple, Wheel, Shoe, FishBone, Clock, ChestWithJewels, Octopus, Crab, Lobster, AnglerFlish, ButterflyFish, LionFish, HammerHeadShark, SwordFish, Barracuda, Squid, Tuna, ClownFish, JellyFish, PufferFish, Shark, ScoreSystem, SCORE_MAP, ReelPowerBar, TimerSystem, AudioSystem, CaptureLaunchAnimation, CapturePoofAnimation, EscapeExplosionAnimation, Hook, Player, Bubble, FishSpawner };
 }
